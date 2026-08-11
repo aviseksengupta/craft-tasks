@@ -453,13 +453,29 @@ h1, h2, h3 { font-weight: 600; }
   body { font-size: 14px; }
   .task-title { font-size: 14.5px; }
   .task-tag, .date-badge, .done-note { font-size: 11px; }
-  .chip { font-size: 12px; }
+  .chip { font-size: 13px; }
   .group-head .g-title { font-size: 16px; }
   .doc-card-title { font-size: 17px; }
   .doc-card-sub { font-size: 12px; }
   .stat-tile .n { font-size: 20px; }
-  .bn-tab { font-size: 11px; }
-  .sidebar-item { font-size: 13px; }
+  .bn-tab { font-size: 12px; }
+  .sidebar-item { font-size: 15px; }
+
+  /* Bigger icons in the menu (full-screen sidebar) and the two toolbars
+     (bottom tab bar, filter chip row) — Icon renders an SVG with explicit
+     width/height attributes, but those are presentation attributes, so a
+     CSS width/height here overrides them (the viewBox keeps the artwork
+     scaling proportionally). Sized per context rather than one blanket
+     rule since the bottom nav icons are the largest/most-tapped target,
+     filter chips are mid-sized inline with their own text, and the menu's
+     row icons should roughly match its now-larger row text. */
+  .sidebar-item .glyph svg, .sidebar-title svg { width: 15px; height: 15px; }
+  .sidebar-head .icon-btn svg { width: 15px; height: 15px; }
+  .sidebar-close svg { width: 17px; height: 17px; }
+  .new-task-btn svg { width: 16px; height: 16px; }
+  .search-box svg { width: 13px; height: 13px; }
+  .chip-icon svg { width: 13px; height: 13px; }
+  .bn-tab svg { width: 22px; height: 22px; }
 
   .list-scroll, .dash-scroll { padding-bottom: calc(env(safe-area-inset-bottom) + 84px); }
   .list-scroll { padding-left: 12px; padding-right: 12px; padding-top: 12px; }
