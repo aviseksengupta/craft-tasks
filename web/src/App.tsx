@@ -9,6 +9,36 @@ import { DashboardView } from './DashboardView'
 import { SettingsModal, AddTaskModal } from './modals'
 import { Icon } from './ui'
 
+/** Sets --app-height from a JS-measured window.innerHeight, kept fresh on
+ * resize/orientation/pageshow. A standalone (home-screen-launched) iOS PWA
+ * can report viewport metrics to CSS (100vh/dvh, and even position:fixed's
+ * own inset:0 sizing) that don't match the real screen — a well-known
+ * WebKit quirk specific to that launch mode, distinct from and on top of
+ * ordinary browser-tab rendering (which is what a desktop browser or a
+ * regular Safari tab actually exercises, so it can look fine there and
+ * still be wrong once added to the home screen). window.innerHeight is a
+ * plain runtime measurement, not a CSS calculation, so it sidesteps
+ * whatever's wrong with the CSS side specifically. */
+function useAppHeight() {
+  useEffect(() => {
+    const set = () => {
+      const h = window.visualViewport?.height ?? window.innerHeight
+      document.documentElement.style.setProperty('--app-height', `${h}px`)
+    }
+    set()
+    window.addEventListener('resize', set)
+    window.addEventListener('orientationchange', set)
+    window.addEventListener('pageshow', set)
+    window.visualViewport?.addEventListener('resize', set)
+    return () => {
+      window.removeEventListener('resize', set)
+      window.removeEventListener('orientationchange', set)
+      window.removeEventListener('pageshow', set)
+      window.visualViewport?.removeEventListener('resize', set)
+    }
+  }, [])
+}
+
 function Root() {
   const store = useStore()
   const [section, setSection] = useState<Section>({ kind: 'home' })
@@ -16,6 +46,7 @@ function Root() {
   const [showSettings, setShowSettings] = useState(false)
   const [showAddTask, setShowAddTask] = useState(false)
   const [booted, setBooted] = useState(false)
+  useAppHeight()
 
   useEffect(() => {
     if (!booted && store.configured) {

@@ -43,14 +43,21 @@ input:focus, textarea:focus { border-color: var(--text-faint); }
 ::placeholder { color: var(--text-faint); }
 h1, h2, h3 { font-weight: 600; }
 
-/* position:fixed + inset:0 instead of height:100dvh — iOS Safari's
-   collapsing toolbar makes dvh/vh unreliable on first paint (observed:
-   the app rendering shorter than the real visual viewport, leaving a gap
-   of bare `body` below the bottom nav). A fixed, inset-anchored box is
-   pinned directly to the actual visual viewport by the browser, the same
-   way .sidebar/.bottom-nav/.fab already are on mobile — no height math
-   to get wrong. */
-.app { position: fixed; inset: 0; display: flex; overflow: hidden; }
+/* Explicit height from --app-height (set in App.tsx via window.innerHeight,
+   a plain runtime measurement) rather than inset:0/vh/dvh — a standalone
+   (home-screen-launched) iOS PWA has been observed to report viewport
+   metrics to CSS that don't match the real screen, a WebKit quirk
+   specific to that launch mode: neither 100dvh nor position:fixed;inset:0
+   (which should be immune to CSS-unit issues in theory) fully avoided a
+   gap the size of the missing browser chrome once actually installed —
+   this only showed up added-to-home-screen, not in a regular browser tab.
+   --app-height falls back to 100vh before the effect runs (first paint /
+   no-JS). */
+.app {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 100vh; height: var(--app-height, 100vh);
+  display: flex; overflow: hidden;
+}
 .main { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; border-left: 1px solid var(--stroke); }
 
 /* ---- Sidebar ---- */
