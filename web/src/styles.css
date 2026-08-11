@@ -416,7 +416,23 @@ h1, h2, h3 { font-weight: 600; }
      their width (align-items:stretch handles the cross axis regardless
      of flex-grow/shrink/basis), so removing flex:1 from them to let their
      height flow naturally was fine and stays removed. */
-  .list-scroll, .dash-scroll { flex: none; min-height: 0; overflow: visible; }
+  .list-scroll { flex: none; min-height: 0; overflow: visible; }
+  /* Dashboards lay widgets out on a fixed-size pixel canvas (packFrames in
+     DashboardView.tsx) that's routinely wider than the viewport — unlike
+     .list-scroll's content, it doesn't reflow to fit, so it needs its own
+     horizontal scroll rather than natural page flow. overflow-x:auto here
+     (not the clip/visible pairing used on html/body above) is deliberate:
+     .dash-scroll isn't an ancestor of anything position:sticky, so the
+     axis-pairing rule turning its own overflow-y:visible into auto is
+     harmless — .dash-canvas is position:relative (in-flow) and sized by
+     its own inline width/height, so .dash-scroll's height still comes
+     from its content naturally; it just never has vertical overflow to
+     trigger that auto. */
+  .dash-scroll { flex: none; min-height: 0; overflow-x: auto; overflow-y: visible; -webkit-overflow-scrolling: touch; }
+  /* Same reasoning for kanban columns: fixed-width .kanban-col children
+     (styles.css ~L157) don't wrap, so the row needs to scroll sideways
+     instead of overflowing the page. */
+  .kanban-row { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
   /* The header/filter-bar block stays visible while the list scrolls
      past underneath — position:sticky needs no ancestor height math at
