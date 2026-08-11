@@ -250,21 +250,38 @@ export function EditTaskModal({ task, onClose }: { task: CraftTask; onClose: () 
 
 // ---- Settings (Craft URL + Gist token) ----
 
+/** Unregisters the service worker and clears its caches before reloading —
+ * a plain reload can still be served the old cached app shell by a
+ * service worker that hasn't finished checking for an update yet. This
+ * guarantees the next load is genuinely fresh, which matters because
+ * there's no easy manual "clear cache" gesture for an installed iOS PWA. */
+async function forceRefresh() {
+  try {
+    const regs = await navigator.serviceWorker?.getRegistrations?.() ?? []
+    await Promise.all(regs.map(r => r.unregister()))
+    const cacheNames = await caches?.keys?.() ?? []
+    await Promise.all(cacheNames.map(n => caches.delete(n)))
+  } catch {
+    // best-effort — still reload even if SW/cache APIs are unavailable
+  }
+  window.location.reload()
+}
+
 export function SettingsModal({ onClose, forced, heightOffset, onAdjustHeightOffset }: {
   onClose: () => void; forced?: boolean
   heightOffset?: number; onAdjustHeightOffset?: (delta: number) => void
 }) {
-  const store = useStore()
   const [url, setUrl] = useState(craft.getApiBase() ?? '')
   const [token, setToken] = useState(getGistToken() ?? '')
+  const [refreshing, setRefreshing] = useState(false)
 
   const save = () => {
     const trimmed = url.trim()
     if (!trimmed) return
     craft.setApiBase(trimmed)
     setGistToken(token)
-    store.reloadSettings()
-    onClose()
+    setRefreshing(true)
+    forceRefresh()
   }
 
   return (
@@ -307,9 +324,15 @@ export function SettingsModal({ onClose, forced, heightOffset, onAdjustHeightOff
           </div>
         </div>
       )}
+      <div className="hint-text">
+        Save clears the cached app and reloads — the reliable way to force this installed PWA
+        onto the latest version, since there's no manual "clear cache" gesture on iOS.
+      </div>
       <div className="modal-actions">
-        {!forced && <button className="btn" onClick={onClose}>Cancel</button>}
-        <button className="btn primary" onClick={save} disabled={url.trim() === ''}>Save</button>
+        {!forced && <button className="btn" onClick={onClose} disabled={refreshing}>Cancel</button>}
+        <button className="btn primary" onClick={save} disabled={url.trim() === '' || refreshing}>
+          {refreshing ? 'Refreshing…' : 'Save'}
+        </button>
       </div>
     </Modal>
   )

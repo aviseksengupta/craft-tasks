@@ -46,7 +46,6 @@ interface StoreValue {
   totalPendingCount: number
   gistStatus: string | null
   configured: boolean
-  reloadSettings: () => void
 
   allTags: string[]
   documents: DocumentSummary[]
@@ -115,8 +114,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [pending, setPending] = useState<PendingUpdate[]>(() => loadJson('pendingUpdates', []))
   const [pendingCreates, setPendingCreates] = useState<PendingCreate[]>(() => loadJson('pendingCreates', []))
   const [gistStatus, setGistStatus] = useState<string | null>(null)
-  const [settingsVersion, setSettingsVersion] = useState(0)
-  const configured = useMemo(() => !!craft.getApiBase(), [settingsVersion])
+  // Settings changes always reload the page (see SettingsModal's forceRefresh),
+  // so this only needs to reflect what's true at mount — no version counter
+  // to force a re-check, unlike an in-place settings update would need.
+  const configured = !!craft.getApiBase()
 
   // refs so async flows always see current values
   const tasksRef = useRef(tasks); tasksRef.current = tasks
@@ -165,7 +166,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setGistStatus('Config loaded from Gist')
       }
     }).catch(e => setGistStatus(`Gist load failed: ${e instanceof Error ? e.message : e}`))
-  }, [settingsVersion])
+  }, [])
 
   const setShowCompleted = useCallback((b: boolean) => {
     setShowCompletedState(b); saveJson('showCompleted', b)
@@ -260,7 +261,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const onOnline = () => sync()
     window.addEventListener('online', onOnline)
     return () => { window.clearInterval(t); window.removeEventListener('online', onOnline) }
-  }, [sync, settingsVersion])
+  }, [sync])
 
   // ---- edits ----
   const applyEdit = useCallback((task: CraftTask, body: string, state: TaskState,
@@ -587,8 +588,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }))
   }, [updateConfig])
 
-  const reloadSettings = useCallback(() => setSettingsVersion(v => v + 1), [])
-
   const value: StoreValue = {
     tasks, filter, setFilter,
     savedFilters: config.filters, dashboards: config.dashboards,
@@ -597,7 +596,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     showCompleted, setShowCompleted, searchText, setSearchText,
     syncing, lastSync, lastSyncSummary, syncError,
     totalPendingCount: pending.length + pendingCreates.length,
-    gistStatus, configured, reloadSettings,
+    gistStatus, configured,
     allTags, documents, filtered, apply, group, displayName, setDisplayName,
     sync, cycleState, applyEdit, createTask,
     navigateHome, selectAllTasks, selectInbox, selectToday, selectThisWeek, selectSaved, openDocument,
