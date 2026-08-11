@@ -4,7 +4,7 @@ import {
   filterIsEmpty, newFilter,
 } from './types'
 import { useStore } from './store'
-import { Chip, MenuChip, MenuItem, Icon } from './ui'
+import { Chip, MenuChip, MenuItem, Icon, PageHeadSticky } from './ui'
 import { TaskRow } from './TaskRow'
 import { EditTaskModal, NamePrompt } from './modals'
 
@@ -51,20 +51,22 @@ export function TaskListView({ section }: { section: Section }) {
 
   return (
     <>
-      <div className="page-header">
-        <h1>{heading}</h1>
-        <span className="count">{store.filtered.length}</span>
-        <span className="spacer" />
-        <CompletedToggle />
-        {editableViewId && hasUnsavedViewChanges && (
-          <Chip text="Update view" icon="refresh" onClick={() => store.updateSavedFilter(editableViewId)} />
-        )}
-        {!editableViewId && section.kind === 'allTasks' && !filterIsEmpty(store.filter) && (
-          <Chip text="Save view" icon="plus" onClick={() => setShowSaveSheet(true)} />
-        )}
-      </div>
-      <FilterBar />
-      <div className="hairline" />
+      <PageHeadSticky>
+        <div className="page-header">
+          <h1>{heading}</h1>
+          <span className="count">{store.filtered.length}</span>
+          <span className="spacer" />
+          <CompletedToggle />
+          {editableViewId && hasUnsavedViewChanges && (
+            <Chip text="Update view" icon="refresh" onClick={() => store.updateSavedFilter(editableViewId)} />
+          )}
+          {!editableViewId && section.kind === 'allTasks' && !filterIsEmpty(store.filter) && (
+            <Chip text="Save view" icon="plus" onClick={() => setShowSaveSheet(true)} />
+          )}
+        </div>
+        <FilterBar />
+        <div className="hairline" />
+      </PageHeadSticky>
       <div className="list-scroll">
         {store.filtered.length === 0 ? (
           <div className="empty-state">

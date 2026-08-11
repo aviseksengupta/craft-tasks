@@ -43,16 +43,22 @@ input:focus, textarea:focus { border-color: var(--text-faint); }
 ::placeholder { color: var(--text-faint); }
 h1, h2, h3 { font-weight: 600; }
 
-/* Plain height:100% cascaded from html/body/#root, not position:fixed or
-   any vh/dvh/JS-measured height. Several increasingly elaborate attempts
-   at explicit sizing (100dvh, position:fixed;inset:0, a JS-measured
-   window.innerHeight custom property) all still left a gap below the
-   bottom nav once actually installed to an iOS home screen — and a
-   working counter-example PWA (no custom height logic at all) confirmed
-   this is achievable with the plain/standard approach, meaning the
-   elaborate attempts were the problem, not the fix. viewport-fit=cover in
-   index.html's meta plus safe-area-inset padding on the elements that
-   need it (bottom nav, header) is the whole mechanism needed. */
+/* height:100% cascaded from html/body/#root — no position:fixed, vh/dvh,
+   or JS-measured height for the app shell itself. Several increasingly
+   elaborate attempts at explicit sizing (100dvh, position:fixed;inset:0,
+   a JS-measured window.innerHeight custom property) all still left a gap
+   below the bottom nav once actually installed to an iOS home screen.
+   On mobile this is taken a step further (see the max-width:760px block
+   below): no vertical sizing at all, just normal document flow — the
+   page is exactly as tall as its content and scrolls like any ordinary
+   webpage, with the persistent chrome (bottom nav, FAB, full-screen
+   menu) staying put via plain position:fixed, which is viewport-anchored
+   and was never affected by any of the height bugs above regardless.
+   That leaves no height calculation anywhere in the mobile chain for a
+   future WebKit quirk to get wrong. Desktop keeps the bounded 2-pane
+   shell (sidebar + main both independently scrolling within a fixed-
+   height frame), which needs an explicit height and has never shown
+   this class of bug. */
 .app { height: 100%; display: flex; overflow: hidden; }
 .main { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; border-left: 1px solid var(--stroke); }
 
@@ -368,6 +374,58 @@ h1, h2, h3 { font-weight: 600; }
 .fab { display: none; }
 
 @media (max-width: 760px) {
+  /* No vertical sizing anywhere in this chain — html/body/#root/.app/.main
+     all revert to their natural, unconstrained height, and the page
+     scrolls exactly like any ordinary webpage (the browser's own scroll,
+     not an inner flex/overflow region). This is deliberate: every gap/
+     clipping bug hit on a real installed iOS PWA traced back to an
+     explicit height calculation (100dvh, position:fixed;inset:0, a JS-
+     measured custom property) disagreeing with the real screen in
+     standalone mode. Removing the calculation removes the class of bug —
+     there's nothing left for a WebKit viewport quirk to get wrong. The
+     persistent chrome (sidebar-as-menu, bottom nav, FAB) stays visually
+     pinned via plain position:fixed regardless of document height, which
+     was never affected by any of this to begin with. */
+  /* overflow-x: clip, never overflow-x/y: hidden|auto|scroll — a
+     position:fixed element that's also translateX()'d off-screen (the
+     closed mobile menu) still contributes to the page's horizontal
+     scrollable area even though fixed positioning normally excludes it
+     from flow, so something has to clip that axis. `clip` specifically
+     (not `hidden`) matters: CSS pairs the axes so that setting either
+     overflow-x or overflow-y to hidden/auto/scroll silently upgrades the
+     OTHER axis's `visible` to `auto` too, turning every ancestor in this
+     chain into its own scroll container — which breaks position:sticky
+     on the header below, since sticky binds to the nearest actual
+     scrolling ancestor, and an .app that's merely "auto" but never
+     actually scrolls (height:auto has nothing to overflow) isn't it.
+     `clip` doesn't establish a scroll container at all, so it doesn't
+     trigger that pairing rule — overflow-y stays genuinely `visible`,
+     letting the real page-level scroll (and sticky's binding to it)
+     work as intended. */
+  html, body, #root, .app { height: auto; overflow-x: clip; overflow-y: visible; }
+  /* .main keeps its base flex:1;min-width:0 — needed for its WIDTH (the
+     main axis of .app's row layout) to stay bound to .app's width rather
+     than growing to fit its widest descendant. An earlier version set
+     flex:none here on the reasoning that .main is .app's only in-flow
+     child on mobile so it "doesn't need" flex — wrong: flex:none resolves
+     to flex-basis:auto;flex-shrink:0, which sizes .main to its content's
+     natural width and forbids shrinking, exactly backwards from wanted,
+     and was the real cause of the horizontal-scroll/text-not-wrapping bug.
+     .list-scroll/.dash-scroll's flex value only ever affected their own
+     HEIGHT within .main's column layout (the main axis there), never
+     their width (align-items:stretch handles the cross axis regardless
+     of flex-grow/shrink/basis), so removing flex:1 from them to let their
+     height flow naturally was fine and stays removed. */
+  .list-scroll, .dash-scroll { flex: none; min-height: 0; overflow: visible; }
+
+  /* The header/filter-bar block stays visible while the list scrolls
+     past underneath — position:sticky needs no ancestor height math at
+     all, just an opaque background so scrolled content doesn't show
+     through. .page-head-sticky wraps the header (+ filter bar, where
+     present) in each view; see PageHeadSticky in TaskList.tsx/Cards.tsx/
+     DashboardView.tsx. */
+  .page-head-sticky { position: sticky; top: 0; z-index: 5; background: var(--bg); }
+
   .sidebar {
     position: fixed; inset: 0; width: 100%; z-index: 40;
     transform: translateX(-100%);

@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { CraftTask, Dashboard, DashboardWidget, TaskFilter } from './types'
 import { useStore } from './store'
-import { Chip, Icon } from './ui'
+import { Chip, Icon, PageHeadSticky } from './ui'
 import { CompletedToggle } from './TaskList'
 import { TaskRow } from './TaskRow'
 import { EditTaskModal, ViewPicker } from './modals'
@@ -67,14 +67,16 @@ export function DashboardView({ dashboardId }: { dashboardId: string }) {
 
   return (
     <>
-      <div className="page-header">
-        <h1 style={{ fontSize: 25 }}>{dashboard?.name ?? 'Dashboard'}</h1>
-        <span className="count">{widgets.length} widgets</span>
-        <span className="spacer" />
-        <CompletedToggle />
-        <Chip text="Add view" icon="plus" onClick={() => setShowAddViews(true)} />
-      </div>
-      <div className="hairline" />
+      <PageHeadSticky>
+        <div className="page-header">
+          <h1 style={{ fontSize: 25 }}>{dashboard?.name ?? 'Dashboard'}</h1>
+          <span className="count">{widgets.length} widgets</span>
+          <span className="spacer" />
+          <CompletedToggle />
+          <Chip text="Add view" icon="plus" onClick={() => setShowAddViews(true)} />
+        </div>
+        <div className="hairline" />
+      </PageHeadSticky>
       <div className="dash-scroll">
         {widgets.length === 0 ? (
           <div className="empty-state">

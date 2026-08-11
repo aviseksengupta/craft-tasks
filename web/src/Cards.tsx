@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Section, TaskFilter, scheduleDay, deadlineDay, startOfToday, stateLabel } from './types'
 import { useStore, DocumentSummary } from './store'
-import { Icon, useContextMenu } from './ui'
+import { Icon, useContextMenu, PageHeadSticky } from './ui'
 import { CompletedToggle } from './TaskList'
 import { NamePrompt } from './modals'
 
@@ -41,13 +41,15 @@ export function DocumentsView({ setSection }: { setSection: (s: Section) => void
 
   return (
     <>
-      <div className="page-header">
-        <h1 style={{ fontSize: 25 }}>Documents</h1>
-        <span className="count">{docs.length} with tasks</span>
-        <span className="spacer" />
-        <CompletedToggle />
-      </div>
-      <div className="hairline" />
+      <PageHeadSticky>
+        <div className="page-header">
+          <h1 style={{ fontSize: 25 }}>Documents</h1>
+          <span className="count">{docs.length} with tasks</span>
+          <span className="spacer" />
+          <CompletedToggle />
+        </div>
+        <div className="hairline" />
+      </PageHeadSticky>
       <div className="list-scroll" style={{ padding: 0 }}>
         <div className="cards-grid">
           {docs.map(doc => (
@@ -98,13 +100,15 @@ export function ViewsPage({ setSection }: { setSection: (s: Section) => void }) 
 
   return (
     <>
-      <div className="page-header">
-        <h1 style={{ fontSize: 25 }}>Views</h1>
-        <span className="count">{visible.length}</span>
-        <span className="spacer" />
-        <CompletedToggle />
-      </div>
-      <div className="hairline" />
+      <PageHeadSticky>
+        <div className="page-header">
+          <h1 style={{ fontSize: 25 }}>Views</h1>
+          <span className="count">{visible.length}</span>
+          <span className="spacer" />
+          <CompletedToggle />
+        </div>
+        <div className="hairline" />
+      </PageHeadSticky>
       {visible.length === 0 ? (
         <div className="empty-state">
           <div className="big"><Icon name="filterLines" size={28} /></div>

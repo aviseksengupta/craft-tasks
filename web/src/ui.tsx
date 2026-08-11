@@ -143,6 +143,15 @@ function ContextMenuOverlay({ state, close }: {
   )
 }
 
+/** Wraps a view's header (+ filter bar, where present) so it can stay
+ * pinned via CSS position:sticky while the content below it scrolls past
+ * — a plain div on desktop (no effect there, the sidebar shell handles
+ * scrolling its own way), sticky only under the mobile breakpoint. See
+ * the .page-head-sticky rule in styles.css for why. */
+export function PageHeadSticky({ children }: { children: ReactNode }) {
+  return <div className="page-head-sticky">{children}</div>
+}
+
 export function Modal({ children, onClose, narrow }: {
   children: ReactNode; onClose: () => void; narrow?: boolean
 }) {
