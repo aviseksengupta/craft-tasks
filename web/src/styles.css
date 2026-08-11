@@ -241,7 +241,13 @@ h1, h2, h3 { font-weight: 600; }
 
 /* ---- Dashboard ---- */
 .dash-scroll { flex: 1; min-height: 0; min-width: 0; overflow: auto; }
-.dash-canvas { position: relative; padding: 24px; }
+.dash-canvas { position: relative; padding: 24px; white-space: normal; }
+/* display:inline-block (not flex/grid) so these don't need a wrapper
+   element that would put scroll-snap-align one nesting level below
+   .dash-scroll's direct children — see the full reasoning in
+   DashboardView.tsx. height:0 + overflow:hidden keeps the row visually
+   inert. Width/margin-right must mirror COL_W/GAP there. */
+.dash-snap-col { display: inline-block; width: 170px; height: 0; overflow: hidden; margin-right: 14px; scroll-snap-align: start; }
 .dash-widget {
   position: absolute; background: var(--card); border: 1px solid var(--stroke);
   border-radius: 14px; box-shadow: var(--shadow); padding: 16px;
@@ -428,11 +434,21 @@ h1, h2, h3 { font-weight: 600; }
      its own inline width/height, so .dash-scroll's height still comes
      from its content naturally; it just never has vertical overflow to
      trigger that auto. */
-  .dash-scroll { flex: none; min-height: 0; overflow-x: auto; overflow-y: visible; -webkit-overflow-scrolling: touch; }
+  .dash-scroll { flex: none; min-height: 0; overflow-x: auto; overflow-y: visible; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; white-space: nowrap; }
+  /* white-space:nowrap above keeps the inline-block .dash-snap-col row
+     (styles.css ~L248) from wrapping to a second line — .dash-canvas
+     resets it back to normal so it doesn't leak into widget text.
+     Snap targets are .dash-snap-col, not the widgets themselves —
+     position:absolute boxes (which is what every .dash-widget is, for
+     the masonry packing) never register as a scroll-snap-align target,
+     so they were tried first and silently did nothing; verified by
+     testing an actual scroll settle position. */
   /* Same reasoning for kanban columns: fixed-width .kanban-col children
      (styles.css ~L157) don't wrap, so the row needs to scroll sideways
-     instead of overflowing the page. */
-  .kanban-row { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+     instead of overflowing the page. scroll-snap makes that a one-
+     column-at-a-time swipe instead of a free-scrolling row. */
+  .kanban-row { overflow-x: auto; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; }
+  .kanban-col { scroll-snap-align: start; }
 
   /* The header/filter-bar block stays visible while the list scrolls
      past underneath — position:sticky needs no ancestor height math at

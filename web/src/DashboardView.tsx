@@ -84,7 +84,30 @@ export function DashboardView({ dashboardId }: { dashboardId: string }) {
             Add a saved view to get started
           </div>
         ) : (
-          <div className="dash-canvas" style={{ width: canvasW + 48, height: canvasH + 48 }}>
+          <>
+            {/* Invisible in-flow snap targets, one per grid column —
+                direct children of .dash-scroll, no wrapper div. Three
+                things ruled out simpler options, each confirmed by
+                testing an actual scroll settle position rather than just
+                reading the spec: putting scroll-snap-align on the widgets
+                themselves does nothing (they're position:absolute for the
+                masonry packing, and out-of-flow boxes are never valid
+                snap targets); wrapping these markers in a track div does
+                nothing either (scroll-snap-align only takes effect on the
+                scroll container's *direct* children — one extra level of
+                nesting silently disqualifies it); and a flex/grid wrapper
+                for the row would've pushed .dash-canvas to the right of
+                it. display:inline-block sidesteps that last problem: the
+                columns lay out left-to-right on their own inline
+                formatting context, but .dash-canvas is block-level right
+                after them, so it starts its own new line back at the
+                left edge regardless — see .dash-scroll's white-space:
+                nowrap (needed so these don't wrap to a second line) and
+                .dash-canvas's white-space:normal (resets that inherited
+                nowrap before it reaches real widget text). Column
+                width/gap must mirror COL_W/GAP above. */}
+            {Array.from({ length: COLS }).map((_, i) => <div key={i} className="dash-snap-col" />)}
+            <div className="dash-canvas" style={{ width: canvasW + 48, height: canvasH + 48 }}>
             {widgets.map((w, i) => (
               <WidgetCard key={w.id} dashboardId={dashboardId} widget={w}
                           frame={frames[i]}
@@ -105,7 +128,8 @@ export function DashboardView({ dashboardId }: { dashboardId: string }) {
                           }}
                           setResizeState={setResizeState} />
             ))}
-          </div>
+            </div>
+          </>
         )}
       </div>
       {showAddViews && (
