@@ -250,7 +250,10 @@ export function EditTaskModal({ task, onClose }: { task: CraftTask; onClose: () 
 
 // ---- Settings (Craft URL + Gist token) ----
 
-export function SettingsModal({ onClose, forced }: { onClose: () => void; forced?: boolean }) {
+export function SettingsModal({ onClose, forced, heightOffset, onAdjustHeightOffset }: {
+  onClose: () => void; forced?: boolean
+  heightOffset?: number; onAdjustHeightOffset?: (delta: number) => void
+}) {
   const store = useStore()
   const [url, setUrl] = useState(craft.getApiBase() ?? '')
   const [token, setToken] = useState(getGistToken() ?? '')
@@ -286,6 +289,24 @@ export function SettingsModal({ onClose, forced }: { onClose: () => void; forced
           keep configs in this browser only.
         </div>
       </div>
+      {onAdjustHeightOffset && (
+        <div>
+          <div className="form-label">HOME SCREEN FIT (IOS STANDALONE ONLY)</div>
+          <div className="flow-row" style={{ gap: 10 }}>
+            <button className="btn" onClick={() => onAdjustHeightOffset(-5)}>− 5px</button>
+            <span style={{ fontSize: 13, minWidth: 60, textAlign: 'center' }}>{heightOffset ?? 0}px</span>
+            <button className="btn" onClick={() => onAdjustHeightOffset(5)}>+ 5px</button>
+            {heightOffset !== 0 && (
+              <button className="btn" onClick={() => onAdjustHeightOffset(-(heightOffset ?? 0))}>Reset</button>
+            )}
+          </div>
+          <div className="hint-text" style={{ marginTop: 6 }}>
+            If there's a gap below the bottom bar when this is added to your home screen, nudge
+            this up a few px at a time until the gap disappears — applies and saves immediately,
+            no need to hit Save below for this one.
+          </div>
+        </div>
+      )}
       <div className="modal-actions">
         {!forced && <button className="btn" onClick={onClose}>Cancel</button>}
         <button className="btn primary" onClick={save} disabled={url.trim() === ''}>Save</button>

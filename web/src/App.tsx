@@ -9,6 +9,11 @@ import { DashboardView } from './DashboardView'
 import { SettingsModal, AddTaskModal } from './modals'
 import { Icon } from './ui'
 
+const HEIGHT_OFFSET_KEY = 'appHeightOffsetPx'
+export function getHeightOffset(): number {
+  return Number(localStorage.getItem(HEIGHT_OFFSET_KEY) ?? 0)
+}
+
 /** Sets --app-height from a JS-measured window.innerHeight, kept fresh on
  * resize/orientation/pageshow. A standalone (home-screen-launched) iOS PWA
  * can report viewport metrics to CSS (100vh/dvh, and even position:fixed's
@@ -18,12 +23,17 @@ import { Icon } from './ui'
  * regular Safari tab actually exercises, so it can look fine there and
  * still be wrong once added to the home screen). window.innerHeight is a
  * plain runtime measurement, not a CSS calculation, so it sidesteps
- * whatever's wrong with the CSS side specifically. */
-function useAppHeight() {
+ * whatever's wrong with the CSS side specifically — but on some devices
+ * even that measurement itself is short by a device-specific amount,
+ * hence `offsetPx`: a manual per-device fudge factor set from Settings,
+ * since this can't be reproduced or tuned from outside a real standalone
+ * PWA launch.
+ */
+function useAppHeight(offsetPx: number) {
   useEffect(() => {
     const set = () => {
       const h = window.visualViewport?.height ?? window.innerHeight
-      document.documentElement.style.setProperty('--app-height', `${h}px`)
+      document.documentElement.style.setProperty('--app-height', `${h + offsetPx}px`)
     }
     set()
     window.addEventListener('resize', set)
@@ -36,7 +46,7 @@ function useAppHeight() {
       window.removeEventListener('pageshow', set)
       window.visualViewport?.removeEventListener('resize', set)
     }
-  }, [])
+  }, [offsetPx])
 }
 
 function Root() {
@@ -46,7 +56,15 @@ function Root() {
   const [showSettings, setShowSettings] = useState(false)
   const [showAddTask, setShowAddTask] = useState(false)
   const [booted, setBooted] = useState(false)
-  useAppHeight()
+  const [heightOffset, setHeightOffset] = useState(getHeightOffset)
+  useAppHeight(heightOffset)
+  const adjustHeightOffset = (delta: number) => {
+    setHeightOffset(v => {
+      const next = v + delta
+      localStorage.setItem(HEIGHT_OFFSET_KEY, String(next))
+      return next
+    })
+  }
 
   useEffect(() => {
     if (!booted && store.configured) {
@@ -81,7 +99,8 @@ function Root() {
       </button>
       <BottomNav section={section} setSection={setSection} onOpenMenu={() => setSidebarOpen(true)} />
       {(showSettings || !store.configured) && (
-        <SettingsModal forced={!store.configured} onClose={() => setShowSettings(false)} />
+        <SettingsModal forced={!store.configured} onClose={() => setShowSettings(false)}
+                       heightOffset={heightOffset} onAdjustHeightOffset={adjustHeightOffset} />
       )}
       {showAddTask && <AddTaskModal onClose={() => setShowAddTask(false)} />}
     </div>
