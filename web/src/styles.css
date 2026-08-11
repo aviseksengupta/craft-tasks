@@ -1,0 +1,511 @@
+/* Warm neutral-grey palette in Craft's idiom — soft charcoal surfaces,
+   cream/off-white ink, elevation via soft shadow rather than heavy borders. */
+:root {
+  --bg: #1C1C1E;
+  --panel: #212123;
+  --panel-hi: #2C2C2F;
+  --card: #27272A;
+  --stroke: #3A3A3E;
+  --text-hi: #F5F1E8;
+  --text: #D6D2C6;
+  --text-lo: #9C988D;
+  --text-faint: #6B675E;
+  --accent: #F0EBDE;
+  --chip-bg: #323235;
+  --danger: #ECE6D6;
+  --shadow: 0 5px 14px rgba(0,0,0,0.35);
+  --shadow-lo: 0 4px 10px rgba(0,0,0,0.35);
+  --shadow-hover: 0 8px 20px rgba(0,0,0,0.35);
+  --serif: "Iowan Old Style", "Palatino", "Georgia", serif;
+  --rounded: ui-rounded, -apple-system, "SF Pro Rounded", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { height: 100%; overflow: hidden; background: var(--bg); }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--rounded);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+  width: 100%;
+}
+button {
+  font-family: inherit; background: none; border: none; color: inherit;
+  cursor: pointer; font-size: inherit; padding: 0; text-align: left;
+}
+input, textarea, select {
+  font-family: inherit; background: var(--chip-bg); border: 1px solid var(--stroke);
+  color: var(--text); border-radius: 8px; outline: none;
+}
+input:focus, textarea:focus { border-color: var(--text-faint); }
+::placeholder { color: var(--text-faint); }
+h1, h2, h3 { font-weight: 600; }
+
+/* height:100% cascaded from html/body/#root — no position:fixed, vh/dvh,
+   or JS-measured height for the app shell itself. Several increasingly
+   elaborate attempts at explicit sizing (100dvh, position:fixed;inset:0,
+   a JS-measured window.innerHeight custom property) all still left a gap
+   below the bottom nav once actually installed to an iOS home screen.
+   On mobile this is taken a step further (see the max-width:760px block
+   below): no vertical sizing at all, just normal document flow — the
+   page is exactly as tall as its content and scrolls like any ordinary
+   webpage, with the persistent chrome (bottom nav, FAB, full-screen
+   menu) staying put via plain position:fixed, which is viewport-anchored
+   and was never affected by any of the height bugs above regardless.
+   That leaves no height calculation anywhere in the mobile chain for a
+   future WebKit quirk to get wrong. Desktop keeps the bounded 2-pane
+   shell (sidebar + main both independently scrolling within a fixed-
+   height frame), which needs an explicit height and has never shown
+   this class of bug. */
+.app { height: 100%; display: flex; overflow: hidden; }
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; border-left: 1px solid var(--stroke); }
+
+/* ---- Sidebar ---- */
+.sidebar {
+  width: 230px; flex-shrink: 0; background: var(--panel);
+  display: flex; flex-direction: column; box-shadow: var(--shadow);
+  z-index: 20; overflow-y: auto; padding-bottom: 0;
+}
+.sidebar-head { display: flex; align-items: center; gap: 8px; padding: 14px 14px 10px; }
+.sidebar-title { font-size: 13px; font-weight: 600; color: var(--text-hi); flex: 1; display: flex; align-items: center; gap: 8px; }
+.icon-btn { color: var(--text-faint); display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; padding: 4px; }
+.icon-btn:hover { color: var(--text-lo); background: var(--panel-hi); }
+.new-task-btn {
+  display: flex; align-items: center; gap: 6px; margin: 0 12px 12px; padding: 8px 12px;
+  background: var(--accent); color: #000; border-radius: 8px; font-size: 12px; font-weight: 600;
+}
+.search-box {
+  display: flex; align-items: center; gap: 6px; margin: 0 12px 12px; padding: 6px 9px;
+  background: var(--chip-bg); border: 1px solid var(--stroke); border-radius: 7px;
+}
+.search-box input { flex: 1; background: none; border: none; font-size: 12px; min-width: 0; }
+.sidebar-item {
+  display: flex; align-items: center; gap: 8px; width: calc(100% - 16px);
+  margin: 1px 8px; padding: 6px 10px; border-radius: 6px; font-size: 12px;
+  color: var(--text-lo);
+}
+.sidebar-item:hover { background: rgba(44,44,47,0.5); }
+.sidebar-item.active { background: var(--panel-hi); color: var(--text-hi); font-weight: 600; }
+.sidebar-item .glyph { width: 16px; text-align: center; flex-shrink: 0; opacity: 0.9; }
+.sidebar-item .home-mark { margin-left: auto; font-size: 8px; color: var(--text-faint); }
+.sidebar-section-label {
+  font-size: 9px; font-weight: 600; letter-spacing: 1.2px; color: var(--text-faint);
+  padding: 18px 16px 4px; display: flex; align-items: center;
+}
+.sidebar-section-label .plus { margin-left: auto; color: var(--text-lo); font-size: 11px; }
+.sync-status { margin-top: auto; border-top: 1px solid var(--stroke); padding: 10px 14px; font-size: 9px; color: var(--text-lo); position: sticky; bottom: 0; background: var(--panel); }
+.sync-status .err { color: var(--danger); }
+.sync-status .queued { color: var(--text-hi); font-weight: 600; }
+.sync-status .time { color: var(--text-faint); }
+.sync-row { display: flex; gap: 6px; align-items: flex-start; }
+
+/* ---- Header + filter bar ---- */
+.page-header {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 14px 28px; flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.page-header h1 { font-size: 27px; font-family: var(--serif); color: var(--text-hi); font-weight: 600; }
+.page-header .count { font-size: 13px; color: var(--text-faint); }
+.page-header .spacer { flex: 1; }
+.hairline { height: 1px; background: var(--stroke); flex-shrink: 0; }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 500;
+  background: var(--chip-bg); color: var(--text-lo); border: 1px solid var(--stroke);
+  cursor: pointer; white-space: nowrap;
+}
+.chip.active { background: var(--accent); color: #000; border-color: transparent; }
+.chip .chip-icon { font-size: 9px; }
+
+.filter-bar { display: flex; gap: 8px; padding: 0 24px 12px; flex-wrap: wrap; align-items: center; flex-shrink: 0; }
+
+/* Dropdown menus — always position:fixed with top/left set inline from a
+   measured trigger rect (see MenuChip/useContextMenu in ui.tsx), never
+   position:absolute within the trigger's own flow. A trigger living
+   inside a scrolling container (e.g. the horizontally-scrollable mobile
+   filter bar) would otherwise clip its own dropdown, since overflow-x on
+   one axis makes browsers implicitly clip the other axis too. */
+.menu-wrap { display: contents; }
+.menu {
+  position: fixed; z-index: 50;
+  background: var(--panel-hi); border: 1px solid var(--stroke); border-radius: 8px;
+  box-shadow: var(--shadow); min-width: 160px; max-height: 300px; overflow-y: auto; padding: 4px;
+}
+.menu-item {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 6px 10px; border-radius: 5px; font-size: 12px; color: var(--text);
+}
+.menu-item:hover { background: var(--chip-bg); }
+.menu-item .check { margin-left: auto; font-size: 10px; color: var(--text-hi); }
+.menu-item.danger { color: var(--danger); }
+.menu-sep { height: 1px; background: var(--stroke); margin: 4px 6px; }
+.menu-note { padding: 6px 10px; font-size: 11px; color: var(--text-faint); }
+
+/* ---- Task list ---- */
+/* min-height/min-width: 0 override the flex-item default of `auto`, which
+   otherwise refuses to shrink below content size — without it, Safari
+   (and per-spec, any browser) lets this grow past the viewport instead of
+   scrolling internally, dragging the header/filter-bar off-screen with it
+   since they'd no longer be outside the actual scrolling region. */
+.list-scroll { flex: 1; min-height: 0; min-width: 0; overflow: auto; padding: 14px 24px 24px; }
+.group-stack { display: flex; flex-direction: column; gap: 18px; }
+.kanban-row { display: flex; align-items: flex-start; gap: 14px; }
+.kanban-col { width: 280px; flex-shrink: 0; }
+.group-head {
+  display: flex; align-items: baseline; gap: 6px; padding-left: 2px; margin-bottom: 10px;
+  width: 100%;
+}
+.group-head .chev { font-size: 10px; color: var(--text-faint); transition: transform 0.15s; display: inline-block; }
+.group-head .chev.open { transform: rotate(90deg); }
+.group-head .g-title { font-size: 15px; font-family: var(--serif); font-weight: 600; color: var(--text-hi); }
+.group-head .g-count { font-size: 12px; color: var(--text-faint); }
+.group-card {
+  background: var(--card); border: 1px solid var(--stroke); border-radius: 14px;
+  box-shadow: var(--shadow); overflow: hidden;
+}
+.task-row {
+  display: flex; align-items: flex-start; gap: 12px; padding: 9px 16px;
+  border-bottom: 1px solid rgba(58,58,62,0.6); cursor: pointer;
+}
+.task-row:last-child { border-bottom: none; }
+.task-row:hover { background: rgba(44,44,47,0.5); }
+.task-row.pending { opacity: 0.7; cursor: default; }
+.task-main { flex: 1; min-width: 0; }
+.task-title { font-size: 13px; color: var(--text); line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.task-title.closed { color: var(--text-faint); text-decoration: line-through; text-decoration-color: var(--text-faint); }
+.task-meta { display: flex; align-items: center; gap: 6px; margin-top: 3px; flex-wrap: wrap; }
+.task-tag { font-size: 10px; font-weight: 500; color: var(--text-lo); }
+.date-badge {
+  display: inline-flex; align-items: center; gap: 3px; font-size: 10px; color: var(--text-faint);
+  padding: 1px 6px; border-radius: 999px;
+}
+.date-badge.overdue { color: var(--danger); font-weight: 600; background: var(--panel-hi); border: 1px solid var(--stroke); }
+.done-note { font-size: 10px; color: var(--text-faint); }
+.checkbox {
+  width: 16px; height: 16px; border-radius: 5px; flex-shrink: 0; margin-top: 2px;
+  border: 1.3px solid var(--text-lo); background: transparent;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; color: #000;
+}
+.checkbox:hover { border-color: var(--text-hi); }
+.checkbox.done, .checkbox.canceled { background: var(--accent); border-color: var(--accent); }
+.empty-state { text-align: center; padding-top: 80px; color: var(--text-lo); font-size: 13px; }
+.empty-state .big { font-size: 28px; color: var(--text-faint); margin-bottom: 8px; }
+
+/* ---- Cards grid (Documents / Views) ---- */
+.cards-grid {
+  /* minmax(0,…) not bare 1fr/300px — a plain `1fr` track's automatic
+     minimum is its content's min-content size, not 0. A card with a long
+     nowrap title (min-content = the full unbroken string width) then
+     forces the track wider than the container instead of letting the
+     title's own text-overflow:ellipsis do its job. */
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+  gap: 18px; padding: 24px;
+}
+.doc-card {
+  background: var(--panel); border: 1px solid var(--stroke); border-radius: 16px;
+  padding: 18px; box-shadow: var(--shadow-lo); cursor: pointer;
+  display: flex; flex-direction: column; gap: 16px; text-align: left;
+  min-width: 0;
+  transition: background 0.12s, box-shadow 0.12s, border-color 0.12s;
+}
+.doc-card:hover { background: var(--panel-hi); box-shadow: var(--shadow-hover); border-color: rgba(107,103,94,0.4); }
+.doc-card-top { display: flex; align-items: flex-start; gap: 12px; }
+.doc-icon {
+  width: 36px; height: 36px; border-radius: 50%; background: var(--chip-bg);
+  display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--text-lo);
+  flex-shrink: 0;
+}
+/* min-width:0 lets this actually shrink/truncate within its flex row —
+   without it, a nowrap span's min-content is its full untruncated width,
+   which can squeeze a sibling button (the rename pencil) down to nothing
+   for a long title instead of the ellipsis doing its job. */
+.doc-card-title { font-size: 16px; font-family: var(--serif); font-weight: 600; color: var(--text-hi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.doc-card-sub { font-size: 11px; color: var(--text-faint); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stat-row { display: flex; }
+.stat-tile { flex: 1; }
+.stat-tile .n { font-size: 19px; font-weight: 600; color: var(--text-lo); }
+.stat-tile .n.bright { color: var(--text-hi); }
+.stat-tile .l { font-size: 10px; color: var(--text-faint); }
+.stat-div { width: 1px; background: var(--stroke); margin: 0 12px; }
+.progress-track { height: 5px; border-radius: 999px; background: var(--chip-bg); overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 999px; background: var(--accent); min-width: 5px; }
+.progress-label { font-size: 10px; color: var(--text-faint); margin-top: 5px; }
+.card-hover-btn { color: transparent; font-size: 11px; padding: 2px 4px; border-radius: 4px; flex-shrink: 0; }
+.doc-card:hover .card-hover-btn { color: var(--text-lo); }
+.card-hover-btn.pinned { color: var(--accent) !important; }
+
+/* ---- Dashboard ---- */
+.dash-scroll { flex: 1; min-height: 0; min-width: 0; overflow: auto; }
+.dash-canvas { position: relative; padding: 24px; }
+.dash-widget {
+  position: absolute; background: var(--card); border: 1px solid var(--stroke);
+  border-radius: 14px; box-shadow: var(--shadow); padding: 16px;
+  display: flex; flex-direction: column; gap: 10px; overflow: hidden;
+  transition: top 0.2s, left 0.2s, width 0.2s, height 0.2s;
+}
+.dash-widget.resizing { transition: none; border-color: var(--text-lo); }
+.dash-widget.drop-target { border-color: var(--accent); border-width: 2px; }
+.dash-widget-head { display: flex; align-items: center; gap: 8px; }
+.dash-widget-head .grip { color: var(--text-faint); cursor: grab; font-size: 12px; padding: 2px; }
+.dash-widget-head .w-title { font-size: 14px; font-family: var(--serif); font-weight: 600; color: var(--text-hi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dash-widget-head .w-count { font-size: 11px; color: var(--text-faint); }
+.dash-widget-body { flex: 1; overflow: auto; display: flex; flex-direction: column; gap: 12px; }
+.dash-widget-body.kanban { flex-direction: row; align-items: flex-start; }
+.mini-col-label { font-size: 9px; font-weight: 600; letter-spacing: 1px; color: var(--text-faint); text-transform: uppercase; margin-bottom: 2px; }
+.mini-col.kanban { width: 200px; flex-shrink: 0; }
+.resize-handle {
+  position: absolute; right: 2px; bottom: 2px; padding: 8px; cursor: nwse-resize;
+  color: var(--text-faint); font-size: 10px; touch-action: none;
+}
+.resize-handle:hover { color: var(--text-hi); }
+
+/* ---- Modals ---- */
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+.modal {
+  background: var(--panel); border: 1px solid var(--stroke); border-radius: 14px;
+  box-shadow: var(--shadow-hover); padding: 22px; width: 480px; max-width: 100%;
+  max-height: 90vh; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.modal.narrow { width: 340px; }
+.modal h2 { font-size: 15px; color: var(--text-hi); display: flex; align-items: center; gap: 8px; }
+.form-label { font-size: 9px; font-weight: 600; letter-spacing: 1.2px; color: var(--text-faint); margin-bottom: 6px; display: flex; gap: 6px; align-items: center; }
+.modal input[type="text"], .modal input[type="password"], .modal textarea {
+  width: 100%; padding: 10px; font-size: 13px; resize: vertical;
+}
+.modal textarea { min-height: 64px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; align-items: center; }
+.btn { padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 500; background: var(--chip-bg); border: 1px solid var(--stroke); color: var(--text); }
+.btn:hover { background: var(--panel-hi); }
+.btn.primary { background: var(--accent); color: #000; border-color: transparent; font-weight: 600; }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.error-text { font-size: 11px; color: var(--danger); }
+.hint-text { font-size: 11px; color: var(--text-faint); line-height: 1.5; }
+.flow-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tag-chip-lg {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px;
+  font-size: 12px; font-weight: 500; background: var(--chip-bg); color: var(--text-lo);
+  border: 1px solid var(--stroke);
+}
+.tag-chip-lg:hover { background: var(--panel-hi); color: var(--text-hi); border-color: var(--text-lo); }
+.tag-chip-lg .x { font-size: 9px; opacity: 0.45; }
+.tag-chip-lg:hover .x { opacity: 1; }
+.tag-add { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; border-radius: 999px; background: var(--bg); border: 1px dashed var(--stroke); }
+.tag-add input { width: 80px; background: none; border: none; font-size: 12px; padding: 0; }
+.date-chip {
+  display: inline-flex; align-items: center; border-radius: 9px; background: var(--chip-bg);
+  border: 1px solid var(--stroke); color: var(--text-lo); position: relative;
+}
+.date-chip.set { color: var(--text); border-color: rgba(107,103,94,0.5); }
+.date-chip:hover { background: var(--panel-hi); }
+.date-chip .main-btn { display: flex; align-items: center; gap: 6px; padding: 8px 12px; }
+.date-chip.set .main-btn { padding: 5px 12px; }
+.date-chip .sub { font-size: 8px; font-weight: 600; letter-spacing: 1px; color: var(--text-faint); }
+.date-chip .val { font-size: 12px; }
+.date-chip .clear-btn { padding-right: 10px; color: var(--text-faint); font-size: 13px; }
+.date-chip .clear-btn:hover { color: var(--text-hi); }
+.state-cycle {
+  width: 24px; height: 24px; border-radius: 7px; background: var(--chip-bg);
+  border: 1.5px solid var(--stroke); display: inline-flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: #000; flex-shrink: 0;
+}
+.state-cycle:hover { border-color: var(--text-lo); }
+.state-cycle.done, .state-cycle.canceled { background: var(--accent); }
+
+/* calendar */
+.calendar-pop {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 60; width: 232px;
+  background: var(--panel); border: 1px solid var(--stroke); border-radius: 12px;
+  box-shadow: var(--shadow); padding: 14px; display: flex; flex-direction: column; gap: 12px;
+}
+.cal-head { display: flex; align-items: center; justify-content: space-between; }
+.cal-head .m-title { font-size: 12px; font-weight: 600; color: var(--text-hi); }
+.cal-step { width: 20px; height: 20px; border-radius: 50%; background: var(--chip-bg); color: var(--text-lo); font-size: 10px; display: inline-flex; align-items: center; justify-content: center; }
+.cal-week { display: grid; grid-template-columns: repeat(7, 1fr); }
+.cal-week span { text-align: center; font-size: 10px; color: var(--text-faint); font-weight: 500; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal-day {
+  width: 26px; height: 26px; margin: 0 auto; border-radius: 50%; font-size: 12px;
+  color: var(--text); display: flex; align-items: center; justify-content: center;
+}
+.cal-day.selected { background: var(--accent); color: #000; font-weight: 600; }
+.cal-day.today:not(.selected) { border: 1px solid var(--text-lo); }
+.cal-quick { display: flex; gap: 6px; align-items: center; border-top: 1px solid var(--stroke); padding-top: 12px; }
+.cal-quick .qbtn { font-size: 11px; font-weight: 500; padding: 4px 9px; border-radius: 999px; background: var(--chip-bg); color: var(--text-lo); }
+.cal-quick .clear { margin-left: auto; font-size: 11px; color: var(--text-faint); }
+
+/* mention dropdown */
+.mention-list { background: var(--panel-hi); border: 1px solid var(--stroke); border-radius: 8px; overflow: hidden; margin-top: 4px; }
+.mention-item { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 10px; font-size: 12px; color: var(--text); }
+.mention-item:hover { background: var(--chip-bg); }
+.dest-row { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-lo); font-weight: 500; }
+
+/* visibility settings rows */
+.vis-row { display: flex; align-items: center; gap: 10px; }
+.vis-row .v-label { flex: 1; font-size: 12px; display: flex; gap: 8px; align-items: center; }
+.seg { display: inline-flex; background: var(--chip-bg); border: 1px solid var(--stroke); border-radius: 7px; overflow: hidden; }
+.seg button { padding: 4px 10px; font-size: 11px; color: var(--text-lo); }
+.seg button.on { background: var(--accent); color: #000; font-weight: 600; }
+
+/* check list rows in sheets */
+.check-row { display: flex; align-items: center; gap: 8px; width: 100%; padding: 4px 0; font-size: 12px; color: var(--text); }
+.check-row .box { font-size: 13px; color: var(--text-faint); width: 16px; }
+.check-row .box.on { color: var(--accent); }
+
+/* ---- Mobile ----
+   This is the PRIMARY target — 90% of real usage is expected to be on a
+   phone as an installed PWA (the Mac native app already covers desktop),
+   so mobile gets its own native-feeling chrome rather than a shrunk
+   desktop layout: a bottom tab bar for the four most common destinations,
+   a full-screen menu for everything else, a thumb-reachable FAB for the
+   most common action, and bottom-sheet modals. Safe-area insets keep
+   content clear of the iOS notch/home indicator when launched standalone
+   (see index.html's apple-mobile-web-app-capable meta). */
+.hamburger { display: none; }
+.bottom-nav { display: none; }
+.fab { display: none; }
+
+@media (max-width: 760px) {
+  /* No vertical sizing anywhere in this chain — html/body/#root/.app/.main
+     all revert to their natural, unconstrained height, and the page
+     scrolls exactly like any ordinary webpage (the browser's own scroll,
+     not an inner flex/overflow region). This is deliberate: every gap/
+     clipping bug hit on a real installed iOS PWA traced back to an
+     explicit height calculation (100dvh, position:fixed;inset:0, a JS-
+     measured custom property) disagreeing with the real screen in
+     standalone mode. Removing the calculation removes the class of bug —
+     there's nothing left for a WebKit viewport quirk to get wrong. The
+     persistent chrome (sidebar-as-menu, bottom nav, FAB) stays visually
+     pinned via plain position:fixed regardless of document height, which
+     was never affected by any of this to begin with. */
+  /* overflow-x: clip, never overflow-x/y: hidden|auto|scroll — a
+     position:fixed element that's also translateX()'d off-screen (the
+     closed mobile menu) still contributes to the page's horizontal
+     scrollable area even though fixed positioning normally excludes it
+     from flow, so something has to clip that axis. `clip` specifically
+     (not `hidden`) matters: CSS pairs the axes so that setting either
+     overflow-x or overflow-y to hidden/auto/scroll silently upgrades the
+     OTHER axis's `visible` to `auto` too, turning every ancestor in this
+     chain into its own scroll container — which breaks position:sticky
+     on the header below, since sticky binds to the nearest actual
+     scrolling ancestor, and an .app that's merely "auto" but never
+     actually scrolls (height:auto has nothing to overflow) isn't it.
+     `clip` doesn't establish a scroll container at all, so it doesn't
+     trigger that pairing rule — overflow-y stays genuinely `visible`,
+     letting the real page-level scroll (and sticky's binding to it)
+     work as intended. */
+  html, body, #root, .app { height: auto; overflow-x: clip; overflow-y: visible; }
+  /* .main keeps its base flex:1;min-width:0 — needed for its WIDTH (the
+     main axis of .app's row layout) to stay bound to .app's width rather
+     than growing to fit its widest descendant. An earlier version set
+     flex:none here on the reasoning that .main is .app's only in-flow
+     child on mobile so it "doesn't need" flex — wrong: flex:none resolves
+     to flex-basis:auto;flex-shrink:0, which sizes .main to its content's
+     natural width and forbids shrinking, exactly backwards from wanted,
+     and was the real cause of the horizontal-scroll/text-not-wrapping bug.
+     .list-scroll/.dash-scroll's flex value only ever affected their own
+     HEIGHT within .main's column layout (the main axis there), never
+     their width (align-items:stretch handles the cross axis regardless
+     of flex-grow/shrink/basis), so removing flex:1 from them to let their
+     height flow naturally was fine and stays removed. */
+  .list-scroll, .dash-scroll { flex: none; min-height: 0; overflow: visible; }
+
+  /* The header/filter-bar block stays visible while the list scrolls
+     past underneath — position:sticky needs no ancestor height math at
+     all, just an opaque background so scrolled content doesn't show
+     through. .page-head-sticky wraps the header (+ filter bar, where
+     present) in each view; see PageHeadSticky in TaskList.tsx/Cards.tsx/
+     DashboardView.tsx. */
+  .page-head-sticky { position: sticky; top: 0; z-index: 5; background: var(--bg); }
+
+  .sidebar {
+    position: fixed; inset: 0; width: 100%; z-index: 40;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease-out; box-shadow: none;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-close { display: inline-flex; color: var(--text-lo); border-radius: 6px; padding: 6px; }
+  .main { border-left: none; }
+
+  .page-header { padding: calc(env(safe-area-inset-top) + 12px) 16px 12px; }
+  .page-header h1 { font-size: 22px; }
+  .filter-bar { padding: 0 16px 10px; overflow-x: auto; flex-wrap: nowrap; }
+
+  /* Bigger touch targets — Apple HIG's ~44pt minimum for anything tapped
+     directly, not just the whole row (which is already tall enough). */
+  .task-row { padding: 11px 14px; gap: 13px; }
+  .checkbox { width: 21px; height: 21px; border-radius: 6px; }
+  .sidebar-item { padding: 10px; }
+  .bn-tab, .icon-btn, .fab, .sidebar-close { -webkit-tap-highlight-color: transparent; }
+
+  /* Slightly larger type for comfortable reading at arm's length — the
+     desktop sizes were tuned for a mouse-driven, closer-viewed dialog UI. */
+  body { font-size: 14px; }
+  .task-title { font-size: 14.5px; }
+  .task-tag, .date-badge, .done-note { font-size: 11px; }
+  .chip { font-size: 12px; }
+  .group-head .g-title { font-size: 16px; }
+  .doc-card-title { font-size: 17px; }
+  .doc-card-sub { font-size: 12px; }
+  .stat-tile .n { font-size: 20px; }
+  .bn-tab { font-size: 11px; }
+  .sidebar-item { font-size: 13px; }
+
+  .list-scroll, .dash-scroll { padding-bottom: calc(env(safe-area-inset-bottom) + 84px); }
+  .list-scroll { padding-left: 12px; padding-right: 12px; padding-top: 12px; }
+  .cards-grid { grid-template-columns: minmax(0, 1fr); padding: 16px; padding-bottom: calc(env(safe-area-inset-bottom) + 84px); }
+
+  /* :hover never reliably engages on a touch device before the tap that
+     would trigger the button itself — a rename/pin icon that only shows
+     on hover is effectively invisible on mobile. Show it plainly instead. */
+  .card-hover-btn { color: var(--text-faint); }
+
+  /* Bottom tab bar — the main way to move around the app on mobile. */
+  .bottom-nav {
+    display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    background: var(--panel); border-top: 1px solid var(--stroke);
+    padding-bottom: env(safe-area-inset-bottom);
+    box-shadow: 0 -4px 14px rgba(0,0,0,0.3);
+  }
+  .bn-tab {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 9px 4px 8px; color: var(--text-faint); font-size: 10px; font-weight: 500;
+  }
+  .bn-tab.active { color: var(--text-hi); }
+
+  /* Floating action button — thumb-reachable, above the tab bar. */
+  .fab {
+    display: flex; align-items: center; justify-content: center;
+    position: fixed; z-index: 30; right: 16px;
+    bottom: calc(env(safe-area-inset-bottom) + 68px);
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--accent); color: #000;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+  }
+  .fab:active { transform: scale(0.94); }
+
+  /* Bottom-sheet modals: slide up from the bottom edge, full width,
+     rounded top corners only — reads as a native sheet, not a dialog box. */
+  .modal-backdrop { align-items: flex-end; padding: 0; }
+  .modal {
+    width: 100%; max-width: 100%; border-radius: 18px 18px 0 0;
+    padding: 18px 18px calc(env(safe-area-inset-bottom) + 18px);
+    max-height: 88vh;
+    animation: sheet-up 0.22s ease-out;
+  }
+  .modal.narrow { width: 100%; }
+  @keyframes sheet-up {
+    from { transform: translateY(24px); opacity: 0.4; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+}
