@@ -161,6 +161,7 @@ export function EditTaskModal({ task, onClose }: { task: CraftTask; onClose: () 
   const docLabel = selectedDocumentId
     ? store.documents.find(d => d.id === selectedDocumentId)?.title ?? 'Document'
     : 'Inbox'
+  const deepLink = craft.craftDeepLink(task.locationType === 'inbox' ? null : task.documentId)
 
   const save = async () => {
     const originalId = task.locationType === 'inbox' ? null : task.documentId
@@ -192,6 +193,14 @@ export function EditTaskModal({ task, onClose }: { task: CraftTask; onClose: () 
           <StateCycle state={state} onCycle={cycle} />
           Edit Task
         </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {deepLink && (
+          <a className="dest-row" href={deepLink}
+             style={{ fontWeight: 400, fontSize: 11, color: 'var(--text-faint)' }}
+             title="Open the source document in Craft">
+            <Icon name="arrowUpRight" size={9} /> Open in Craft
+          </a>
+        )}
         <MenuChip label={
           <button className="dest-row" style={{ fontWeight: 400, fontSize: 11, color: 'var(--text-faint)' }}
                   title="Move this task to a different document">
@@ -208,6 +217,7 @@ export function EditTaskModal({ task, onClose }: { task: CraftTask; onClose: () 
             ))}
           </>)}
         </MenuChip>
+        </span>
       </h2>
       <div>
         <div className="form-label">TASK</div>
@@ -279,7 +289,7 @@ export function SettingsModal({ onClose, forced }: { onClose: () => void; forced
     craft.setApiBase(trimmed)
     setGistToken(token)
     setRefreshing(true)
-    forceRefresh()
+    craft.refreshSpaceId().finally(forceRefresh)
   }
 
   return (

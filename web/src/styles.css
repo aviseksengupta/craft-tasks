@@ -193,6 +193,14 @@ h1, h2, h3 { font-weight: 600; }
 }
 .checkbox:hover { border-color: var(--text-hi); }
 .checkbox.done, .checkbox.canceled { background: var(--accent); border-color: var(--accent); }
+.open-in-craft {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0; margin-top: 1px;
+  color: var(--text-faint); opacity: 0; transition: opacity 0.1s, background 0.1s, color 0.1s;
+}
+.task-row:hover .open-in-craft, .open-in-craft:focus-visible { opacity: 1; }
+.open-in-craft:hover { background: var(--panel-hi); color: var(--text-hi); }
+@media (max-width: 640px) { .open-in-craft { opacity: 1; } }
 .empty-state { text-align: center; padding-top: 80px; color: var(--text-lo); font-size: 13px; }
 .empty-state .big { font-size: 28px; color: var(--text-faint); margin-bottom: 8px; }
 
