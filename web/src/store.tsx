@@ -26,6 +26,44 @@ function saveJson(key: string, value: unknown) {
   localStorage.setItem(key, JSON.stringify(value))
 }
 
+// ---- backup/restore: a single JSON document capturing everything needed to
+// recreate the app's state (views, dashboards, pinned items, renamed docs,
+// visibility settings, and the Craft API URL). Deliberately excludes the
+// Gist token and cached tasks — the token is a secret, tasks come from Craft. ----
+export const BACKUP_SCHEMA_VERSION = 1
+
+export interface AppBackup {
+  schemaVersion: number
+  exportedAt: string
+  apiBase: string | null
+  showCompleted: boolean
+  config: ConfigFile
+}
+
+export const defaultBackup: AppBackup = {
+  schemaVersion: BACKUP_SCHEMA_VERSION,
+  exportedAt: '',
+  apiBase: null,
+  showCompleted: true,
+  config: emptyConfig,
+}
+
+export function buildBackup(): AppBackup {
+  return {
+    schemaVersion: BACKUP_SCHEMA_VERSION,
+    exportedAt: new Date().toISOString(),
+    apiBase: craft.getApiBase(),
+    showCompleted: loadJson('showCompleted', true),
+    config: loadJson('config', emptyConfig),
+  }
+}
+
+export function applyBackup(backup: AppBackup) {
+  saveJson('config', backup.config)
+  saveJson('showCompleted', backup.showCompleted)
+  if (backup.apiBase) craft.setApiBase(backup.apiBase)
+}
+
 interface StoreValue {
   tasks: CraftTask[]
   filter: TaskFilter
