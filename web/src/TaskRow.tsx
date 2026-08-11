@@ -47,7 +47,7 @@ export function TaskRow({ task, onEdit }: { task: CraftTask; onEdit: (t: CraftTa
       </div>
       {deepLink && (
         <a className="open-in-craft" href={deepLink} onClick={e => e.stopPropagation()} title="Open in Craft">
-          <Icon name="arrowUpRight" size={11} />
+          <Icon name="stack" size={12} weight={1.6} />
         </a>
       )}
     </div>

@@ -195,10 +195,8 @@ export function EditTaskModal({ task, onClose }: { task: CraftTask; onClose: () 
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {deepLink && (
-          <a className="dest-row" href={deepLink}
-             style={{ fontWeight: 400, fontSize: 11, color: 'var(--text-faint)' }}
-             title="Open the source document in Craft">
-            <Icon name="arrowUpRight" size={9} /> Open in Craft
+          <a className="open-in-craft" href={deepLink} title="Open the source document in Craft">
+            <Icon name="stack" size={12} weight={1.6} />
           </a>
         )}
         <MenuChip label={
