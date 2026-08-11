@@ -353,7 +353,7 @@ struct TaskFilter: Codable, Equatable, Identifiable {
             && (groupBy ?? .document) == .document
     }
 
-    func matches(_ t: CraftTask) -> Bool {
+    func matches(_ t: CraftTask, todayIncludesOverdue: Bool = false) -> Bool {
         if !states.isEmpty && !states.contains(t.state) { return false }
         if !tags.isEmpty && tags.isDisjoint(with: Set(t.tags)) { return false }
         if !excludedTags.isEmpty && !excludedTags.isDisjoint(with: Set(t.tags)) { return false }
@@ -374,7 +374,9 @@ struct TaskFilter: Codable, Equatable, Identifiable {
         case .noDate: if date != nil { return false }
         case .today:
             guard let d = date else { return false }
-            if d != today { return false }
+            if d != today {
+                if !(todayIncludesOverdue && d < today && t.state == .todo) { return false }
+            }
         case .overdue:
             guard let d = date else { return false }
             if !(d < today && t.state == .todo) { return false }

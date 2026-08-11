@@ -254,6 +254,13 @@ struct SidebarSettingsSheet: View {
             }
 
             Divider()
+
+            Toggle("Today includes overdue", isOn: $store.todayIncludesOverdue)
+                .font(.system(size: 12)).foregroundColor(Theme.text)
+            Text("When enabled, the Today view also shows overdue tasks.")
+                .font(.system(size: 11)).foregroundColor(Theme.textFaint)
+
+            Divider()
             BackupRestoreSection()
 
             HStack {

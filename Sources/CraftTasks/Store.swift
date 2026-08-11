@@ -37,6 +37,9 @@ final class Store: ObservableObject {
     @Published var showCompleted: Bool = UserDefaults.standard.object(forKey: "showCompleted") as? Bool ?? true {
         didSet { UserDefaults.standard.set(showCompleted, forKey: "showCompleted") }
     }
+    @Published var todayIncludesOverdue: Bool = UserDefaults.standard.object(forKey: "todayIncludesOverdue") as? Bool ?? false {
+        didSet { UserDefaults.standard.set(todayIncludesOverdue, forKey: "todayIncludesOverdue") }
+    }
     /// Global search, deliberately NOT part of TaskFilter: every nav action
     /// (Home, All Tasks, clicking a document, …) rebuilds `filter` from
     /// scratch, which was silently wiping out anything typed here. Living
@@ -95,7 +98,7 @@ final class Store: ObservableObject {
     /// Filter + sort used everywhere (main list and dashboard sections).
     func apply(_ f: TaskFilter) -> [CraftTask] {
         tasks.filter {
-            f.matches($0) && (showCompleted || $0.state == .todo)
+            f.matches($0, todayIncludesOverdue: todayIncludesOverdue) && (showCompleted || $0.state == .todo)
                 && (searchText.isEmpty || $0.title.localizedCaseInsensitiveContains(searchText))
         }.sorted(by: Self.taskSort)
     }
