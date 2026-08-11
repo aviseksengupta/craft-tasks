@@ -522,6 +522,69 @@ final class Store: ObservableObject {
         try? data.write(to: filtersURL)
     }
 
+    // MARK: backup / restore — a single JSON document capturing everything
+    // needed to recreate the app's state (views, dashboards, pinned items,
+    // renamed docs, visibility settings). Mirrors the web app's export
+    // schema so a config exported from one app can be imported into the
+    // other. Deliberately excludes cached tasks, which come from Craft.
+    static let backupSchemaVersion = 1
+
+    struct AppBackup: Codable {
+        var schemaVersion: Int
+        var exportedAt: String
+        var apiBase: String?
+        var showCompleted: Bool
+        var config: BackupConfig
+    }
+
+    struct BackupConfig: Codable {
+        var filters: [TaskFilter]
+        var homeSection: Section?
+        var dashboards: [Dashboard]
+        var documentDisplayNames: [String: String]
+        var itemVisibility: [String: ItemVisibility]
+    }
+
+    static let defaultBackup = AppBackup(
+        schemaVersion: backupSchemaVersion, exportedAt: "", apiBase: nil, showCompleted: true,
+        config: BackupConfig(filters: [], homeSection: nil, dashboards: [], documentDisplayNames: [:], itemVisibility: [:]))
+
+    func buildBackup() -> AppBackup {
+        let iso = ISO8601DateFormatter().string(from: Date())
+        return AppBackup(
+            schemaVersion: Self.backupSchemaVersion, exportedAt: iso,
+            apiBase: SyncEngine.apiBase, showCompleted: showCompleted,
+            config: BackupConfig(filters: savedFilters, homeSection: homeSection, dashboards: dashboards,
+                                  documentDisplayNames: documentDisplayNames, itemVisibility: itemVisibility))
+    }
+
+    func exportBackupJSON() -> String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        guard let data = try? encoder.encode(buildBackup()) else { return "{}" }
+        return String(data: data, encoding: .utf8) ?? "{}"
+    }
+
+    func applyBackup(_ backup: AppBackup) {
+        savedFilters = backup.config.filters
+        dashboards = backup.config.dashboards
+        documentDisplayNames = backup.config.documentDisplayNames
+        itemVisibility = backup.config.itemVisibility
+        homeSection = backup.config.homeSection
+        showCompleted = backup.showCompleted
+        persistFilters()
+    }
+
+    func restoreBackup(fromJSON json: String) throws {
+        let data = Data(json.utf8)
+        let backup = try JSONDecoder().decode(AppBackup.self, from: data)
+        applyBackup(backup)
+    }
+
+    func restoreDefaultConfig() {
+        applyBackup(Self.defaultBackup)
+    }
+
     func setItemVisibility(_ id: String, _ v: ItemVisibility) {
         itemVisibility[id] = v
         persistFilters()

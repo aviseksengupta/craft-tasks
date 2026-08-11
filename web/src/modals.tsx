@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   CraftTask, TaskState, ymd, dayOf, markdownParts,
 } from './types'
-import { useStore, DocumentSummary } from './store'
+import { useStore, DocumentSummary, buildBackup, applyBackup, defaultBackup, AppBackup } from './store'
 import * as craft from './craft'
 import { getGistToken, setGistToken } from './gist'
 import { Modal, Icon, DateChip, StateCycle, MenuChip, MenuItem } from './ui'
@@ -313,7 +313,93 @@ export function SettingsModal({ onClose, forced }: { onClose: () => void; forced
           {refreshing ? 'Refreshing…' : 'Save'}
         </button>
       </div>
+      {!forced && <BackupRestoreSection />}
     </Modal>
+  )
+}
+
+// ---- Backup & Restore: export the current config as JSON, or restore from
+// a previously exported (or default) JSON. Lets you get back to the same
+// state after redeploying the PWA or clearing browser storage. ----
+
+function BackupRestoreSection() {
+  const [json, setJson] = useState<string | null>(null)
+  const [importText, setImportText] = useState('')
+  const [status, setStatus] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const showExport = () => setJson(JSON.stringify(buildBackup(), null, 2))
+
+  const download = () => {
+    const data = json ?? JSON.stringify(buildBackup(), null, 2)
+    const blob = new Blob([data], { type: 'application/json' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `craft-tasks-config-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
+
+  const copy = async () => {
+    await navigator.clipboard.writeText(json ?? JSON.stringify(buildBackup(), null, 2))
+    setStatus('Copied to clipboard')
+  }
+
+  const restore = (text: string) => {
+    try {
+      const parsed = JSON.parse(text) as AppBackup
+      if (!parsed || typeof parsed !== 'object' || !parsed.config) throw new Error('Missing "config" field')
+      applyBackup(parsed)
+      setStatus('Config restored — reloading…')
+      forceRefresh()
+    } catch (e) {
+      setStatus(`Restore failed: ${e instanceof Error ? e.message : String(e)}`)
+    }
+  }
+
+  const restoreDefault = () => {
+    if (!window.confirm('Reset to the default configuration? This replaces your saved views, dashboards, and renamed documents.')) return
+    restore(JSON.stringify(defaultBackup))
+  }
+
+  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    file.text().then(restore)
+    e.target.value = ''
+  }
+
+  return (
+    <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+      <div className="form-label">BACKUP &amp; RESTORE</div>
+      <div className="hint-text" style={{ marginTop: 6, marginBottom: 10 }}>
+        Export your saved views, dashboards, pinned items and renamed documents as JSON — useful
+        after redeploying the app or reinstalling the PWA, since this is otherwise only stored
+        locally on this device.
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button className="btn" onClick={showExport}>Show config JSON</button>
+        <button className="btn" onClick={download}>Download JSON</button>
+        {json && <button className="btn" onClick={copy}>Copy</button>}
+        <button className="btn" onClick={() => fileRef.current?.click()}>Import JSON…</button>
+        <button className="btn" onClick={restoreDefault}>Reset to default</button>
+      </div>
+      <input ref={fileRef} type="file" accept="application/json" style={{ display: 'none' }} onChange={onFile} />
+      {json && (
+        <textarea readOnly value={json} rows={8}
+                  style={{ marginTop: 10, width: '100%', fontFamily: 'monospace', fontSize: 12 }}
+                  onFocus={e => e.target.select()} />
+      )}
+      <div style={{ marginTop: 10 }}>
+        <div className="form-label">OR PASTE JSON TO RESTORE</div>
+        <textarea value={importText} onChange={e => setImportText(e.target.value)} rows={4}
+                  placeholder="Paste exported config JSON here"
+                  style={{ width: '100%', fontFamily: 'monospace', fontSize: 12, marginTop: 6 }} />
+        <button className="btn" style={{ marginTop: 6 }} disabled={importText.trim() === ''}
+                onClick={() => restore(importText)}>Restore from pasted JSON</button>
+      </div>
+      {status && <div className="hint-text" style={{ marginTop: 8 }}>{status}</div>}
+    </div>
   )
 }
 

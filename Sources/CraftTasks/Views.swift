@@ -1,4 +1,6 @@
 import SwiftUI
+import AppKit
+import UniformTypeIdentifiers
 
 enum Section: Hashable, Codable {
     case home
@@ -251,6 +253,9 @@ struct SidebarSettingsSheet: View {
                 }
             }
 
+            Divider()
+            BackupRestoreSection()
+
             HStack {
                 Spacer()
                 Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
@@ -265,6 +270,88 @@ struct SidebarSettingsSheet: View {
         Binding(
             get: { store.itemVisibility[id] ?? .shown },
             set: { store.setItemVisibility(id, $0) })
+    }
+}
+
+/// Export the current config (views, dashboards, pinned items, renamed
+/// documents) as JSON, or restore from a previously exported (or default)
+/// JSON — useful for getting back to a known state after a reinstall.
+private struct BackupRestoreSection: View {
+    @EnvironmentObject var store: Store
+    @State private var json: String?
+    @State private var status: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Backup & Restore").font(.system(size: 15, weight: .semibold)).foregroundColor(Theme.textHi)
+            Text("Export your saved views, dashboards, pinned items and renamed documents as JSON.")
+                .font(.system(size: 11)).foregroundColor(Theme.textFaint)
+
+            HStack(spacing: 8) {
+                Button("Show config JSON") { json = store.exportBackupJSON() }
+                Button("Export to file…") { exportToFile() }
+                Button("Import from file…") { importFromFile() }
+                Button("Reset to default") { resetToDefault() }
+            }
+            .font(.system(size: 11))
+
+            if let json {
+                ScrollView {
+                    Text(json).font(.system(size: 10, design: .monospaced)).textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(height: 140)
+                .padding(8)
+                .background(Theme.bg)
+                .cornerRadius(6)
+                HStack {
+                    Button("Copy") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(json, forType: .string)
+                        status = "Copied to clipboard"
+                    }
+                    .font(.system(size: 11))
+                    Spacer()
+                }
+            }
+            if let status {
+                Text(status).font(.system(size: 11)).foregroundColor(Theme.textFaint)
+            }
+        }
+    }
+
+    private func exportToFile() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.json]
+        panel.nameFieldStringValue = "craft-tasks-config.json"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        try? store.exportBackupJSON().write(to: url, atomically: true, encoding: .utf8)
+        status = "Exported to \(url.lastPathComponent)"
+    }
+
+    private func importFromFile() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            let text = try String(contentsOf: url, encoding: .utf8)
+            try store.restoreBackup(fromJSON: text)
+            status = "Config restored from \(url.lastPathComponent)"
+        } catch {
+            status = "Restore failed: \(error.localizedDescription)"
+        }
+    }
+
+    private func resetToDefault() {
+        let alert = NSAlert()
+        alert.messageText = "Reset to default configuration?"
+        alert.informativeText = "This replaces your saved views, dashboards, and renamed documents."
+        alert.addButton(withTitle: "Reset")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        store.restoreDefaultConfig()
+        status = "Reset to default configuration"
     }
 }
 
