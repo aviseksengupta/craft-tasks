@@ -144,7 +144,7 @@ export function filterIsEmpty(f: TaskFilter): boolean {
     && f.dateField === 'Any date' && f.dateScope === 'Any' && f.groupBy === 'Document'
 }
 
-export function filterMatches(f: TaskFilter, t: CraftTask): boolean {
+export function filterMatches(f: TaskFilter, t: CraftTask, todayIncludesOverdue = false): boolean {
   if (f.states.length > 0 && !f.states.includes(t.state)) return false
   const tags = taskTags(t)
   if (f.tags.length > 0 && !f.tags.some(x => tags.includes(x))) return false
@@ -164,7 +164,11 @@ export function filterMatches(f: TaskFilter, t: CraftTask): boolean {
     case 'Any': break
     case 'No date': if (date) return false; break
     case 'Today':
-      if (!date || date.getTime() !== today.getTime()) return false; break
+      if (!date) return false
+      if (date.getTime() !== today.getTime()) {
+        if (!(todayIncludesOverdue && date < today && t.state === 'todo')) return false
+      }
+      break
     case 'Overdue':
       if (!date || !(date < today && t.state === 'todo')) return false; break
     case 'Next 7 days': {

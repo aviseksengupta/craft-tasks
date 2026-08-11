@@ -75,6 +75,8 @@ interface StoreValue {
   documentDisplayNames: Record<string, string>
   showCompleted: boolean
   setShowCompleted: (b: boolean) => void
+  todayIncludesOverdue: boolean
+  setTodayIncludesOverdue: (b: boolean) => void
   searchText: string
   setSearchText: (s: string) => void
   syncing: boolean
@@ -142,6 +144,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [filter, setFilter] = useState<TaskFilter>(() => newFilter())
   const [config, setConfig] = useState<ConfigFile>(() => loadJson('config', emptyConfig))
   const [showCompleted, setShowCompletedState] = useState<boolean>(() => loadJson('showCompleted', true))
+  const [todayIncludesOverdue, setTodayIncludesOverdueState] = useState<boolean>(() => loadJson('todayIncludesOverdue', false))
   const [searchText, setSearchText] = useState('')
   const [syncing, setSyncing] = useState(false)
   const [lastSync, setLastSync] = useState<Date | null>(() => {
@@ -208,6 +211,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const setShowCompleted = useCallback((b: boolean) => {
     setShowCompletedState(b); saveJson('showCompleted', b)
+  }, [])
+
+  const setTodayIncludesOverdue = useCallback((b: boolean) => {
+    setTodayIncludesOverdueState(b); saveJson('todayIncludesOverdue', b)
   }, [])
 
   // ---- outbox flush ----
@@ -418,9 +425,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const apply = useCallback((f: TaskFilter) =>
     tasks.filter(t =>
-      filterMatches(f, t) && (showCompleted || t.state === 'todo')
+      filterMatches(f, t, todayIncludesOverdue) && (showCompleted || t.state === 'todo')
         && (searchText === '' || taskTitle(t).toLowerCase().includes(searchText.toLowerCase()))
-    ).sort(taskSort), [tasks, showCompleted, searchText, taskSort])
+    ).sort(taskSort), [tasks, showCompleted, todayIncludesOverdue, searchText, taskSort])
 
   const filtered = useMemo(() => apply(filter), [apply, filter])
 
@@ -631,7 +638,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     savedFilters: config.filters, dashboards: config.dashboards,
     homeSection: config.homeSection, itemVisibility: config.itemVisibility,
     documentDisplayNames: config.documentDisplayNames,
-    showCompleted, setShowCompleted, searchText, setSearchText,
+    showCompleted, setShowCompleted, todayIncludesOverdue, setTodayIncludesOverdue, searchText, setSearchText,
     syncing, lastSync, lastSyncSummary, syncError,
     totalPendingCount: pending.length + pendingCreates.length,
     gistStatus, configured,

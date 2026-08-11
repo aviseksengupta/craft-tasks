@@ -268,6 +268,7 @@ async function forceRefresh() {
 }
 
 export function SettingsModal({ onClose, forced }: { onClose: () => void; forced?: boolean }) {
+  const store = useStore()
   const [url, setUrl] = useState(craft.getApiBase() ?? '')
   const [token, setToken] = useState(getGistToken() ?? '')
   const [refreshing, setRefreshing] = useState(false)
@@ -301,6 +302,17 @@ export function SettingsModal({ onClose, forced }: { onClose: () => void; forced
           A GitHub personal access token with the <b>gist</b> scope. Saved views, dashboards and
           other configs sync to a private Gist so they follow you across devices. Leave empty to
           keep configs in this browser only.
+        </div>
+      </div>
+      <div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+          <input type="checkbox" checked={store.todayIncludesOverdue}
+                 onChange={e => store.setTodayIncludesOverdue(e.target.checked)} />
+          <span className="form-label" style={{ margin: 0 }}>TODAY INCLUDES OVERDUE</span>
+        </label>
+        <div className="hint-text" style={{ marginTop: 6 }}>
+          When enabled, the Today view also shows overdue tasks. When disabled, Today shows only
+          tasks due today.
         </div>
       </div>
       <div className="hint-text">
