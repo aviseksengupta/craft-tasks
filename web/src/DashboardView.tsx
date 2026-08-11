@@ -61,6 +61,16 @@ export function DashboardView({ dashboardId }: { dashboardId: string }) {
   const canvasW = COLS * COL_W + (COLS - 1) * GAP
   const canvasH = frames.length ? Math.max(...frames.map(f => f.y + f.h)) : 0
 
+  // Snap markers sit at each widget's actual left edge, not at every raw
+  // grid line — a widget spanning multiple columns (widthUnits > 1) has
+  // no boundary at the grid lines it straddles, so snapping to those
+  // left the scroll stopping mid-widget. Marker width = gap to the next
+  // distinct widget start (or to the canvas edge for the last one).
+  const snapOffsets = useMemo(() => {
+    const xs = Array.from(new Set(frames.map(f => f.x))).sort((a, b) => a - b)
+    return xs.map((x, i) => ({ x, width: (i + 1 < xs.length ? xs[i + 1] : canvasW) - x }))
+  }, [frames, canvasW])
+
   const availableViews = store.savedFilters
     .filter(f => !widgets.some(w => w.viewId === f.id))
     .map(f => ({ id: f.id, name: f.name }))
@@ -85,9 +95,13 @@ export function DashboardView({ dashboardId }: { dashboardId: string }) {
           </div>
         ) : (
           <>
-            {/* Invisible in-flow snap targets, one per grid column —
-                direct children of .dash-scroll, no wrapper div. Three
-                things ruled out simpler options, each confirmed by
+            {/* Invisible in-flow snap targets, one per distinct widget
+                left edge (snapOffsets above) — direct children of
+                .dash-scroll, no wrapper div. Sized to the gap to the next
+                widget's start, not a fixed grid-column width: an early
+                version snapped at every raw grid line, which stops mid-
+                widget for anything wider than one column (widthUnits>1).
+                Three things ruled out simpler options, each confirmed by
                 testing an actual scroll settle position rather than just
                 reading the spec: putting scroll-snap-align on the widgets
                 themselves does nothing (they're position:absolute for the
@@ -98,15 +112,14 @@ export function DashboardView({ dashboardId }: { dashboardId: string }) {
                 nesting silently disqualifies it); and a flex/grid wrapper
                 for the row would've pushed .dash-canvas to the right of
                 it. display:inline-block sidesteps that last problem: the
-                columns lay out left-to-right on their own inline
+                markers lay out left-to-right on their own inline
                 formatting context, but .dash-canvas is block-level right
                 after them, so it starts its own new line back at the
                 left edge regardless — see .dash-scroll's white-space:
                 nowrap (needed so these don't wrap to a second line) and
                 .dash-canvas's white-space:normal (resets that inherited
-                nowrap before it reaches real widget text). Column
-                width/gap must mirror COL_W/GAP above. */}
-            {Array.from({ length: COLS }).map((_, i) => <div key={i} className="dash-snap-col" />)}
+                nowrap before it reaches real widget text). */}
+            {snapOffsets.map(({ x, width }) => <div key={x} className="dash-snap-col" style={{ width }} />)}
             <div className="dash-canvas" style={{ width: canvasW + 48, height: canvasH + 48 }}>
             {widgets.map((w, i) => (
               <WidgetCard key={w.id} dashboardId={dashboardId} widget={w}

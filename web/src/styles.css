@@ -246,8 +246,10 @@ h1, h2, h3 { font-weight: 600; }
    element that would put scroll-snap-align one nesting level below
    .dash-scroll's direct children — see the full reasoning in
    DashboardView.tsx. height:0 + overflow:hidden keeps the row visually
-   inert. Width/margin-right must mirror COL_W/GAP there. */
-.dash-snap-col { display: inline-block; width: 170px; height: 0; overflow: hidden; margin-right: 14px; scroll-snap-align: start; }
+   inert. Width is set inline per-marker (DashboardView.tsx's
+   snapOffsets) to span the full gap to the next widget's start, so no
+   margin here — adding one would double-count that gap. */
+.dash-snap-col { display: inline-block; height: 0; overflow: hidden; scroll-snap-align: start; }
 .dash-widget {
   position: absolute; background: var(--card); border: 1px solid var(--stroke);
   border-radius: 14px; box-shadow: var(--shadow); padding: 16px;
