@@ -36,6 +36,9 @@ struct EditTaskView: View {
                 StateCycleButton(state: $state)
                 Text("Edit Task").font(.system(size: 15, weight: .semibold)).foregroundColor(Theme.textHi)
                 Spacer()
+                if let link = task.craftDeepLink(spaceId: store.spaceId) {
+                    OpenInCraftButton(url: link)
+                }
                 documentPicker
             }
 

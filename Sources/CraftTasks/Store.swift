@@ -50,6 +50,11 @@ final class Store: ObservableObject {
     /// The Craft-side title (CraftTask.documentTitle) is always kept as-is
     /// internally and used as the fallback / reset value.
     @Published var documentDisplayNames: [String: String] = [:]
+    /// Needed to build "open in Craft" deep links; nil until fetched (once,
+    /// then cached — Craft doesn't expose it via /tasks).
+    @Published var spaceId: String? = UserDefaults.standard.string(forKey: "craftSpaceId") {
+        didSet { UserDefaults.standard.set(spaceId, forKey: "craftSpaceId") }
+    }
 
     private let db = Database()
     private var timer: Timer?
@@ -235,6 +240,7 @@ final class Store: ObservableObject {
         if let s = db.getMeta("lastSync") { lastSync = ISO8601DateFormatter().date(from: s) }
         loadFilters()
         Task { await sync() }
+        if spaceId == nil { Task { spaceId = try? await SyncEngine.fetchSpaceId() } }
         timer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
             Task { await self?.sync() }
         }

@@ -179,6 +179,26 @@ final class SyncEngine {
         }
     }
 
+    /// GET /connection returns the space id needed to build craftdocs://
+    /// deep links (Craft doesn't expose it via /tasks) plus a ready-made
+    /// URL template — fetched once and cached in UserDefaults.
+    static func fetchSpaceId() async throws -> String {
+        guard let url = URL(string: "\(apiBase)/connection") else { throw SyncError.apiError(status: 0, message: nil) }
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 15
+        let (data, resp): (Data, URLResponse)
+        do { (data, resp) = try await URLSession.shared.data(for: req) }
+        catch { throw SyncError.network(error) }
+        guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else {
+            throw apiError(status: (resp as? HTTPURLResponse)?.statusCode ?? 0, data: data)
+        }
+        guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let space = root["space"] as? [String: Any], let id = space["id"] as? String else {
+            throw SyncError.apiError(status: 200, message: "Craft returned an unexpected response")
+        }
+        return id
+    }
+
     static func fetchAndDiff(db: Database, skipping pendingIds: Set<String> = []) async throws -> SyncResult {
         guard let url = URL(string: "\(apiBase)/tasks?scope=all") else { throw SyncError.apiError(status: 0, message: nil) }
         var req = URLRequest(url: url)

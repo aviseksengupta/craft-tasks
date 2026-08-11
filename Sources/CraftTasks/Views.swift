@@ -921,6 +921,7 @@ struct CompletedToggle: View {
 // MARK: - Task row
 
 struct TaskRow: View {
+    @EnvironmentObject var store: Store
     let task: CraftTask
     @State private var hover = false
     @State private var editing = false
@@ -999,6 +1000,10 @@ struct TaskRow: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+
+            if let link = task.craftDeepLink(spaceId: store.spaceId) {
+                OpenInCraftButton(url: link)
+            }
         }
         .padding(.horizontal, 16).padding(.vertical, 9)
         .background(hover ? Theme.panelHi.opacity(0.5) : .clear)
@@ -1006,6 +1011,28 @@ struct TaskRow: View {
         .onHover { hover = $0 }
         .help(isPending ? "Still syncing to Craft — editing will be available once it's confirmed" : "")
         .sheet(isPresented: $editing) { EditTaskView(task: task) }
+    }
+}
+
+/// Pronounced circular badge that opens a task's source document in the
+/// Craft app — the app's own "square.stack.3d.up.fill" mark (also used as
+/// the sidebar logo) doubles as the "open in Craft" affordance.
+struct OpenInCraftButton: View {
+    let url: URL
+    @State private var hover = false
+
+    var body: some View {
+        Button { NSWorkspace.shared.open(url) } label: {
+            Image(systemName: "square.stack.3d.up.fill")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(hover ? .black : Theme.textLo)
+                .frame(width: 24, height: 24)
+                .background(Circle().fill(hover ? Theme.accent : Theme.panelHi))
+                .overlay(Circle().stroke(hover ? Theme.accent : Theme.stroke, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .onHover { hover = $0 }
+        .help("Open in Craft")
     }
 }
 

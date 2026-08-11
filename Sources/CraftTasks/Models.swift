@@ -55,6 +55,14 @@ struct CraftTask: Identifiable, Codable, Equatable {
         return documentTitle ?? "Untitled"
     }
 
+    /// Deep link to open this task's source document in the Craft app, via
+    /// the craftdocs:// URL scheme. nil for inbox tasks or before the space
+    /// id (fetched via SyncEngine.fetchSpaceId) is known.
+    func craftDeepLink(spaceId: String?) -> URL? {
+        guard let spaceId, let documentId, locationType != "inbox" else { return nil }
+        return URL(string: "craftdocs://open?spaceId=\(spaceId)&blockId=\(documentId)")
+    }
+
     var effectiveDate: String? { scheduleDate ?? deadlineDate }
 
     var scheduleDay: Date? { Self.day(scheduleDate) }
