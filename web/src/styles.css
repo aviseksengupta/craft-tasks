@@ -21,7 +21,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body, #root { height: 100%; }
+html, body, #root { height: 100%; overflow: hidden; }
 body {
   background: var(--bg);
   color: var(--text);
@@ -29,6 +29,7 @@ body {
   font-size: 13px;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
+  width: 100%;
 }
 button {
   font-family: inherit; background: none; border: none; color: inherit;
@@ -42,8 +43,15 @@ input:focus, textarea:focus { border-color: var(--text-faint); }
 ::placeholder { color: var(--text-faint); }
 h1, h2, h3 { font-weight: 600; }
 
-.app { display: flex; height: 100%; overflow: hidden; }
-.main { flex: 1; display: flex; flex-direction: column; min-width: 0; border-left: 1px solid var(--stroke); }
+/* position:fixed + inset:0 instead of height:100dvh — iOS Safari's
+   collapsing toolbar makes dvh/vh unreliable on first paint (observed:
+   the app rendering shorter than the real visual viewport, leaving a gap
+   of bare `body` below the bottom nav). A fixed, inset-anchored box is
+   pinned directly to the actual visual viewport by the browser, the same
+   way .sidebar/.bottom-nav/.fab already are on mobile — no height math
+   to get wrong. */
+.app { position: fixed; inset: 0; display: flex; overflow: hidden; }
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; border-left: 1px solid var(--stroke); }
 
 /* ---- Sidebar ---- */
 .sidebar {
@@ -88,6 +96,7 @@ h1, h2, h3 { font-weight: 600; }
 .page-header {
   display: flex; align-items: baseline; gap: 10px;
   padding: 14px 28px; flex-wrap: wrap;
+  flex-shrink: 0;
 }
 .page-header h1 { font-size: 27px; font-family: var(--serif); color: var(--text-hi); font-weight: 600; }
 .page-header .count { font-size: 13px; color: var(--text-faint); }
@@ -103,16 +112,20 @@ h1, h2, h3 { font-weight: 600; }
 .chip.active { background: var(--accent); color: #000; border-color: transparent; }
 .chip .chip-icon { font-size: 9px; }
 
-.filter-bar { display: flex; gap: 8px; padding: 0 24px 12px; flex-wrap: wrap; align-items: center; }
+.filter-bar { display: flex; gap: 8px; padding: 0 24px 12px; flex-wrap: wrap; align-items: center; flex-shrink: 0; }
 
-/* dropdown menus */
-.menu-wrap { position: relative; }
+/* Dropdown menus — always position:fixed with top/left set inline from a
+   measured trigger rect (see MenuChip/useContextMenu in ui.tsx), never
+   position:absolute within the trigger's own flow. A trigger living
+   inside a scrolling container (e.g. the horizontally-scrollable mobile
+   filter bar) would otherwise clip its own dropdown, since overflow-x on
+   one axis makes browsers implicitly clip the other axis too. */
+.menu-wrap { display: contents; }
 .menu {
-  position: absolute; top: calc(100% + 4px); left: 0; z-index: 50;
+  position: fixed; z-index: 50;
   background: var(--panel-hi); border: 1px solid var(--stroke); border-radius: 8px;
   box-shadow: var(--shadow); min-width: 160px; max-height: 300px; overflow-y: auto; padding: 4px;
 }
-.menu.right { left: auto; right: 0; }
 .menu-item {
   display: flex; align-items: center; gap: 8px; width: 100%;
   padding: 6px 10px; border-radius: 5px; font-size: 12px; color: var(--text);
@@ -124,7 +137,12 @@ h1, h2, h3 { font-weight: 600; }
 .menu-note { padding: 6px 10px; font-size: 11px; color: var(--text-faint); }
 
 /* ---- Task list ---- */
-.list-scroll { flex: 1; overflow: auto; padding: 14px 24px 24px; }
+/* min-height/min-width: 0 override the flex-item default of `auto`, which
+   otherwise refuses to shrink below content size — without it, Safari
+   (and per-spec, any browser) lets this grow past the viewport instead of
+   scrolling internally, dragging the header/filter-bar off-screen with it
+   since they'd no longer be outside the actual scrolling region. */
+.list-scroll { flex: 1; min-height: 0; min-width: 0; overflow: auto; padding: 14px 24px 24px; }
 .group-stack { display: flex; flex-direction: column; gap: 18px; }
 .kanban-row { display: flex; align-items: flex-start; gap: 14px; }
 .kanban-col { width: 280px; flex-shrink: 0; }
@@ -171,13 +189,19 @@ h1, h2, h3 { font-weight: 600; }
 
 /* ---- Cards grid (Documents / Views) ---- */
 .cards-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  /* minmax(0,…) not bare 1fr/300px — a plain `1fr` track's automatic
+     minimum is its content's min-content size, not 0. A card with a long
+     nowrap title (min-content = the full unbroken string width) then
+     forces the track wider than the container instead of letting the
+     title's own text-overflow:ellipsis do its job. */
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
   gap: 18px; padding: 24px;
 }
 .doc-card {
   background: var(--panel); border: 1px solid var(--stroke); border-radius: 16px;
   padding: 18px; box-shadow: var(--shadow-lo); cursor: pointer;
   display: flex; flex-direction: column; gap: 16px; text-align: left;
+  min-width: 0;
   transition: background 0.12s, box-shadow 0.12s, border-color 0.12s;
 }
 .doc-card:hover { background: var(--panel-hi); box-shadow: var(--shadow-hover); border-color: rgba(107,103,94,0.4); }
@@ -203,7 +227,7 @@ h1, h2, h3 { font-weight: 600; }
 .card-hover-btn.pinned { color: var(--accent) !important; }
 
 /* ---- Dashboard ---- */
-.dash-scroll { flex: 1; overflow: auto; }
+.dash-scroll { flex: 1; min-height: 0; min-width: 0; overflow: auto; }
 .dash-canvas { position: relative; padding: 24px; }
 .dash-widget {
   position: absolute; background: var(--card); border: 1px solid var(--stroke);
@@ -358,9 +382,23 @@ h1, h2, h3 { font-weight: 600; }
   .checkbox { width: 21px; height: 21px; border-radius: 6px; }
   .sidebar-item { padding: 10px; }
   .bn-tab, .icon-btn, .fab, .sidebar-close { -webkit-tap-highlight-color: transparent; }
+
+  /* Slightly larger type for comfortable reading at arm's length — the
+     desktop sizes were tuned for a mouse-driven, closer-viewed dialog UI. */
+  body { font-size: 14px; }
+  .task-title { font-size: 14.5px; }
+  .task-tag, .date-badge, .done-note { font-size: 11px; }
+  .chip { font-size: 12px; }
+  .group-head .g-title { font-size: 16px; }
+  .doc-card-title { font-size: 17px; }
+  .doc-card-sub { font-size: 12px; }
+  .stat-tile .n { font-size: 20px; }
+  .bn-tab { font-size: 11px; }
+  .sidebar-item { font-size: 13px; }
+
   .list-scroll, .dash-scroll { padding-bottom: calc(env(safe-area-inset-bottom) + 84px); }
   .list-scroll { padding-left: 12px; padding-right: 12px; padding-top: 12px; }
-  .cards-grid { grid-template-columns: 1fr; padding: 16px; padding-bottom: calc(env(safe-area-inset-bottom) + 84px); }
+  .cards-grid { grid-template-columns: minmax(0, 1fr); padding: 16px; padding-bottom: calc(env(safe-area-inset-bottom) + 84px); }
 
   /* Bottom tab bar — the main way to move around the app on mobile. */
   .bottom-nav {

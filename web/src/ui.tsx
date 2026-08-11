@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef, useState } from 'react'
+import { ReactNode, useEffect, useRef, useState, MouseEvent as ReactMouseEvent } from 'react'
 
 // ---- Icons: minimal inline SVG strokes in the SF Symbols spirit ----
 const paths: Record<string, ReactNode> = {
@@ -54,24 +54,43 @@ export function Chip({ text, icon, active, onClick, title }: {
   )
 }
 
-/** Chip that opens a dropdown menu; closes on outside click. */
+/** Chip that opens a dropdown menu; closes on outside click. Positioned
+ * fixed from the trigger's measured rect rather than absolute-within-flow,
+ * so it isn't clipped by a scrolling ancestor (e.g. the horizontally
+ * scrollable mobile filter bar) and always lands in the right place
+ * regardless of that ancestor's own scroll offset. */
 export function MenuChip({ label, children }: {
   label: ReactNode; children: (close: () => void) => ReactNode
 }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+  const ref = useRef<HTMLSpanElement>(null)
+  const open = pos !== null
   useEffect(() => {
     if (!open) return
-    const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    const close = () => setPos(null)
+    document.addEventListener('mousedown', close)
+    window.addEventListener('resize', close)
+    window.addEventListener('scroll', close, true)
+    return () => {
+      document.removeEventListener('mousedown', close)
+      window.removeEventListener('resize', close)
+      window.removeEventListener('scroll', close, true)
     }
-    document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
   }, [open])
+  const toggle = (e: ReactMouseEvent) => {
+    e.stopPropagation()
+    if (open) { setPos(null); return }
+    const r = ref.current!.getBoundingClientRect()
+    setPos({ top: r.bottom + 4, left: Math.min(r.left, window.innerWidth - 180) })
+  }
   return (
-    <div className="menu-wrap" ref={ref}>
-      <span onClick={() => setOpen(o => !o)}>{label}</span>
-      {open && <div className="menu">{children(() => setOpen(false))}</div>}
+    <div className="menu-wrap">
+      <span ref={ref} onClick={toggle}>{label}</span>
+      {open && (
+        <div className="menu" style={{ top: pos.top, left: pos.left }} onMouseDown={e => e.stopPropagation()}>
+          {children(() => setPos(null))}
+        </div>
+      )}
     </div>
   )
 }
