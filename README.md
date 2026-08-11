@@ -2,6 +2,8 @@
 
 Native macOS (SwiftUI) app that mirrors all tasks from your Craft space into a local SQLite database and presents them in a filterable, minimal dark UI.
 
+A mobile-first PWA with the same features and look lives in [`web/`](web/) — install it from Safari on iOS (Share → Add to Home Screen). Live at **https://aviseksengupta.github.io/craft-tasks-web/**.
+
 ## Build & run
 
 ```bash

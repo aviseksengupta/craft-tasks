@@ -25,3 +25,9 @@ dist/
 # Environment
 .env
 .env.local
+
+# Web (React PWA)
+web/node_modules/
+web/dist/
+web/dev-dist/
+web/.vite/
