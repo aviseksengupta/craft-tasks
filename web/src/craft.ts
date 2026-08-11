@@ -19,6 +19,26 @@ export function setApiBase(url: string) {
   localStorage.setItem('craftApiUrl', url.trim())
 }
 
+export function getSpaceId(): string | null {
+  return localStorage.getItem('craftSpaceId')
+}
+
+/** GET /connection returns the space id and a ready-made craftdocs:// URL template
+ * ({blockId} placeholder) — fetched once after the API URL is (re)configured and cached. */
+export async function refreshSpaceId(): Promise<void> {
+  const root = await call('/connection') as { space?: { id?: string } }
+  const id = root.space?.id
+  if (id) localStorage.setItem('craftSpaceId', id)
+}
+
+/** Deep link to open a document in the Craft app, via the craftdocs:// URL scheme.
+ * Needs the space id cached by refreshSpaceId(). */
+export function craftDeepLink(documentId: string | null): string | null {
+  const spaceId = getSpaceId()
+  if (!documentId || !spaceId) return null
+  return `craftdocs://open?spaceId=${encodeURIComponent(spaceId)}&blockId=${encodeURIComponent(documentId)}`
+}
+
 async function call(path: string, init?: RequestInit): Promise<unknown> {
   const base = getApiBase()
   if (!base) throw new ApiError(0, 'Craft link URL not configured')

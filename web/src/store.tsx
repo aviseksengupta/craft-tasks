@@ -160,6 +160,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // to force a re-check, unlike an in-place settings update would need.
   const configured = !!craft.getApiBase()
 
+  // Backfill the space id (needed for "open in Craft" links) for installs that
+  // configured the API before this existed — SettingsModal covers it going forward.
+  useEffect(() => {
+    if (configured && !craft.getSpaceId()) craft.refreshSpaceId().catch(() => {})
+  }, [configured])
+
   // refs so async flows always see current values
   const tasksRef = useRef(tasks); tasksRef.current = tasks
   const pendingRef = useRef(pending); pendingRef.current = pending

@@ -1,10 +1,12 @@
 import { CraftTask, displayTitle, taskTags, scheduleDay, deadlineDay, completedDay, startOfToday } from './types'
 import { useStore } from './store'
 import { Icon } from './ui'
+import { craftDeepLink } from './craft'
 
 export function TaskRow({ task, onEdit }: { task: CraftTask; onEdit: (t: CraftTask) => void }) {
   const store = useStore()
   const isPending = task.id.startsWith('local-')
+  const deepLink = craftDeepLink(task.documentId)
 
   const today = startOfToday()
   const d = scheduleDay(task) ?? deadlineDay(task)
@@ -43,6 +45,11 @@ export function TaskRow({ task, onEdit }: { task: CraftTask; onEdit: (t: CraftTa
           {cd && <span className="done-note">done {cd.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span>}
         </div>
       </div>
+      {deepLink && (
+        <a className="open-in-craft" href={deepLink} onClick={e => e.stopPropagation()} title="Open in Craft">
+          <Icon name="stack" size={12} weight={1.6} />
+        </a>
+      )}
     </div>
   )
 }
