@@ -267,10 +267,7 @@ async function forceRefresh() {
   window.location.reload()
 }
 
-export function SettingsModal({ onClose, forced, heightOffset, onAdjustHeightOffset }: {
-  onClose: () => void; forced?: boolean
-  heightOffset?: number; onAdjustHeightOffset?: (delta: number) => void
-}) {
+export function SettingsModal({ onClose, forced }: { onClose: () => void; forced?: boolean }) {
   const [url, setUrl] = useState(craft.getApiBase() ?? '')
   const [token, setToken] = useState(getGistToken() ?? '')
   const [refreshing, setRefreshing] = useState(false)
@@ -306,24 +303,6 @@ export function SettingsModal({ onClose, forced, heightOffset, onAdjustHeightOff
           keep configs in this browser only.
         </div>
       </div>
-      {onAdjustHeightOffset && (
-        <div>
-          <div className="form-label">HOME SCREEN FIT (IOS STANDALONE ONLY)</div>
-          <div className="flow-row" style={{ gap: 10 }}>
-            <button className="btn" onClick={() => onAdjustHeightOffset(-5)}>− 5px</button>
-            <span style={{ fontSize: 13, minWidth: 60, textAlign: 'center' }}>{heightOffset ?? 0}px</span>
-            <button className="btn" onClick={() => onAdjustHeightOffset(5)}>+ 5px</button>
-            {heightOffset !== 0 && (
-              <button className="btn" onClick={() => onAdjustHeightOffset(-(heightOffset ?? 0))}>Reset</button>
-            )}
-          </div>
-          <div className="hint-text" style={{ marginTop: 6 }}>
-            If there's a gap below the bottom bar when this is added to your home screen, nudge
-            this up a few px at a time until the gap disappears — applies and saves immediately,
-            no need to hit Save below for this one.
-          </div>
-        </div>
-      )}
       <div className="hint-text">
         Save clears the cached app and reloads — the reliable way to force this installed PWA
         onto the latest version, since there's no manual "clear cache" gesture on iOS.

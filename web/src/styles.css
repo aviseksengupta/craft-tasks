@@ -43,21 +43,17 @@ input:focus, textarea:focus { border-color: var(--text-faint); }
 ::placeholder { color: var(--text-faint); }
 h1, h2, h3 { font-weight: 600; }
 
-/* Explicit height from --app-height (set in App.tsx via window.innerHeight,
-   a plain runtime measurement) rather than inset:0/vh/dvh — a standalone
-   (home-screen-launched) iOS PWA has been observed to report viewport
-   metrics to CSS that don't match the real screen, a WebKit quirk
-   specific to that launch mode: neither 100dvh nor position:fixed;inset:0
-   (which should be immune to CSS-unit issues in theory) fully avoided a
-   gap the size of the missing browser chrome once actually installed —
-   this only showed up added-to-home-screen, not in a regular browser tab.
-   --app-height falls back to 100vh before the effect runs (first paint /
-   no-JS). */
-.app {
-  position: fixed; top: 0; left: 0; right: 0;
-  height: 100vh; height: var(--app-height, 100vh);
-  display: flex; overflow: hidden;
-}
+/* Plain height:100% cascaded from html/body/#root, not position:fixed or
+   any vh/dvh/JS-measured height. Several increasingly elaborate attempts
+   at explicit sizing (100dvh, position:fixed;inset:0, a JS-measured
+   window.innerHeight custom property) all still left a gap below the
+   bottom nav once actually installed to an iOS home screen — and a
+   working counter-example PWA (no custom height logic at all) confirmed
+   this is achievable with the plain/standard approach, meaning the
+   elaborate attempts were the problem, not the fix. viewport-fit=cover in
+   index.html's meta plus safe-area-inset padding on the elements that
+   need it (bottom nav, header) is the whole mechanism needed. */
+.app { height: 100%; display: flex; overflow: hidden; }
 .main { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; border-left: 1px solid var(--stroke); }
 
 /* ---- Sidebar ---- */
@@ -369,13 +365,7 @@ h1, h2, h3 { font-weight: 600; }
 
 @media (max-width: 760px) {
   .sidebar {
-    /* absolute, not fixed: .app is itself position:fixed, which makes it
-       the containing block for position:absolute descendants (but NOT for
-       further position:fixed ones — those still anchor to the true
-       viewport, bypassing .app's height entirely). Anchoring to .app
-       instead of the viewport is what lets the Settings height-offset
-       calibration actually move this along with everything else. */
-    position: absolute; inset: 0; width: 100%; z-index: 40;
+    position: fixed; inset: 0; width: 100%; z-index: 40;
     transform: translateX(-100%);
     transition: transform 0.2s ease-out; box-shadow: none;
     padding-top: env(safe-area-inset-top);
@@ -415,7 +405,7 @@ h1, h2, h3 { font-weight: 600; }
 
   /* Bottom tab bar — the main way to move around the app on mobile. */
   .bottom-nav {
-    display: flex; position: absolute; left: 0; right: 0; bottom: 0; z-index: 30;
+    display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
     background: var(--panel); border-top: 1px solid var(--stroke);
     padding-bottom: env(safe-area-inset-bottom);
     box-shadow: 0 -4px 14px rgba(0,0,0,0.3);
@@ -429,7 +419,7 @@ h1, h2, h3 { font-weight: 600; }
   /* Floating action button — thumb-reachable, above the tab bar. */
   .fab {
     display: flex; align-items: center; justify-content: center;
-    position: absolute; z-index: 30; right: 16px;
+    position: fixed; z-index: 30; right: 16px;
     bottom: calc(env(safe-area-inset-bottom) + 68px);
     width: 52px; height: 52px; border-radius: 50%;
     background: var(--accent); color: #000;
