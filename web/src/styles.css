@@ -241,7 +241,15 @@ h1, h2, h3 { font-weight: 600; }
 
 /* ---- Dashboard ---- */
 .dash-scroll { flex: 1; min-height: 0; min-width: 0; overflow: auto; }
-.dash-canvas { position: relative; padding: 24px; }
+.dash-canvas { position: relative; padding: 24px; white-space: normal; }
+/* display:inline-block (not flex/grid) so these don't need a wrapper
+   element that would put scroll-snap-align one nesting level below
+   .dash-scroll's direct children — see the full reasoning in
+   DashboardView.tsx. height:0 + overflow:hidden keeps the row visually
+   inert. Width is set inline per-marker (DashboardView.tsx's
+   snapOffsets) to span the full gap to the next widget's start, so no
+   margin here — adding one would double-count that gap. */
+.dash-snap-col { display: inline-block; height: 0; overflow: hidden; scroll-snap-align: start; }
 .dash-widget {
   position: absolute; background: var(--card); border: 1px solid var(--stroke);
   border-radius: 14px; box-shadow: var(--shadow); padding: 16px;
@@ -403,6 +411,25 @@ h1, h2, h3 { font-weight: 600; }
      letting the real page-level scroll (and sticky's binding to it)
      work as intended. */
   html, body, #root, .app { height: auto; overflow-x: clip; overflow-y: visible; }
+  /* min-height (not height) only in standalone/home-screen mode, only to
+     fix a specific reported symptom: on a short page that doesn't scroll,
+     .bottom-nav's position:fixed;bottom:0 sometimes doesn't get pinned to
+     Safari's actual (chrome-expanded) visual viewport until a scroll
+     event forces a relayout, leaving a gap of page background beneath
+     it. Confirmed to reproduce standalone-only, not in a regular tab.
+     This is NOT the same move as the earlier height:100dvh /
+     position:fixed;inset:0 / JS-measured-height attempts documented
+     above and in web-mobile-css-gotchas memory, which all caused worse
+     clipping — those set a hard HEIGHT that fought the real content size.
+     min-height only raises a floor; content taller than one viewport
+     still grows past it exactly as before, so it can't clip anything.
+     100dvh (not 100vh) so the floor itself tracks Safari's dynamic
+     chrome instead of using the vh unit's stale/expanded-chrome value.
+     UNVERIFIED on a real device — this session cannot launch standalone
+     mode. Needs Avi's own test loop before trusting this is resolved. */
+  @media (display-mode: standalone) {
+    body { min-height: 100dvh; }
+  }
   /* .main keeps its base flex:1;min-width:0 — needed for its WIDTH (the
      main axis of .app's row layout) to stay bound to .app's width rather
      than growing to fit its widest descendant. An earlier version set
@@ -428,11 +455,21 @@ h1, h2, h3 { font-weight: 600; }
      its own inline width/height, so .dash-scroll's height still comes
      from its content naturally; it just never has vertical overflow to
      trigger that auto. */
-  .dash-scroll { flex: none; min-height: 0; overflow-x: auto; overflow-y: visible; -webkit-overflow-scrolling: touch; }
+  .dash-scroll { flex: none; min-height: 0; overflow-x: auto; overflow-y: visible; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; white-space: nowrap; }
+  /* white-space:nowrap above keeps the inline-block .dash-snap-col row
+     (styles.css ~L248) from wrapping to a second line — .dash-canvas
+     resets it back to normal so it doesn't leak into widget text.
+     Snap targets are .dash-snap-col, not the widgets themselves —
+     position:absolute boxes (which is what every .dash-widget is, for
+     the masonry packing) never register as a scroll-snap-align target,
+     so they were tried first and silently did nothing; verified by
+     testing an actual scroll settle position. */
   /* Same reasoning for kanban columns: fixed-width .kanban-col children
      (styles.css ~L157) don't wrap, so the row needs to scroll sideways
-     instead of overflowing the page. */
-  .kanban-row { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+     instead of overflowing the page. scroll-snap makes that a one-
+     column-at-a-time swipe instead of a free-scrolling row. */
+  .kanban-row { overflow-x: auto; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; }
+  .kanban-col { scroll-snap-align: start; }
 
   /* The header/filter-bar block stays visible while the list scrolls
      past underneath — position:sticky needs no ancestor height math at
