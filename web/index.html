@@ -2,7 +2,14 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- maximum-scale/user-scalable=no: pinch-zoom reveals the visual
+         viewport beyond the layout viewport that position:fixed;inset:0
+         anchors to, and since html/body are hard-capped at the layout
+         viewport's height there's nothing drawn past it — zooming out
+         showed blank canvas below the bottom nav. Disabling zoom (the
+         same choice most installed app-shell PWAs make, since pinching
+         a task list isn't a meaningful gesture) removes the trigger. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#1C1C1E" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
