@@ -214,7 +214,11 @@ h1, h2, h3 { font-weight: 600; }
   display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--text-lo);
   flex-shrink: 0;
 }
-.doc-card-title { font-size: 16px; font-family: var(--serif); font-weight: 600; color: var(--text-hi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* min-width:0 lets this actually shrink/truncate within its flex row —
+   without it, a nowrap span's min-content is its full untruncated width,
+   which can squeeze a sibling button (the rename pencil) down to nothing
+   for a long title instead of the ellipsis doing its job. */
+.doc-card-title { font-size: 16px; font-family: var(--serif); font-weight: 600; color: var(--text-hi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .doc-card-sub { font-size: 11px; color: var(--text-faint); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .stat-row { display: flex; }
 .stat-tile { flex: 1; }
@@ -225,7 +229,7 @@ h1, h2, h3 { font-weight: 600; }
 .progress-track { height: 5px; border-radius: 999px; background: var(--chip-bg); overflow: hidden; }
 .progress-fill { height: 100%; border-radius: 999px; background: var(--accent); min-width: 5px; }
 .progress-label { font-size: 10px; color: var(--text-faint); margin-top: 5px; }
-.card-hover-btn { color: transparent; font-size: 11px; padding: 2px 4px; border-radius: 4px; }
+.card-hover-btn { color: transparent; font-size: 11px; padding: 2px 4px; border-radius: 4px; flex-shrink: 0; }
 .doc-card:hover .card-hover-btn { color: var(--text-lo); }
 .card-hover-btn.pinned { color: var(--accent) !important; }
 
@@ -402,6 +406,11 @@ h1, h2, h3 { font-weight: 600; }
   .list-scroll, .dash-scroll { padding-bottom: calc(env(safe-area-inset-bottom) + 84px); }
   .list-scroll { padding-left: 12px; padding-right: 12px; padding-top: 12px; }
   .cards-grid { grid-template-columns: minmax(0, 1fr); padding: 16px; padding-bottom: calc(env(safe-area-inset-bottom) + 84px); }
+
+  /* :hover never reliably engages on a touch device before the tap that
+     would trigger the button itself — a rename/pin icon that only shows
+     on hover is effectively invisible on mobile. Show it plainly instead. */
+  .card-hover-btn { color: var(--text-faint); }
 
   /* Bottom tab bar — the main way to move around the app on mobile. */
   .bottom-nav {
