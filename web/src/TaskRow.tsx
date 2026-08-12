@@ -6,7 +6,7 @@ import { craftDeepLink } from './craft'
 export function TaskRow({ task, onEdit }: { task: CraftTask; onEdit: (t: CraftTask) => void }) {
   const store = useStore()
   const isPending = task.id.startsWith('local-')
-  const deepLink = craftDeepLink(task.documentId)
+  const deepLink = craftDeepLink(task)
 
   const today = startOfToday()
   const d = scheduleDay(task) ?? deadlineDay(task)
