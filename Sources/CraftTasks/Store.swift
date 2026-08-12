@@ -438,6 +438,17 @@ final class Store: ObservableObject {
         }
     }
 
+    /// Deletes a task from Craft synchronously, then removes it locally only
+    /// once Craft confirms — deliberately not queued, unlike edits/creates,
+    /// so a delete never silently "succeeds" locally while still pending.
+    func deleteTask(_ task: CraftTask) async throws {
+        try await SyncEngine.deleteTask(id: task.id)
+        db.delete(ids: [task.id])
+        db.removePending(taskIds: [task.id])
+        tasks = db.loadAll()
+        pendingCount = db.pendingUpdates().count
+    }
+
     // MARK: saved filters persistence
     private var filtersURL: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]

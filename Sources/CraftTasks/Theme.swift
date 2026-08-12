@@ -16,6 +16,7 @@ enum Theme {
     static let accent    = Color(hex: 0xF0EBDE)   // cream accent — fills, active chips
     static let chipBg    = Color(hex: 0x323235)
     static let danger    = Color(hex: 0xECE6D6)   // "overdue" — bright cream, not red
+    static let destructive = Color(hex: 0xE5484D)  // actual red — delete actions
     static let shadow    = Color.black.opacity(0.35)
 }
 

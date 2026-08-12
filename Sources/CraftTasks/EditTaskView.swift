@@ -22,6 +22,9 @@ struct EditTaskView: View {
     @State private var loadingDescription = true
     @State private var saving = false
     @State private var saveError: String?
+    @State private var confirmingDelete = false
+    @State private var deleting = false
+    @State private var deleteError: String?
 
     private var currentTags: [String] {
         let re = try! NSRegularExpression(pattern: "#([\\w/\\-]+)")
@@ -105,13 +108,25 @@ struct EditTaskView: View {
             if let saveError {
                 Text(saveError).font(.system(size: 11)).foregroundColor(Theme.danger)
             }
+            if let deleteError {
+                Text(deleteError).font(.system(size: 11)).foregroundColor(Theme.destructive)
+            }
 
             HStack {
+                Button(deleting ? "Deleting…" : confirmingDelete ? "Confirm delete?" : "Delete") {
+                    Task { await handleDelete() }
+                }
+                .disabled(saving || deleting)
+                .foregroundColor(.white)
+                .padding(.horizontal, 12).padding(.vertical, 6)
+                .background(RoundedRectangle(cornerRadius: 7).fill(Theme.destructive))
+                .buttonStyle(.plain)
+
                 Spacer()
-                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction).disabled(saving)
+                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction).disabled(saving || deleting)
                 Button(saving ? "Saving…" : "Save") { Task { await save() } }
                     .keyboardShortcut(.defaultAction)
-                    .disabled(body_.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || saving)
+                    .disabled(body_.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || saving || deleting)
             }
         }
         .padding(22)
@@ -223,6 +238,19 @@ struct EditTaskView: View {
             saving = false
         }
         dismiss()
+    }
+
+    private func handleDelete() async {
+        guard confirmingDelete else { confirmingDelete = true; return }
+        deleting = true
+        deleteError = nil
+        do {
+            try await store.deleteTask(task)
+            dismiss()
+        } catch {
+            deleting = false
+            deleteError = "Couldn't delete: \(error.localizedDescription)"
+        }
     }
 }
 

@@ -301,7 +301,10 @@ h1, h2, h3 { font-weight: 600; }
 .btn { padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 500; background: var(--chip-bg); border: 1px solid var(--stroke); color: var(--text); }
 .btn:hover { background: var(--panel-hi); }
 .btn.primary { background: var(--accent); color: #000; border-color: transparent; font-weight: 600; }
+.btn.btn-delete { background: #E5484D; color: #fff; border-color: transparent; font-weight: 600; }
+.btn.btn-delete:hover { background: #C93A3E; }
 .btn:disabled { opacity: 0.4; cursor: default; }
+.modal-actions.split { justify-content: space-between; }
 .error-text { font-size: 11px; color: var(--danger); }
 .hint-text { font-size: 11px; color: var(--text-faint); line-height: 1.5; }
 .flow-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
