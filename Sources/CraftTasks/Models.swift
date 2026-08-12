@@ -55,12 +55,14 @@ struct CraftTask: Identifiable, Codable, Equatable {
         return documentTitle ?? "Untitled"
     }
 
-    /// Deep link to open this task's source document in the Craft app, via
-    /// the craftdocs:// URL scheme. nil for inbox tasks or before the space
-    /// id (fetched via SyncEngine.fetchSpaceId) is known.
+    /// Deep link to open this task's own block in the Craft app, via the
+    /// craftdocs:// URL scheme — lands on the task itself (including inside
+    /// a nested subpage), not just the top of its containing document. nil
+    /// for inbox tasks or before the space id (fetched via
+    /// SyncEngine.fetchSpaceId) is known.
     func craftDeepLink(spaceId: String?) -> URL? {
-        guard let spaceId, let documentId, locationType != "inbox" else { return nil }
-        return URL(string: "craftdocs://open?spaceId=\(spaceId)&blockId=\(documentId)")
+        guard let spaceId, locationType != "inbox" else { return nil }
+        return URL(string: "craftdocs://open?spaceId=\(spaceId)&blockId=\(id)")
     }
 
     var effectiveDate: String? { scheduleDate ?? deadlineDate }

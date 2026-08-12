@@ -161,7 +161,7 @@ export function EditTaskModal({ task, onClose }: { task: CraftTask; onClose: () 
   const docLabel = selectedDocumentId
     ? store.documents.find(d => d.id === selectedDocumentId)?.title ?? 'Document'
     : 'Inbox'
-  const deepLink = craft.craftDeepLink(task.locationType === 'inbox' ? null : task.documentId)
+  const deepLink = craft.craftDeepLink(task)
 
   const save = async () => {
     const originalId = task.locationType === 'inbox' ? null : task.documentId

@@ -31,12 +31,14 @@ export async function refreshSpaceId(): Promise<void> {
   if (id) localStorage.setItem('craftSpaceId', id)
 }
 
-/** Deep link to open a document in the Craft app, via the craftdocs:// URL scheme.
- * Needs the space id cached by refreshSpaceId(). */
-export function craftDeepLink(documentId: string | null): string | null {
+/** Deep link to open a task's own block in the Craft app, via the craftdocs://
+ * URL scheme — lands on the task itself (including inside a nested subpage),
+ * not just the top of its containing document. Needs the space id cached by
+ * refreshSpaceId(); null for inbox tasks (no addressable location). */
+export function craftDeepLink(task: CraftTask): string | null {
   const spaceId = getSpaceId()
-  if (!documentId || !spaceId) return null
-  return `craftdocs://open?spaceId=${encodeURIComponent(spaceId)}&blockId=${encodeURIComponent(documentId)}`
+  if (task.locationType === 'inbox' || !spaceId) return null
+  return `craftdocs://open?spaceId=${encodeURIComponent(spaceId)}&blockId=${encodeURIComponent(task.id)}`
 }
 
 async function call(path: string, init?: RequestInit): Promise<unknown> {
