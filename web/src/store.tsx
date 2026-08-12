@@ -101,6 +101,7 @@ interface StoreValue {
               deadlineDate: string | null, destination?: { kind: 'unchanged' } | { kind: 'inbox' } | { kind: 'document'; id: string }) => void
   createTask: (title: string, tags: string[], scheduleDate: string | null,
                deadlineDate: string | null, documentId: string | null) => void
+  deleteTask: (t: CraftTask) => Promise<void>
 
   navigateHome: () => Section
   selectAllTasks: () => void
@@ -374,6 +375,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     persistPendingCreates([...pendingCreatesRef.current, { localId, payload }])
     flushPendingCreates()
   }, [persistTasks, persistPendingCreates, flushPendingCreates])
+
+  const deleteTask = useCallback(async (task: CraftTask) => {
+    await craft.deleteTask(task.id)
+    persistTasks(tasksRef.current.filter(t => t.id !== task.id))
+    persistPending(pendingRef.current.filter(x => x.taskId !== task.id))
+  }, [persistTasks, persistPending])
 
   // ---- derived ----
   const allTags = useMemo(() => {
@@ -649,7 +656,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     totalPendingCount: pending.length + pendingCreates.length,
     gistStatus, configured,
     allTags, documents, filtered, apply, group, displayName, setDisplayName,
-    sync, cycleState, applyEdit, createTask,
+    sync, cycleState, applyEdit, createTask, deleteTask,
     navigateHome, selectAllTasks, selectInbox, selectToday, selectThisWeek, selectSaved, openDocument,
     saveCurrentFilter, updateSavedFilter, togglePinned, renameFilter, deleteFilter,
     setHomeTarget, isHomeTarget, setItemVisibility,

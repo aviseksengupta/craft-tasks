@@ -107,6 +107,10 @@ export async function createTask(payload: Record<string, unknown>): Promise<Craf
   return parseTask(raw)
 }
 
+export async function deleteTask(taskId: string): Promise<void> {
+  await call('/blocks', { method: 'DELETE', body: JSON.stringify({ blockIds: [taskId] }) })
+}
+
 export interface TaskDescription { blockIds: string[]; text: string }
 
 export async function fetchDescription(taskId: string): Promise<TaskDescription> {

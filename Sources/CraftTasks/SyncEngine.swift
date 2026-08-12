@@ -179,6 +179,24 @@ final class SyncEngine {
         }
     }
 
+    /// Deletes a task's own block via DELETE /blocks — synchronous, no
+    /// queueing: callers await this before removing the task locally so the
+    /// local store never claims a deletion Craft hasn't confirmed.
+    static func deleteTask(id: String) async throws {
+        guard let url = URL(string: "\(apiBase)/blocks") else { throw SyncError.apiError(status: 0, message: nil) }
+        var req = URLRequest(url: url)
+        req.httpMethod = "DELETE"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.timeoutInterval = 20
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["blockIds": [id]])
+        let (data, resp): (Data, URLResponse)
+        do { (data, resp) = try await URLSession.shared.data(for: req) }
+        catch { throw SyncError.network(error) }
+        guard let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw apiError(status: (resp as? HTTPURLResponse)?.statusCode ?? 0, data: data)
+        }
+    }
+
     /// GET /connection returns the space id needed to build craftdocs://
     /// deep links (Craft doesn't expose it via /tasks) plus a ready-made
     /// URL template — fetched once and cached in UserDefaults.

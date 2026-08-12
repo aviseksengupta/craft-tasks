@@ -130,6 +130,9 @@ export function EditTaskModal({ task, onClose }: { task: CraftTask; onClose: () 
   const [loadingDescription, setLoadingDescription] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -184,6 +187,18 @@ export function EditTaskModal({ task, onClose }: { task: CraftTask; onClose: () 
       setSaving(false)
     }
     onClose()
+  }
+
+  const handleDelete = async () => {
+    if (!confirmingDelete) { setConfirmingDelete(true); return }
+    setDeleting(true); setDeleteError(null)
+    try {
+      await store.deleteTask(task)
+      onClose()
+    } catch (e) {
+      setDeleting(false)
+      setDeleteError(`Couldn't delete: ${e instanceof Error ? e.message : e}`)
+    }
   }
 
   return (
@@ -246,11 +261,17 @@ export function EditTaskModal({ task, onClose }: { task: CraftTask; onClose: () 
         <DateChip title="Deadline" icon="flag" date={deadlineDate} onChange={setDeadlineDate} />
       </div>
       {saveError && <div className="error-text">{saveError}</div>}
-      <div className="modal-actions">
-        <button className="btn" onClick={onClose} disabled={saving}>Cancel</button>
-        <button className="btn primary" onClick={save} disabled={body.trim() === '' || saving}>
-          {saving ? 'Saving…' : 'Save'}
+      {deleteError && <div className="error-text">{deleteError}</div>}
+      <div className="modal-actions split">
+        <button className="btn btn-delete" onClick={handleDelete} disabled={saving || deleting}>
+          {deleting ? 'Deleting…' : confirmingDelete ? 'Confirm delete?' : 'Delete'}
         </button>
+        <div className="modal-actions">
+          <button className="btn" onClick={onClose} disabled={saving || deleting}>Cancel</button>
+          <button className="btn primary" onClick={save} disabled={body.trim() === '' || saving || deleting}>
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
       </div>
     </Modal>
   )
