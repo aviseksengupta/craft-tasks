@@ -65,6 +65,21 @@ final class Store: ObservableObject {
         return counts.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }.map(\.key)
     }
 
+    /// `savedFilters` / `dashboards` sorted by their `order` field for
+    /// display on the Views / Dashboards pages. The underlying arrays keep
+    /// insertion order as the source of truth; this is purely presentational.
+    var sortedFilters: [TaskFilter] { savedFilters.sorted { ($0.order ?? 0) < ($1.order ?? 0) } }
+    var sortedDashboards: [Dashboard] { dashboards.sorted { ($0.order ?? 0) < ($1.order ?? 0) } }
+
+    /// Pinned views and dashboards merged into one ordered list for the
+    /// sidebar's PINNED section, sorted on the separate `pinnedOrder` scale
+    /// (independent of each item's `order` on its own page).
+    var pinnedItems: [PinnedItem] {
+        let views = savedFilters.filter { $0.pinned ?? false }.map { (PinnedItem.view($0), $0.pinnedOrder ?? 0) }
+        let dashes = dashboards.filter { $0.pinned ?? false }.map { (PinnedItem.dashboard($0), $0.pinnedOrder ?? 0) }
+        return (views + dashes).sorted { $0.1 < $1.1 }.map(\.0)
+    }
+
     /// Resolves the display name for a document/inbox key, falling back to
     /// the live Craft title until the user renames it.
     func displayName(id: String, craftTitle: String) -> String {
@@ -199,6 +214,7 @@ final class Store: ObservableObject {
         case .thisWeek: selectThisWeek(); return .thisWeek
         case .documents: return .documents
         case .views: return .views
+        case .dashboards: return .dashboards
         case .home, nil: selectHome(); return .home
         }
     }
@@ -611,13 +627,68 @@ final class Store: ObservableObject {
     }
 
     func saveDashboard(name: String, viewIds: [UUID]) {
-        dashboards.append(Dashboard(name: name, widgets: viewIds.map { DashboardWidget(viewId: $0) }))
+        let order = (dashboards.map { $0.order ?? 0 }.max() ?? 0) + 1
+        dashboards.append(Dashboard(name: name, widgets: viewIds.map { DashboardWidget(viewId: $0) }, order: order))
         persistFilters()
     }
 
     func deleteDashboard(_ id: UUID) {
         dashboards.removeAll { $0.id == id }
         if homeSection == .dashboard(id) { homeSection = nil }
+        persistFilters()
+    }
+
+    func renameDashboard(_ id: UUID, to newName: String) {
+        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let idx = dashboards.firstIndex(where: { $0.id == id }) else { return }
+        dashboards[idx].name = trimmed
+        persistFilters()
+    }
+
+    func togglePinnedDashboard(_ id: UUID) {
+        guard let idx = dashboards.firstIndex(where: { $0.id == id }) else { return }
+        let nowPinned = !(dashboards[idx].pinned ?? false)
+        dashboards[idx].pinned = nowPinned
+        if nowPinned { dashboards[idx].pinnedOrder = nextPinnedOrder() }
+        persistFilters()
+    }
+
+    /// Reorders dashboards on the Dashboards page by moving the dragged one
+    /// to sit where the target one is, same pattern as moveWidget.
+    func moveDashboard(_ draggedId: UUID, to targetId: UUID) {
+        var sorted = sortedDashboards
+        guard let from = sorted.firstIndex(where: { $0.id == draggedId }),
+              let to = sorted.firstIndex(where: { $0.id == targetId }), from != to else { return }
+        let item = sorted.remove(at: from)
+        sorted.insert(item, at: to)
+        for (i, d) in sorted.enumerated() { dashboards[dashboards.firstIndex(where: { $0.id == d.id })!].order = i }
+        persistFilters()
+    }
+
+    /// Next pinnedOrder value across the mixed views+dashboards pinned
+    /// list, so a newly-pinned item of either kind lands at the end.
+    private func nextPinnedOrder() -> Int {
+        let orders = savedFilters.filter { $0.pinned ?? false }.map { $0.pinnedOrder ?? 0 }
+            + dashboards.filter { $0.pinned ?? false }.map { $0.pinnedOrder ?? 0 }
+        return (orders.max() ?? -1) + 1
+    }
+
+    /// Reorders the mixed pinned list (views + dashboards) by moving the
+    /// dragged item to sit where the target item is.
+    func movePinned(_ dragged: PinnedRef, to target: PinnedRef) {
+        var sorted = pinnedItems.map(\.ref)
+        guard let from = sorted.firstIndex(where: { $0 == dragged }),
+              let to = sorted.firstIndex(where: { $0 == target }), from != to else { return }
+        let item = sorted.remove(at: from)
+        sorted.insert(item, at: to)
+        for (i, ref) in sorted.enumerated() {
+            switch ref.kind {
+            case .view:
+                if let idx = savedFilters.firstIndex(where: { $0.id == ref.id }) { savedFilters[idx].pinnedOrder = i }
+            case .dashboard:
+                if let idx = dashboards.firstIndex(where: { $0.id == ref.id }) { dashboards[idx].pinnedOrder = i }
+            }
+        }
         persistFilters()
     }
 
@@ -661,7 +732,20 @@ final class Store: ObservableObject {
         var f = filter
         f.id = UUID()
         f.name = name
+        f.order = (savedFilters.map { $0.order ?? 0 }.max() ?? 0) + 1
         savedFilters.append(f)
+        persistFilters()
+    }
+
+    /// Reorders saved views on the Views page by moving the dragged one to
+    /// sit where the target one is, same pattern as moveWidget.
+    func moveView(_ draggedId: UUID, to targetId: UUID) {
+        var sorted = sortedFilters
+        guard let from = sorted.firstIndex(where: { $0.id == draggedId }),
+              let to = sorted.firstIndex(where: { $0.id == targetId }), from != to else { return }
+        let item = sorted.remove(at: from)
+        sorted.insert(item, at: to)
+        for (i, f) in sorted.enumerated() { savedFilters[savedFilters.firstIndex(where: { $0.id == f.id })!].order = i }
         persistFilters()
     }
 
@@ -675,13 +759,17 @@ final class Store: ObservableObject {
         updated.id = id
         updated.name = savedFilters[idx].name
         updated.pinned = savedFilters[idx].pinned
+        updated.order = savedFilters[idx].order
+        updated.pinnedOrder = savedFilters[idx].pinnedOrder
         savedFilters[idx] = updated
         persistFilters()
     }
 
     func togglePinned(_ id: UUID) {
         guard let idx = savedFilters.firstIndex(where: { $0.id == id }) else { return }
-        savedFilters[idx].pinned = !(savedFilters[idx].pinned ?? false)
+        let nowPinned = !(savedFilters[idx].pinned ?? false)
+        savedFilters[idx].pinned = nowPinned
+        if nowPinned { savedFilters[idx].pinnedOrder = nextPinnedOrder() }
         persistFilters()
     }
 

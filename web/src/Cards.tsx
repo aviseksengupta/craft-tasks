@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react'
-import { Section, TaskFilter, scheduleDay, deadlineDay, startOfToday, stateLabel } from './types'
+import { useMemo, useRef, useState } from 'react'
+import { Section, TaskFilter, Dashboard, scheduleDay, deadlineDay, startOfToday, stateLabel } from './types'
 import { useStore, DocumentSummary } from './store'
-import { Icon, useContextMenu, PageHeadSticky } from './ui'
+import { Icon, useContextMenu, PageHeadSticky, Chip } from './ui'
 import { CompletedToggle } from './TaskList'
-import { NamePrompt } from './modals'
+import { NamePrompt, ViewPicker } from './modals'
 
 function StatRow({ open, done, overdue }: { open: number; done: number; overdue: number }) {
   return (
@@ -92,6 +92,8 @@ export function DocumentsView({ setSection }: { setSection: (s: Section) => void
 export function ViewsPage({ setSection }: { setSection: (s: Section) => void }) {
   const store = useStore()
   const [renaming, setRenaming] = useState<TaskFilter | null>(null)
+  const [dropTarget, setDropTarget] = useState<string | null>(null)
+  const draggedId = useRef<string | null>(null)
   const { openAt, menu } = useContextMenu()
 
   const visible = store.searchText
@@ -117,8 +119,21 @@ export function ViewsPage({ setSection }: { setSection: (s: Section) => void }) 
       ) : (
         <div className="list-scroll" style={{ padding: 0 }}>
           <div className="cards-grid">
-            {visible.map(f => <ViewCard key={f.id} filter={f} setSection={setSection}
-                                        onRename={() => setRenaming(f)} openAt={openAt} />)}
+            {visible.map(f => (
+              <ViewCard key={f.id} filter={f} setSection={setSection}
+                        onRename={() => setRenaming(f)} openAt={openAt}
+                        isDropTarget={dropTarget === f.id}
+                        onDragStart={() => { draggedId.current = f.id }}
+                        onDragOver={() => setDropTarget(f.id)}
+                        onDragLeave={() => setDropTarget(t => t === f.id ? null : t)}
+                        onDrop={() => {
+                          if (draggedId.current && draggedId.current !== f.id) {
+                            store.moveView(draggedId.current, f.id)
+                          }
+                          draggedId.current = null
+                          setDropTarget(null)
+                        }} />
+            ))}
           </div>
         </div>
       )}
@@ -132,11 +147,16 @@ export function ViewsPage({ setSection }: { setSection: (s: Section) => void }) 
   )
 }
 
-function ViewCard({ filter, setSection, onRename, openAt }: {
+function ViewCard({ filter, setSection, onRename, openAt, isDropTarget, onDragStart, onDragOver, onDragLeave, onDrop }: {
   filter: TaskFilter
   setSection: (s: Section) => void
   onRename: () => void
   openAt: (e: React.MouseEvent, items: { label: string; danger?: boolean; action: () => void }[]) => void
+  isDropTarget: boolean
+  onDragStart: () => void
+  onDragOver: () => void
+  onDragLeave: () => void
+  onDrop: () => void
 }) {
   const store = useStore()
   const isHome = store.isHomeTarget({ kind: 'saved', id: filter.id })
@@ -166,8 +186,11 @@ function ViewCard({ filter, setSection, onRename, openAt }: {
   }, [filter])
 
   return (
-    <div className="doc-card" role="button" tabIndex={0}
+    <div className={`doc-card${isDropTarget ? ' drop-target' : ''}`} role="button" tabIndex={0}
          onClick={() => { store.selectSaved(filter.id); setSection({ kind: 'saved', id: filter.id }) }}
+         onDragOver={e => { e.preventDefault(); onDragOver() }}
+         onDragLeave={onDragLeave}
+         onDrop={e => { e.preventDefault(); onDrop() }}
          onContextMenu={e => openAt(e, [
            { label: 'Rename', action: onRename },
            { label: isHome ? 'Unset as Home' : 'Set as Home', action: () => store.setHomeTarget({ kind: 'saved', id: filter.id }) },
@@ -175,6 +198,12 @@ function ViewCard({ filter, setSection, onRename, openAt }: {
            { label: 'Delete', danger: true, action: () => store.deleteFilter(filter.id) },
          ])}>
       <div className="doc-card-top">
+        <span className="doc-card-grip" draggable
+              onDragStart={e => { e.dataTransfer.setData('text/plain', filter.id); onDragStart() }}
+              onClick={e => e.stopPropagation()}
+              title="Drag to reorder">
+          <Icon name="gripLines" size={11} />
+        </span>
         <div className="doc-icon"><Icon name="filterLines" size={13} /></div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -196,6 +225,137 @@ function ViewCard({ filter, setSection, onRename, openAt }: {
       <StatRow open={stats.open} done={stats.done} overdue={stats.overdue} />
       <ProgressBar progress={progress}
                    label={stats.total === 0 ? 'No matching tasks' : `${Math.round(progress * 100)}% complete`} />
+    </div>
+  )
+}
+
+// ---- Dashboards page ----
+
+export function DashboardsPage({ setSection }: { setSection: (s: Section) => void }) {
+  const store = useStore()
+  const [renaming, setRenaming] = useState<Dashboard | null>(null)
+  const [showNewDashboard, setShowNewDashboard] = useState(false)
+  const [dropTarget, setDropTarget] = useState<string | null>(null)
+  const draggedId = useRef<string | null>(null)
+  const { openAt, menu } = useContextMenu()
+
+  const visible = store.searchText
+    ? store.dashboards.filter(d => d.name.toLowerCase().includes(store.searchText.toLowerCase()))
+    : store.dashboards
+
+  return (
+    <>
+      <PageHeadSticky>
+        <div className="page-header">
+          <h1 style={{ fontSize: 25 }}>Dashboards</h1>
+          <span className="count">{visible.length}</span>
+          <span className="spacer" />
+          <Chip text="New dashboard" icon="plus" onClick={() => setShowNewDashboard(true)} />
+        </div>
+        <div className="hairline" />
+      </PageHeadSticky>
+      {visible.length === 0 ? (
+        <div className="empty-state">
+          <div className="big"><Icon name="grid" size={28} /></div>
+          {store.dashboards.length === 0 ? 'Create a dashboard to see it here' : 'No dashboards match your search'}
+        </div>
+      ) : (
+        <div className="list-scroll" style={{ padding: 0 }}>
+          <div className="cards-grid">
+            {visible.map(d => (
+              <DashboardCard key={d.id} dashboard={d} setSection={setSection}
+                             onRename={() => setRenaming(d)} openAt={openAt}
+                             isDropTarget={dropTarget === d.id}
+                             onDragStart={() => { draggedId.current = d.id }}
+                             onDragOver={() => setDropTarget(d.id)}
+                             onDragLeave={() => setDropTarget(t => t === d.id ? null : t)}
+                             onDrop={() => {
+                               if (draggedId.current && draggedId.current !== d.id) {
+                                 store.moveDashboard(draggedId.current, d.id)
+                               }
+                               draggedId.current = null
+                               setDropTarget(null)
+                             }} />
+            ))}
+          </div>
+        </div>
+      )}
+      {menu}
+      {renaming && (
+        <NamePrompt title="Dashboard name" initial={renaming.name}
+                    onClose={() => setRenaming(null)}
+                    onSave={name => store.renameDashboard(renaming.id, name)} />
+      )}
+      {showNewDashboard && (
+        <ViewPicker title="New Dashboard" cta="Create" requireName
+                    views={store.savedFilters.map(f => ({ id: f.id, name: f.name }))}
+                    onClose={() => setShowNewDashboard(false)}
+                    onDone={(name, ids) => {
+                      const d = store.saveDashboard(name, ids)
+                      setSection({ kind: 'dashboard', id: d.id })
+                    }} />
+      )}
+    </>
+  )
+}
+
+function DashboardCard({ dashboard, setSection, onRename, openAt, isDropTarget, onDragStart, onDragOver, onDragLeave, onDrop }: {
+  dashboard: Dashboard
+  setSection: (s: Section) => void
+  onRename: () => void
+  openAt: (e: React.MouseEvent, items: { label: string; danger?: boolean; action: () => void }[]) => void
+  isDropTarget: boolean
+  onDragStart: () => void
+  onDragOver: () => void
+  onDragLeave: () => void
+  onDrop: () => void
+}) {
+  const store = useStore()
+  const isHome = store.isHomeTarget({ kind: 'dashboard', id: dashboard.id })
+  const pinned = !!dashboard.pinned
+
+  return (
+    <div className={`doc-card${isDropTarget ? ' drop-target' : ''}`} role="button" tabIndex={0}
+         onClick={() => setSection({ kind: 'dashboard', id: dashboard.id })}
+         onDragOver={e => { e.preventDefault(); onDragOver() }}
+         onDragLeave={onDragLeave}
+         onDrop={e => { e.preventDefault(); onDrop() }}
+         onContextMenu={e => openAt(e, [
+           { label: 'Rename', action: onRename },
+           { label: isHome ? 'Unset as Home' : 'Set as Home', action: () => store.setHomeTarget({ kind: 'dashboard', id: dashboard.id }) },
+           { label: pinned ? 'Unpin from Sidebar' : 'Pin to Sidebar', action: () => store.togglePinnedDashboard(dashboard.id) },
+           {
+             label: 'Delete', danger: true,
+             action: () => {
+               store.deleteDashboard(dashboard.id)
+             },
+           },
+         ])}>
+      <div className="doc-card-top">
+        <span className="doc-card-grip" draggable
+              onDragStart={e => { e.dataTransfer.setData('text/plain', dashboard.id); onDragStart() }}
+              onClick={e => e.stopPropagation()}
+              title="Drag to reorder">
+          <Icon name="gripLines" size={11} />
+        </span>
+        <div className="doc-icon"><Icon name="grid" size={13} /></div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span className="doc-card-title">{dashboard.name}</span>
+            {isHome && <Icon name="house" size={9} />}
+            <button className="card-hover-btn" title="Rename this dashboard"
+                    onClick={e => { e.stopPropagation(); onRename() }}>
+              <Icon name="pencil" size={11} />
+            </button>
+          </div>
+          <div className="doc-card-sub">{dashboard.widgets.length} widget{dashboard.widgets.length === 1 ? '' : 's'}</div>
+        </div>
+        <button className={`card-hover-btn${pinned ? ' pinned' : ''}`}
+                title={pinned ? 'Unpin from sidebar' : 'Pin to sidebar'}
+                onClick={e => { e.stopPropagation(); store.togglePinnedDashboard(dashboard.id) }}>
+          <Icon name="pin" size={11} />
+        </button>
+      </div>
     </div>
   )
 }

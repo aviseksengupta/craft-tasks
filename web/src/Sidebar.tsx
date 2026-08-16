@@ -1,8 +1,8 @@
-import { useState } from 'react'
-import { Section, sectionEq } from './types'
+import { useRef, useState } from 'react'
+import { Section, sectionEq, PinnedItem } from './types'
 import { useStore } from './store'
 import { Icon, useContextMenu } from './ui'
-import { SidebarSettingsModal, ViewPicker, NamePrompt } from './modals'
+import { SidebarSettingsModal, NamePrompt } from './modals'
 
 export interface NavDef { id: string; icon: string; label: string; section: Section; select: () => void }
 
@@ -17,9 +17,10 @@ export function Sidebar({ section, setSection, open, onNavigate, onClose, onOpen
 }) {
   const store = useStore()
   const [showSidebarSettings, setShowSidebarSettings] = useState(false)
-  const [showNewDashboard, setShowNewDashboard] = useState(false)
   const [showMore, setShowMore] = useState(false)
-  const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null)
+  const [renaming, setRenaming] = useState<{ kind: 'view' | 'dashboard'; id: string; name: string } | null>(null)
+  const [pinDropTarget, setPinDropTarget] = useState<string | null>(null)
+  const draggedPin = useRef<{ kind: 'view' | 'dashboard'; id: string } | null>(null)
   const { openAt, menu } = useContextMenu()
 
   const navDefs: NavDef[] = [
@@ -30,6 +31,7 @@ export function Sidebar({ section, setSection, open, onNavigate, onClose, onOpen
     { id: 'thisWeek', icon: 'calendarClock', label: 'This Week', section: { kind: 'thisWeek' }, select: () => { store.selectThisWeek(); setSection({ kind: 'thisWeek' }) } },
     { id: 'documents', icon: 'doc', label: 'Documents', section: { kind: 'documents' }, select: () => setSection({ kind: 'documents' }) },
     { id: 'views', icon: 'listRect', label: 'Views', section: { kind: 'views' }, select: () => setSection({ kind: 'views' }) },
+    { id: 'dashboards', icon: 'grid', label: 'Dashboards', section: { kind: 'dashboards' }, select: () => setSection({ kind: 'dashboards' }) },
   ]
 
   const visibility = (id: string) => store.itemVisibility[id] ?? 'Always shown'
@@ -52,7 +54,7 @@ export function Sidebar({ section, setSection, open, onNavigate, onClose, onOpen
 
   const alwaysShown = navDefs.filter(d => visibility(d.id) === 'Always shown')
   const tucked = navDefs.filter(d => visibility(d.id) === 'Hidden')
-  const pinnedFilters = store.savedFilters.filter(f => f.pinned)
+  const pinnedItems = store.pinnedItems
 
   return (
     <>
@@ -97,82 +99,110 @@ export function Sidebar({ section, setSection, open, onNavigate, onClose, onOpen
           </>
         )}
 
-        {pinnedFilters.length > 0 && (
+        {pinnedItems.length > 0 && (
           <>
-            <div className="sidebar-section-label">PINNED VIEWS</div>
-            {pinnedFilters.map(f => (
-              <button key={f.id}
-                      className={`sidebar-item${sectionEq(section, { kind: 'saved', id: f.id }) ? ' active' : ''}`}
-                      onClick={() => { store.selectSaved(f.id); setSection({ kind: 'saved', id: f.id }); onNavigate() }}
-                      onContextMenu={e => openAt(e, [
-                        { label: 'Rename', action: () => setRenaming({ id: f.id, name: f.name }) },
-                        {
-                          label: store.isHomeTarget({ kind: 'saved', id: f.id }) ? 'Unset as Home' : 'Set as Home',
-                          action: () => store.setHomeTarget({ kind: 'saved', id: f.id }),
-                        },
-                        { label: 'Unpin from Sidebar', action: () => store.togglePinned(f.id) },
-                        { label: 'Delete', danger: true, action: () => store.deleteFilter(f.id) },
-                      ])}>
-                <span className="glyph"><Icon name="filterLines" size={11} /></span>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
-                {store.isHomeTarget({ kind: 'saved', id: f.id }) && <span className="home-mark"><Icon name="house" size={8} /></span>}
-              </button>
-            ))}
+            <div className="sidebar-section-label">PINNED</div>
+            {pinnedItems.map(item => {
+              const ref = pinnedRef(item)
+              const key = `${ref.kind}:${ref.id}`
+              return (
+                <PinnedRow key={key} item={item} section={section} setSection={setSection}
+                           onNavigate={onNavigate} openAt={openAt} setRenaming={setRenaming}
+                           isDropTarget={pinDropTarget === key}
+                           onDragStart={() => { draggedPin.current = ref }}
+                           onDragOver={() => setPinDropTarget(key)}
+                           onDragLeave={() => setPinDropTarget(t => t === key ? null : t)}
+                           onDrop={() => {
+                             if (draggedPin.current && !(draggedPin.current.kind === ref.kind && draggedPin.current.id === ref.id)) {
+                               store.movePinned(draggedPin.current, ref)
+                             }
+                             draggedPin.current = null
+                             setPinDropTarget(null)
+                           }} />
+              )
+            })}
           </>
         )}
-
-        <div className="sidebar-section-label">
-          DASHBOARDS
-          <button className="plus" onClick={() => setShowNewDashboard(true)}
-                  disabled={store.savedFilters.length === 0}
-                  title={store.savedFilters.length === 0 ? 'Save a view first' : 'New dashboard'}>
-            <Icon name="plus" size={9} />
-          </button>
-        </div>
-        {store.dashboards.map(d => (
-          <button key={d.id}
-                  className={`sidebar-item${sectionEq(section, { kind: 'dashboard', id: d.id }) ? ' active' : ''}`}
-                  onClick={() => { setSection({ kind: 'dashboard', id: d.id }); onNavigate() }}
-                  onContextMenu={e => openAt(e, [
-                    {
-                      label: store.isHomeTarget({ kind: 'dashboard', id: d.id }) ? 'Unset as Home' : 'Set as Home',
-                      action: () => store.setHomeTarget({ kind: 'dashboard', id: d.id }),
-                    },
-                    {
-                      label: 'Delete', danger: true,
-                      action: () => {
-                        const wasShowing = sectionEq(section, { kind: 'dashboard', id: d.id })
-                        store.deleteDashboard(d.id)
-                        if (wasShowing) setSection(store.navigateHome())
-                      },
-                    },
-                  ])}>
-          <span className="glyph"><Icon name="grid" size={11} /></span>
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
-          {store.isHomeTarget({ kind: 'dashboard', id: d.id }) && <span className="home-mark"><Icon name="house" size={8} /></span>}
-        </button>
-        ))}
 
         <SyncStatus />
       </div>
 
       {menu}
       {showSidebarSettings && <SidebarSettingsModal navDefs={navDefs} onClose={() => setShowSidebarSettings(false)} />}
-      {showNewDashboard && (
-        <ViewPicker title="New Dashboard" cta="Create" requireName
-                    views={store.savedFilters.map(f => ({ id: f.id, name: f.name }))}
-                    onClose={() => setShowNewDashboard(false)}
-                    onDone={(name, ids) => {
-                      const d = store.saveDashboard(name, ids)
-                      setSection({ kind: 'dashboard', id: d.id })
-                    }} />
-      )}
       {renaming && (
-        <NamePrompt title="View name" initial={renaming.name}
+        <NamePrompt title={renaming.kind === 'view' ? 'View name' : 'Dashboard name'} initial={renaming.name}
                     onClose={() => setRenaming(null)}
-                    onSave={name => store.renameFilter(renaming.id, name)} />
+                    onSave={name => renaming.kind === 'view'
+                      ? store.renameFilter(renaming.id, name)
+                      : store.renameDashboard(renaming.id, name)} />
       )}
     </>
+  )
+}
+
+// Identifies a pinned item independent of its underlying view/dashboard
+// object, so drag state and drop-target comparisons don't need to unpack
+// the PinnedItem union at every call site.
+function pinnedRef(item: PinnedItem): { kind: 'view' | 'dashboard'; id: string } {
+  return item.kind === 'view' ? { kind: 'view', id: item.filter.id } : { kind: 'dashboard', id: item.dashboard.id }
+}
+
+function PinnedRow({ item, section, setSection, onNavigate, openAt, setRenaming,
+                     isDropTarget, onDragStart, onDragOver, onDragLeave, onDrop }: {
+  item: PinnedItem
+  section: Section
+  setSection: (s: Section) => void
+  onNavigate: () => void
+  openAt: (e: React.MouseEvent, items: { label: string; danger?: boolean; action: () => void }[]) => void
+  setRenaming: (r: { kind: 'view' | 'dashboard'; id: string; name: string } | null) => void
+  isDropTarget: boolean
+  onDragStart: () => void
+  onDragOver: () => void
+  onDragLeave: () => void
+  onDrop: () => void
+}) {
+  const store = useStore()
+  const target: Section = item.kind === 'view' ? { kind: 'saved', id: item.filter.id } : { kind: 'dashboard', id: item.dashboard.id }
+  const name = item.kind === 'view' ? item.filter.name : item.dashboard.name
+  const icon = item.kind === 'view' ? 'filterLines' : 'grid'
+
+  const select = () => {
+    if (item.kind === 'view') store.selectSaved(item.filter.id)
+    setSection(target)
+    onNavigate()
+  }
+  const unpin = () => item.kind === 'view' ? store.togglePinned(item.filter.id) : store.togglePinnedDashboard(item.dashboard.id)
+  const del = () => {
+    if (item.kind === 'view') {
+      store.deleteFilter(item.filter.id)
+    } else {
+      const wasShowing = sectionEq(section, target)
+      store.deleteDashboard(item.dashboard.id)
+      if (wasShowing) setSection(store.navigateHome())
+    }
+  }
+
+  return (
+    <button className={`sidebar-item${sectionEq(section, target) ? ' active' : ''}${isDropTarget ? ' drop-target' : ''}`}
+            draggable
+            onClick={select}
+            onDragStart={e => { e.dataTransfer.setData('text/plain', name); onDragStart() }}
+            onDragOver={e => { e.preventDefault(); onDragOver() }}
+            onDragLeave={onDragLeave}
+            onDrop={e => { e.preventDefault(); onDrop() }}
+            onContextMenu={e => openAt(e, [
+              { label: 'Rename', action: () => setRenaming({ kind: item.kind, id: item.kind === 'view' ? item.filter.id : item.dashboard.id, name }) },
+              {
+                label: store.isHomeTarget(target) ? 'Unset as Home' : 'Set as Home',
+                action: () => store.setHomeTarget(target),
+              },
+              { label: 'Unpin from Sidebar', action: unpin },
+              { label: 'Delete', danger: true, action: del },
+            ])}>
+      <span className="glyph"><Icon name={icon} size={11} /></span>
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+      {store.isHomeTarget(target) && <span className="home-mark"><Icon name="house" size={8} /></span>}
+    </button>
   )
 }
 

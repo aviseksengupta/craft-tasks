@@ -21,7 +21,7 @@ export function BottomNav({ section, setSection, onOpenMenu }: {
     { id: 'documents', icon: 'doc', label: 'Docs', active: sectionEq(section, { kind: 'documents' }), action: () => setSection({ kind: 'documents' }) },
   ]
 
-  const menuActive = ['inbox', 'thisWeek', 'views', 'dashboard'].includes(section.kind)
+  const menuActive = ['inbox', 'thisWeek', 'views', 'dashboards', 'dashboard', 'saved'].includes(section.kind)
 
   return (
     <nav className="bottom-nav">

@@ -268,16 +268,22 @@ struct Dashboard: Codable, Equatable, Identifiable {
     var id: UUID = UUID()
     var name: String
     var widgets: [DashboardWidget] = []
+    var pinned: Bool? = nil       // shows in the sidebar; nil == false, same convention as TaskFilter.pinned
+    var order: Int? = nil         // position within the Dashboards page; nil sorts as 0
+    var pinnedOrder: Int? = nil   // separate scale from `order` — pinned section mixes views+dashboards
+    var sectionId: UUID? = nil    // reserved for future section grouping; unused for now
 
-    init(id: UUID = UUID(), name: String, widgets: [DashboardWidget]) {
+    init(id: UUID = UUID(), name: String, widgets: [DashboardWidget], pinned: Bool? = nil, order: Int? = nil) {
         self.id = id
         self.name = name
         self.widgets = widgets
+        self.pinned = pinned
+        self.order = order
     }
 
     // Custom Codable so dashboards saved by the earlier (viewIds + layout)
     // version of this app still load, migrated into one medium widget per view.
-    private enum CodingKeys: String, CodingKey { case id, name, widgets, viewIds }
+    private enum CodingKeys: String, CodingKey { case id, name, widgets, viewIds, pinned, order, pinnedOrder, sectionId }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -290,6 +296,10 @@ struct Dashboard: Codable, Equatable, Identifiable {
         } else {
             widgets = []
         }
+        pinned = try? c.decode(Bool?.self, forKey: .pinned)
+        order = try? c.decode(Int?.self, forKey: .order)
+        pinnedOrder = try? c.decode(Int?.self, forKey: .pinnedOrder)
+        sectionId = try? c.decode(UUID?.self, forKey: .sectionId)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -297,6 +307,10 @@ struct Dashboard: Codable, Equatable, Identifiable {
         try c.encode(id, forKey: .id)
         try c.encode(name, forKey: .name)
         try c.encode(widgets, forKey: .widgets)
+        try c.encode(pinned, forKey: .pinned)
+        try c.encode(order, forKey: .order)
+        try c.encode(pinnedOrder, forKey: .pinnedOrder)
+        try c.encode(sectionId, forKey: .sectionId)
     }
 }
 
@@ -312,11 +326,14 @@ struct TaskFilter: Codable, Equatable, Identifiable {
     var groupBy: GroupBy? = .document   // optional so pre-existing saved filters decode
     var layout: ViewLayout? = .stacked  // optional, same reason
     var pinned: Bool? = nil             // shows in the sidebar; nil == false, same reason
+    var order: Int? = nil               // position within the Views page; nil sorts as 0
+    var pinnedOrder: Int? = nil         // separate scale from `order` — pinned section mixes views+dashboards
+    var sectionId: UUID? = nil          // reserved for future section grouping; unused for now
 
     init(id: UUID = UUID(), name: String = "", tags: Set<String> = [], excludedTags: Set<String> = [],
          documentIds: Set<String> = [], states: Set<TaskState> = [.todo], dateField: DateField = .any,
          dateScope: DateScope = .any, groupBy: GroupBy? = .document, layout: ViewLayout? = .stacked,
-         pinned: Bool? = nil) {
+         pinned: Bool? = nil, order: Int? = nil) {
         self.id = id
         self.name = name
         self.tags = tags
@@ -328,10 +345,12 @@ struct TaskFilter: Codable, Equatable, Identifiable {
         self.groupBy = groupBy
         self.layout = layout
         self.pinned = pinned
+        self.order = order
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, name, tags, excludedTags, documentIds, states, dateField, dateScope, groupBy, layout, pinned
+        case order, pinnedOrder, sectionId
     }
 
     /// Every field falls back to its default if the key is missing or
@@ -355,6 +374,9 @@ struct TaskFilter: Codable, Equatable, Identifiable {
         groupBy = (try? c.decode(GroupBy?.self, forKey: .groupBy)) ?? .document
         layout = (try? c.decode(ViewLayout?.self, forKey: .layout)) ?? .stacked
         pinned = try? c.decode(Bool?.self, forKey: .pinned)
+        order = try? c.decode(Int?.self, forKey: .order)
+        pinnedOrder = try? c.decode(Int?.self, forKey: .pinnedOrder)
+        sectionId = try? c.decode(UUID?.self, forKey: .sectionId)
     }
 
     var isEmpty: Bool {
@@ -399,5 +421,42 @@ struct TaskFilter: Codable, Equatable, Identifiable {
             if !Calendar.current.isDate(d, equalTo: today, toGranularity: .month) { return false }
         }
         return true
+    }
+}
+
+// MARK: - Pinned sidebar items
+
+/// Identifies a pinned item's kind independent of its full view/dashboard
+/// value, so drag state and drop-target comparisons don't need to unpack
+/// a PinnedItem at every call site.
+struct PinnedRef: Equatable {
+    enum Kind { case view, dashboard }
+    let kind: Kind
+    let id: UUID
+}
+
+/// A sidebar PINNED-section entry: either a saved view or a dashboard,
+/// carrying its full value so rows can render name/icon without a lookup.
+enum PinnedItem: Identifiable {
+    case view(TaskFilter)
+    case dashboard(Dashboard)
+
+    var id: String {
+        switch self {
+        case .view(let f): return "view:\(f.id)"
+        case .dashboard(let d): return "dashboard:\(d.id)"
+        }
+    }
+    var ref: PinnedRef {
+        switch self {
+        case .view(let f): return PinnedRef(kind: .view, id: f.id)
+        case .dashboard(let d): return PinnedRef(kind: .dashboard, id: d.id)
+        }
+    }
+    var name: String {
+        switch self {
+        case .view(let f): return f.name
+        case .dashboard(let d): return d.name
+        }
     }
 }

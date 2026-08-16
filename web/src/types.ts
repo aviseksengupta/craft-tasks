@@ -127,13 +127,16 @@ export interface TaskFilter {
   groupBy: GroupBy
   layout: ViewLayout
   pinned?: boolean
+  order?: number
+  pinnedOrder?: number          // separate scale from `order` — pinned section mixes views+dashboards
+  sectionId?: string | null    // reserved for future section grouping; unused for now
 }
 
 export function newFilter(partial: Partial<TaskFilter> = {}): TaskFilter {
   return {
     id: crypto.randomUUID(), name: '', tags: [], excludedTags: [], documentIds: [],
     states: ['todo'], dateField: 'Any date', dateScope: 'Any',
-    groupBy: 'Document', layout: 'Stacked',
+    groupBy: 'Document', layout: 'Stacked', order: 0,
     ...partial,
   }
 }
@@ -196,13 +199,21 @@ export interface Dashboard {
   id: string
   name: string
   widgets: DashboardWidget[]
+  pinned?: boolean
+  order?: number
+  pinnedOrder?: number          // separate scale from `order` — pinned section mixes views+dashboards
+  sectionId?: string | null    // reserved for future section grouping; unused for now
 }
+
+export type PinnedItem =
+  | { kind: 'view'; filter: TaskFilter }
+  | { kind: 'dashboard'; dashboard: Dashboard }
 
 // ---- Navigation ----
 
 export type Section =
   | { kind: 'home' } | { kind: 'allTasks' } | { kind: 'inbox' } | { kind: 'today' }
-  | { kind: 'thisWeek' } | { kind: 'documents' } | { kind: 'views' }
+  | { kind: 'thisWeek' } | { kind: 'documents' } | { kind: 'views' } | { kind: 'dashboards' }
   | { kind: 'saved', id: string } | { kind: 'dashboard', id: string }
 
 export function sectionEq(a: Section | null | undefined, b: Section | null | undefined): boolean {

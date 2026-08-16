@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, ReactNode } from 'react'
 import {
-  CraftTask, TaskFilter, Dashboard, DashboardWidget, Section, ConfigFile, ItemVisibility,
+  CraftTask, TaskFilter, Dashboard, DashboardWidget, Section, ConfigFile, ItemVisibility, PinnedItem,
   TaskState, GroupBy, PendingUpdate, PendingCreate,
   newFilter, filterMatches, sectionEq, emptyConfig, taskTitle, taskTags, displayTitle,
   scheduleDay, deadlineDay, completedDay, sourceName, startOfToday, markdownParts, rebuiltMarkdown,
@@ -70,6 +70,7 @@ interface StoreValue {
   setFilter: (f: TaskFilter | ((prev: TaskFilter) => TaskFilter)) => void
   savedFilters: TaskFilter[]
   dashboards: Dashboard[]
+  pinnedItems: PinnedItem[]
   homeSection: Section | null
   itemVisibility: Record<string, ItemVisibility>
   documentDisplayNames: Record<string, string>
@@ -116,6 +117,7 @@ interface StoreValue {
   togglePinned: (id: string) => void
   renameFilter: (id: string, name: string) => void
   deleteFilter: (id: string) => void
+  moveView: (draggedId: string, targetId: string) => void
   setHomeTarget: (s: Section) => void
   isHomeTarget: (s: Section) => boolean
   setItemVisibility: (id: string, v: ItemVisibility) => void
@@ -126,6 +128,10 @@ interface StoreValue {
   removeWidget: (widgetId: string, dashboardId: string) => void
   setWidgetDimensions: (widgetId: string, w: number, h: number, dashboardId: string) => void
   moveWidget: (draggedId: string, targetId: string, dashboardId: string) => void
+  moveDashboard: (draggedId: string, targetId: string) => void
+  togglePinnedDashboard: (id: string) => void
+  renameDashboard: (id: string, name: string) => void
+  movePinned: (dragged: { kind: 'view' | 'dashboard'; id: string }, target: { kind: 'view' | 'dashboard'; id: string }) => void
 
   todayFilter: TaskFilter
   thisWeekFilter: TaskFilter
@@ -526,16 +532,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       case 'inbox': selectInbox(); return hs
       case 'today': selectToday(); return hs
       case 'thisWeek': selectThisWeek(); return hs
-      case 'documents': case 'views': return hs
+      case 'documents': case 'views': case 'dashboards': return hs
       default: setFilter(newFilter()); return { kind: 'home' }
     }
   }, [config, selectAllTasks, selectInbox, selectToday, selectThisWeek])
 
   // ---- saved filters / dashboards / home ----
   const saveCurrentFilter = useCallback((name: string) => {
-    const f = { ...filter, id: crypto.randomUUID(), name }
+    const order = config.filters.reduce((m, x) => Math.max(m, x.order ?? 0), 0) + 1
+    const f = { ...filter, id: crypto.randomUUID(), name, order }
     updateConfig(c => ({ ...c, filters: [...c.filters, f] }))
-  }, [filter, updateConfig])
+  }, [filter, updateConfig, config.filters])
 
   const updateSavedFilter = useCallback((id: string) => {
     updateConfig(c => ({
@@ -545,8 +552,90 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }))
   }, [filter, updateConfig])
 
+  // Next pinnedOrder value across the mixed views+dashboards pinned list,
+  // so a newly-pinned item of either kind lands at the end.
+  const nextPinnedOrder = useCallback((c: ConfigFile) => {
+    const orders = [
+      ...c.filters.filter(f => f.pinned).map(f => f.pinnedOrder ?? 0),
+      ...c.dashboards.filter(d => d.pinned).map(d => d.pinnedOrder ?? 0),
+    ]
+    return orders.length ? Math.max(...orders) + 1 : 0
+  }, [])
+
   const togglePinned = useCallback((id: string) => {
-    updateConfig(c => ({ ...c, filters: c.filters.map(x => x.id === id ? { ...x, pinned: !x.pinned } : x) }))
+    updateConfig(c => ({
+      ...c,
+      filters: c.filters.map(x => x.id === id
+        ? { ...x, pinned: !x.pinned, pinnedOrder: !x.pinned ? nextPinnedOrder(c) : x.pinnedOrder } : x),
+    }))
+  }, [updateConfig, nextPinnedOrder])
+
+  const togglePinnedDashboard = useCallback((id: string) => {
+    updateConfig(c => ({
+      ...c,
+      dashboards: c.dashboards.map(x => x.id === id
+        ? { ...x, pinned: !x.pinned, pinnedOrder: !x.pinned ? nextPinnedOrder(c) : x.pinnedOrder } : x),
+    }))
+  }, [updateConfig, nextPinnedOrder])
+
+  const moveView = useCallback((draggedId: string, targetId: string) => {
+    updateConfig(c => {
+      const sorted = [...c.filters].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      const from = sorted.findIndex(f => f.id === draggedId)
+      const to = sorted.findIndex(f => f.id === targetId)
+      if (from < 0 || to < 0 || from === to) return c
+      const [item] = sorted.splice(from, 1)
+      sorted.splice(to, 0, item)
+      const reordered = sorted.map((f, i) => ({ ...f, order: i }))
+      return { ...c, filters: reordered }
+    })
+  }, [updateConfig])
+
+  const moveDashboard = useCallback((draggedId: string, targetId: string) => {
+    updateConfig(c => {
+      const sorted = [...c.dashboards].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      const from = sorted.findIndex(d => d.id === draggedId)
+      const to = sorted.findIndex(d => d.id === targetId)
+      if (from < 0 || to < 0 || from === to) return c
+      const [item] = sorted.splice(from, 1)
+      sorted.splice(to, 0, item)
+      const reordered = sorted.map((d, i) => ({ ...d, order: i }))
+      return { ...c, dashboards: reordered }
+    })
+  }, [updateConfig])
+
+  // Pinned items are a mixed list of views and dashboards, ordered on a
+  // shared numeric scale so either kind can be dragged before/after the
+  // other. draggedId/targetId are disambiguated by kind since view and
+  // dashboard ids are independently generated UUIDs that could collide
+  // in theory (never in practice, but kind keeps the lookup correct).
+  const movePinned = useCallback((
+    dragged: { kind: 'view' | 'dashboard'; id: string },
+    target: { kind: 'view' | 'dashboard'; id: string },
+  ) => {
+    updateConfig(c => {
+      type Entry = { kind: 'view' | 'dashboard'; id: string; order: number }
+      const views: Entry[] = c.filters.filter(f => f.pinned).map(f => ({ kind: 'view', id: f.id, order: f.pinnedOrder ?? 0 }))
+      const dashes: Entry[] = c.dashboards.filter(d => d.pinned).map(d => ({ kind: 'dashboard', id: d.id, order: d.pinnedOrder ?? 0 }))
+      const sorted = [...views, ...dashes].sort((a, b) => a.order - b.order)
+      const from = sorted.findIndex(e => e.kind === dragged.kind && e.id === dragged.id)
+      const to = sorted.findIndex(e => e.kind === target.kind && e.id === target.id)
+      if (from < 0 || to < 0 || from === to) return c
+      const [item] = sorted.splice(from, 1)
+      sorted.splice(to, 0, item)
+      const orderOf = new Map(sorted.map((e, i) => [`${e.kind}:${e.id}`, i]))
+      return {
+        ...c,
+        filters: c.filters.map(f => {
+          const o = orderOf.get(`view:${f.id}`)
+          return o === undefined ? f : { ...f, pinnedOrder: o }
+        }),
+        dashboards: c.dashboards.map(d => {
+          const o = orderOf.get(`dashboard:${d.id}`)
+          return o === undefined ? d : { ...d, pinnedOrder: o }
+        }),
+      }
+    })
   }, [updateConfig])
 
   const renameFilter = useCallback((id: string, name: string) => {
@@ -585,13 +674,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [updateConfig])
 
   const saveDashboard = useCallback((name: string, viewIds: string[]): Dashboard => {
+    const order = config.dashboards.reduce((m, x) => Math.max(m, x.order ?? 0), 0) + 1
     const d: Dashboard = {
-      id: crypto.randomUUID(), name,
+      id: crypto.randomUUID(), name, order,
       widgets: viewIds.map(viewId => ({ id: crypto.randomUUID(), viewId, widthUnits: 4, heightUnits: 2 })),
     }
     updateConfig(c => ({ ...c, dashboards: [...c.dashboards, d] }))
     return d
-  }, [updateConfig])
+  }, [updateConfig, config.dashboards])
 
   const deleteDashboard = useCallback((id: string) => {
     updateConfig(c => ({
@@ -599,6 +689,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       dashboards: c.dashboards.filter(d => d.id !== id),
       homeSection: sectionEq(c.homeSection, { kind: 'dashboard', id }) ? null : c.homeSection,
     }))
+  }, [updateConfig])
+
+  const renameDashboard = useCallback((id: string, name: string) => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    updateConfig(c => ({ ...c, dashboards: c.dashboards.map(d => d.id === id ? { ...d, name: trimmed } : d) }))
   }, [updateConfig])
 
   const addWidgets = useCallback((viewIds: string[], dashboardId: string) => {
@@ -646,9 +742,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }))
   }, [updateConfig])
 
+  const sortedFilters = useMemo(
+    () => [...config.filters].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+    [config.filters],
+  )
+  const sortedDashboards = useMemo(
+    () => [...config.dashboards].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+    [config.dashboards],
+  )
+  const pinnedItems: PinnedItem[] = useMemo(() => {
+    const views: PinnedItem[] = config.filters.filter(f => f.pinned).map(f => ({ kind: 'view', filter: f }))
+    const dashes: PinnedItem[] = config.dashboards.filter(d => d.pinned).map(d => ({ kind: 'dashboard', dashboard: d }))
+    return [...views, ...dashes].sort((a, b) => {
+      const oa = a.kind === 'view' ? a.filter.pinnedOrder ?? 0 : a.dashboard.pinnedOrder ?? 0
+      const ob = b.kind === 'view' ? b.filter.pinnedOrder ?? 0 : b.dashboard.pinnedOrder ?? 0
+      return oa - ob
+    })
+  }, [config.filters, config.dashboards])
+
   const value: StoreValue = {
     tasks, filter, setFilter,
-    savedFilters: config.filters, dashboards: config.dashboards,
+    savedFilters: sortedFilters, dashboards: sortedDashboards, pinnedItems,
     homeSection: config.homeSection, itemVisibility: config.itemVisibility,
     documentDisplayNames: config.documentDisplayNames,
     showCompleted, setShowCompleted, todayIncludesOverdue, setTodayIncludesOverdue, searchText, setSearchText,
@@ -658,9 +772,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     allTags, documents, filtered, apply, group, displayName, setDisplayName,
     sync, cycleState, applyEdit, createTask, deleteTask,
     navigateHome, selectAllTasks, selectInbox, selectToday, selectThisWeek, selectSaved, openDocument,
-    saveCurrentFilter, updateSavedFilter, togglePinned, renameFilter, deleteFilter,
+    saveCurrentFilter, updateSavedFilter, togglePinned, renameFilter, deleteFilter, moveView,
     setHomeTarget, isHomeTarget, setItemVisibility,
     saveDashboard, deleteDashboard, addWidgets, removeWidget, setWidgetDimensions, moveWidget,
+    moveDashboard, togglePinnedDashboard, renameDashboard, movePinned,
     todayFilter, thisWeekFilter, inboxFilter,
   }
 

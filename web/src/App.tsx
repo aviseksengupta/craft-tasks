@@ -4,7 +4,7 @@ import { StoreProvider, useStore } from './store'
 import { Sidebar } from './Sidebar'
 import { BottomNav } from './BottomNav'
 import { TaskListView } from './TaskList'
-import { DocumentsView, ViewsPage } from './Cards'
+import { DocumentsView, ViewsPage, DashboardsPage } from './Cards'
 import { DashboardView } from './DashboardView'
 import { SettingsModal, AddTaskModal } from './modals'
 import { Icon } from './ui'
@@ -29,6 +29,7 @@ function Root() {
     switch (section.kind) {
       case 'documents': return <DocumentsView setSection={setSection} />
       case 'views': return <ViewsPage setSection={setSection} />
+      case 'dashboards': return <DashboardsPage setSection={setSection} />
       case 'dashboard': return <DashboardView dashboardId={section.id} />
       default: return <TaskListView section={section} />
     }

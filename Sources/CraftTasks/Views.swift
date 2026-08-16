@@ -10,6 +10,7 @@ enum Section: Hashable, Codable {
     case thisWeek
     case documents
     case views
+    case dashboards
     case saved(UUID)
     case dashboard(UUID)
 }
@@ -32,6 +33,7 @@ struct RootView: View {
                 switch section {
                 case .documents: DocumentsView(section: $section)
                 case .views: ViewsPageView(section: $section)
+                case .dashboards: DashboardsPageView(section: $section)
                 case .dashboard(let id): DashboardView(dashboardId: id)
                 default: TaskListView(section: $section)
                 }
@@ -60,7 +62,6 @@ struct NavItemDef: Identifiable {
 struct Sidebar: View {
     @EnvironmentObject var store: Store
     @Binding var section: Section
-    @State private var showNewDashboard = false
     @State private var showAddTask = false
     @State private var showSidebarSettings = false
     @State private var showMoreItems = false
@@ -81,6 +82,7 @@ struct Sidebar: View {
             NavItemDef(id: "thisWeek", icon: "calendar.badge.clock", label: "This Week", section: .thisWeek) { store.selectThisWeek(); section = .thisWeek },
             NavItemDef(id: "documents", icon: "doc.text", label: "Documents", section: .documents) { section = .documents },
             NavItemDef(id: "views", icon: "list.bullet.rectangle", label: "Views", section: .views) { section = .views },
+            NavItemDef(id: "dashboards", icon: "square.grid.2x2", label: "Dashboards", section: .dashboards) { section = .dashboards },
         ]
     }
 
@@ -170,48 +172,15 @@ struct Sidebar: View {
                 }
             }
 
-            let pinnedFilters = store.savedFilters.filter { $0.pinned ?? false }
-            if !pinnedFilters.isEmpty {
-                Text("PINNED VIEWS")
+            let pinnedItems = store.pinnedItems
+            if !pinnedItems.isEmpty {
+                Text("PINNED")
                     .font(.system(size: 9, weight: .semibold)).tracking(1.2)
                     .foregroundColor(Theme.textFaint)
                     .padding(.horizontal, 16).padding(.top, 18).padding(.bottom, 4)
-                ForEach(pinnedFilters) { f in
-                    SavedFilterRow(filter: f, active: section == .saved(f.id),
-                                   isHome: store.isHomeTarget(.saved(f.id)),
-                                   select: { store.selectSaved(f.id); section = .saved(f.id) })
+                ForEach(pinnedItems) { item in
+                    PinnedItemRow(item: item, active: section == item.ref.asSection, section: $section)
                 }
-            }
-
-            HStack {
-                Text("DASHBOARDS")
-                    .font(.system(size: 9, weight: .semibold)).tracking(1.2)
-                    .foregroundColor(Theme.textFaint)
-                Spacer()
-                Button { showNewDashboard = true } label: {
-                    Image(systemName: "plus").font(.system(size: 9, weight: .semibold))
-                        .foregroundColor(Theme.textLo)
-                }
-                .buttonStyle(.plain)
-                .disabled(store.savedFilters.isEmpty)
-                .help(store.savedFilters.isEmpty ? "Save a view first" : "New dashboard")
-            }
-            .padding(.horizontal, 16).padding(.top, 18).padding(.bottom, 4)
-            ForEach(store.dashboards) { d in
-                SidebarItem(icon: "square.grid.2x2", label: d.name,
-                            active: section == .dashboard(d.id),
-                            isHomeTarget: store.isHomeTarget(.dashboard(d.id))) { section = .dashboard(d.id) }
-                    .contextMenu {
-                        Button(store.isHomeTarget(.dashboard(d.id)) ? "Unset as Home" : "Set as Home") {
-                            store.setHomeTarget(.dashboard(d.id))
-                        }
-                        Divider()
-                        Button("Delete", role: .destructive) {
-                            let wasShowing = section == .dashboard(d.id)
-                            store.deleteDashboard(d.id)
-                            if wasShowing { section = store.navigateHome() }
-                        }
-                    }
             }
 
             Spacer()
@@ -220,8 +189,110 @@ struct Sidebar: View {
         .frame(width: 210)
         .background(Theme.panel)
         .craftShadow(radius: 16, y: 0)
-        .sheet(isPresented: $showNewDashboard) { NewDashboardSheet(section: $section) }
     }
+}
+
+extension PinnedRef {
+    var asSection: Section {
+        switch kind {
+        case .view: return .saved(id)
+        case .dashboard: return .dashboard(id)
+        }
+    }
+}
+
+/// One row in the sidebar's unified PINNED section — a saved view or a
+/// dashboard, distinguished by icon, drag-reorderable across both kinds.
+struct PinnedItemRow: View {
+    @EnvironmentObject var store: Store
+    let item: PinnedItem
+    let active: Bool
+    @Binding var section: Section
+    @State private var hover = false
+    @State private var renaming = false
+    @State private var isTargeted = false
+
+    var icon: String {
+        switch item {
+        case .view: return "line.3.horizontal.decrease"
+        case .dashboard: return "square.grid.2x2"
+        }
+    }
+    var isHome: Bool { store.isHomeTarget(item.ref.asSection) }
+
+    private func select() {
+        switch item {
+        case .view(let f): store.selectSaved(f.id)
+        case .dashboard: break
+        }
+        section = item.ref.asSection
+    }
+    private func unpin() {
+        switch item {
+        case .view(let f): store.togglePinned(f.id)
+        case .dashboard(let d): store.togglePinnedDashboard(d.id)
+        }
+    }
+    private func delete() {
+        switch item {
+        case .view(let f): store.deleteFilter(f.id)
+        case .dashboard(let d):
+            let wasShowing = section == .dashboard(d.id)
+            store.deleteDashboard(d.id)
+            if wasShowing { section = store.navigateHome() }
+        }
+    }
+
+    var body: some View {
+        Button(action: select) {
+            HStack(spacing: 8) {
+                Image(systemName: icon).font(.system(size: 10)).frame(width: 16)
+                Text(item.name).font(.system(size: 12)).lineLimit(1)
+                Spacer()
+                if isHome { Image(systemName: "house.fill").font(.system(size: 8)).foregroundColor(Theme.textFaint) }
+            }
+            .foregroundColor(active ? Theme.textHi : Theme.textLo)
+            .padding(.horizontal, 10).padding(.vertical, 5)
+            .background(RoundedRectangle(cornerRadius: 6)
+                .fill(active ? Theme.panelHi : (hover ? Theme.panelHi.opacity(0.5) : .clear)))
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(isTargeted ? Theme.accent : .clear, lineWidth: 2))
+            .padding(.horizontal, 8)
+        }
+        .buttonStyle(.plain)
+        .onHover { hover = $0 }
+        .draggable(pinnedRefEncoded(item.ref))
+        .dropDestination(for: String.self) { items, _ in
+            guard let raw = items.first, let dragged = decodePinnedRef(raw) else { return false }
+            store.movePinned(dragged, to: item.ref)
+            return true
+        } isTargeted: { isTargeted = $0 }
+        .popover(isPresented: $renaming) {
+            switch item {
+            case .view(let f): RenameViewPopover(filter: f)
+            case .dashboard(let d): RenameDashboardPopover(dashboard: d)
+            }
+        }
+        .contextMenu {
+            Button("Rename") { renaming = true }
+            Button(isHome ? "Unset as Home" : "Set as Home") { store.setHomeTarget(item.ref.asSection) }
+            Button("Unpin from Sidebar", action: unpin)
+            Divider()
+            Button("Delete", role: .destructive, action: delete)
+        }
+    }
+}
+
+/// PinnedRef round-tripped through a plain string for `.draggable`/
+/// `.dropDestination(for: String.self)`, matching the pattern DashboardView
+/// uses for widget ids (which only need a UUID, not a kind tag).
+func pinnedRefEncoded(_ ref: PinnedRef) -> String {
+    "\(ref.kind == .view ? "view" : "dashboard"):\(ref.id.uuidString)"
+}
+func decodePinnedRef(_ raw: String) -> PinnedRef? {
+    let parts = raw.split(separator: ":", maxSplits: 1)
+    guard parts.count == 2, let id = UUID(uuidString: String(parts[1])) else { return nil }
+    let kind: PinnedRef.Kind = parts[0] == "view" ? .view : .dashboard
+    return PinnedRef(kind: kind, id: id)
 }
 
 /// Per-item control over the top sidebar row: Always shown / Hidden (tucked
@@ -539,7 +610,7 @@ struct TaskListView: View {
         case .today: return "Today"
         case .thisWeek: return "This Week"
         case .saved(let id): return store.savedFilters.first { $0.id == id }?.name ?? "View"
-        case .documents, .dashboard, .views: return ""
+        case .documents, .dashboard, .views, .dashboards: return ""
         }
     }
 
@@ -1425,8 +1496,8 @@ struct ViewsPageView: View {
     let cols = [GridItem(.adaptive(minimum: 300), spacing: 18)]
 
     var visibleFilters: [TaskFilter] {
-        store.searchText.isEmpty ? store.savedFilters
-            : store.savedFilters.filter { $0.name.localizedCaseInsensitiveContains(store.searchText) }
+        store.searchText.isEmpty ? store.sortedFilters
+            : store.sortedFilters.filter { $0.name.localizedCaseInsensitiveContains(store.searchText) }
     }
 
     var body: some View {
@@ -1471,6 +1542,7 @@ struct ViewCard: View {
     let open: () -> Void
     @State private var hover = false
     @State private var renaming = false
+    @State private var isTargeted = false
 
     var pinned: Bool { filter.pinned ?? false }
 
@@ -1507,6 +1579,9 @@ struct ViewCard: View {
                         Image(systemName: "line.3.horizontal.decrease")
                             .font(.system(size: 13)).foregroundColor(Theme.textLo)
                     }
+                    .contentShape(Rectangle())
+                    .draggable(filter.id.uuidString)
+                    .help("Drag to reorder")
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 5) {
                             Text(filter.name)
@@ -1562,11 +1637,18 @@ struct ViewCard: View {
             }
             .padding(18)
             .background(RoundedRectangle(cornerRadius: 16).fill(hover ? Theme.panelHi : Theme.panel))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(hover ? Theme.textFaint.opacity(0.4) : Theme.stroke, lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 16)
+                .stroke(isTargeted ? Theme.accent : (hover ? Theme.textFaint.opacity(0.4) : Theme.stroke),
+                       lineWidth: isTargeted ? 2 : 1))
             .craftShadow(radius: hover ? 20 : 10, y: hover ? 8 : 4)
         }
         .buttonStyle(.plain)
         .onHover { isHovering in withAnimation(.easeOut(duration: 0.12)) { hover = isHovering } }
+        .dropDestination(for: String.self) { items, _ in
+            guard let raw = items.first, let draggedId = UUID(uuidString: raw) else { return false }
+            store.moveView(draggedId, to: filter.id)
+            return true
+        } isTargeted: { isTargeted = $0 }
         .contextMenu {
             Button("Rename") { renaming = true }
             Button(isHome ? "Unset as Home" : "Set as Home") { store.setHomeTarget(.saved(filter.id)) }
@@ -1587,6 +1669,167 @@ struct ViewCard: View {
             Text(label).font(.system(size: 10)).foregroundColor(Theme.textFaint)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - Dashboards page
+
+struct DashboardsPageView: View {
+    @EnvironmentObject var store: Store
+    @Binding var section: Section
+    @State private var showNewDashboard = false
+
+    let cols = [GridItem(.adaptive(minimum: 300), spacing: 18)]
+
+    var visibleDashboards: [Dashboard] {
+        store.searchText.isEmpty ? store.sortedDashboards
+            : store.sortedDashboards.filter { $0.name.localizedCaseInsensitiveContains(store.searchText) }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Dashboards").font(.system(size: 25, weight: .semibold, design: .serif)).foregroundColor(Theme.textHi)
+                Text("\(visibleDashboards.count)").font(.system(size: 12)).foregroundColor(Theme.textFaint)
+                Spacer()
+                Button { showNewDashboard = true } label: {
+                    Chip(text: "New dashboard", icon: "plus")
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 24).padding(.top, 14).padding(.bottom, 14)
+            Rectangle().fill(Theme.stroke).frame(height: 1)
+            if visibleDashboards.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "square.grid.2x2").font(.system(size: 28)).foregroundColor(Theme.textFaint)
+                    Text(store.dashboards.isEmpty ? "Create a dashboard to see it here" : "No dashboards match your search")
+                        .font(.system(size: 13)).foregroundColor(Theme.textLo)
+                }.padding(.top, 80)
+            } else {
+                ScrollView {
+                    LazyVGrid(columns: cols, spacing: 18) {
+                        ForEach(visibleDashboards) { d in
+                            DashboardCard(dashboard: d, isHome: store.isHomeTarget(.dashboard(d.id))) {
+                                section = .dashboard(d.id)
+                            }
+                        }
+                    }
+                    .padding(24)
+                }
+                .scrollIndicators(.hidden)
+            }
+        }
+        .sheet(isPresented: $showNewDashboard) { NewDashboardSheet(section: $section) }
+    }
+}
+
+/// Mirrors ViewCard's shape (icon badge, widget count) so the Dashboards
+/// page reads as the same design language as Views.
+struct DashboardCard: View {
+    @EnvironmentObject var store: Store
+    let dashboard: Dashboard
+    let isHome: Bool
+    let open: () -> Void
+    @State private var hover = false
+    @State private var renaming = false
+    @State private var isTargeted = false
+
+    var pinned: Bool { dashboard.pinned ?? false }
+
+    var body: some View {
+        Button(action: open) {
+            HStack(alignment: .top, spacing: 12) {
+                ZStack {
+                    Circle().fill(Theme.chipBg).frame(width: 36, height: 36)
+                    Image(systemName: "square.grid.2x2")
+                        .font(.system(size: 13)).foregroundColor(Theme.textLo)
+                }
+                .contentShape(Rectangle())
+                .draggable(dashboard.id.uuidString)
+                .help("Drag to reorder")
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 5) {
+                        Text(dashboard.name)
+                            .font(.system(size: 16, weight: .semibold, design: .serif))
+                            .foregroundColor(Theme.textHi).lineLimit(1)
+                        if isHome { Image(systemName: "house.fill").font(.system(size: 9)).foregroundColor(Theme.textFaint) }
+                        Button { renaming = true } label: {
+                            Image(systemName: "pencil")
+                                .font(.system(size: 11))
+                                .foregroundColor(hover ? Theme.textLo : .clear)
+                                .frame(width: 24, height: 24)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help("Rename this dashboard")
+                        .popover(isPresented: $renaming) { RenameDashboardPopover(dashboard: dashboard) }
+                    }
+                    Text("\(dashboard.widgets.count) widget\(dashboard.widgets.count == 1 ? "" : "s")")
+                        .font(.system(size: 11)).foregroundColor(Theme.textFaint).lineLimit(1)
+                }
+                Spacer()
+                Button { store.togglePinnedDashboard(dashboard.id) } label: {
+                    Image(systemName: pinned ? "pin.fill" : "pin")
+                        .font(.system(size: 11))
+                        .foregroundColor(pinned ? Theme.accent : (hover ? Theme.textLo : .clear))
+                        .frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(pinned ? "Unpin from sidebar" : "Pin to sidebar")
+            }
+            .padding(18)
+            .background(RoundedRectangle(cornerRadius: 16).fill(hover ? Theme.panelHi : Theme.panel))
+            .overlay(RoundedRectangle(cornerRadius: 16)
+                .stroke(isTargeted ? Theme.accent : (hover ? Theme.textFaint.opacity(0.4) : Theme.stroke),
+                       lineWidth: isTargeted ? 2 : 1))
+            .craftShadow(radius: hover ? 20 : 10, y: hover ? 8 : 4)
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovering in withAnimation(.easeOut(duration: 0.12)) { hover = isHovering } }
+        .dropDestination(for: String.self) { items, _ in
+            guard let raw = items.first, let draggedId = UUID(uuidString: raw) else { return false }
+            store.moveDashboard(draggedId, to: dashboard.id)
+            return true
+        } isTargeted: { isTargeted = $0 }
+        .contextMenu {
+            Button("Rename") { renaming = true }
+            Button(isHome ? "Unset as Home" : "Set as Home") { store.setHomeTarget(.dashboard(dashboard.id)) }
+            Button(pinned ? "Unpin from Sidebar" : "Pin to Sidebar") { store.togglePinnedDashboard(dashboard.id) }
+            Divider()
+            Button("Delete", role: .destructive) { store.deleteDashboard(dashboard.id) }
+        }
+    }
+}
+
+struct RenameDashboardPopover: View {
+    @EnvironmentObject var store: Store
+    @Environment(\.dismiss) private var dismiss
+    let dashboard: Dashboard
+    @State private var name: String = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Dashboard name").font(.system(size: 11, weight: .semibold)).foregroundColor(Theme.textHi)
+            TextField("Name", text: $name)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 220)
+                .onSubmit(save)
+            HStack {
+                Spacer()
+                Button("Save") { save() }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+        }
+        .padding(14)
+        .frame(width: 250)
+        .onAppear { name = dashboard.name }
+    }
+
+    private func save() {
+        store.renameDashboard(dashboard.id, to: name)
+        dismiss()
     }
 }
 
