@@ -7,6 +7,9 @@ export function TaskRow({ task, onEdit }: { task: CraftTask; onEdit: (t: CraftTa
   const store = useStore()
   const isPending = task.id.startsWith('local-')
   const deepLink = craftDeepLink(task)
+  const tags = taskTags(task)
+  const firstColoredTag = tags.find(t => store.tagColors[t])
+  const tagColor = firstColoredTag ? store.tagColors[firstColoredTag] : null
 
   const today = startOfToday()
   const d = scheduleDay(task) ?? deadlineDay(task)
@@ -23,6 +26,8 @@ export function TaskRow({ task, onEdit }: { task: CraftTask; onEdit: (t: CraftTa
 
   return (
     <div className={`task-row${isPending ? ' pending' : ''}`}
+         style={tagColor ? { borderLeftColor: tagColor, borderLeftWidth: '4px', borderLeftStyle: 'solid', paddingLeft: '12px' } : {}}
+         data-tag-color={tagColor}
          onClick={() => { if (!isPending) onEdit(task) }}
          title={isPending ? 'Still syncing to Craft — editing available once confirmed' : undefined}>
       <button className={`checkbox ${task.state}`}

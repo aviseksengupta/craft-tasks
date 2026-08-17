@@ -64,6 +64,7 @@ struct Sidebar: View {
     @Binding var section: Section
     @State private var showAddTask = false
     @State private var showSidebarSettings = false
+    @State private var showTagColorSettings = false
     @State private var showMoreItems = false
 
     /// Home is "active" whenever the current section IS whatever Home
@@ -113,6 +114,12 @@ struct Sidebar: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(Theme.textHi)
                 Spacer()
+                Button { showTagColorSettings = true } label: {
+                    Image(systemName: "paintbrush").font(.system(size: 11)).foregroundColor(Theme.textFaint)
+                }
+                .buttonStyle(.plain)
+                .help("Tag colors")
+                .sheet(isPresented: $showTagColorSettings) { TagColorSettingsSheet() }
                 Button { showSidebarSettings = true } label: {
                     Image(systemName: "gearshape").font(.system(size: 11)).foregroundColor(Theme.textFaint)
                 }
@@ -348,6 +355,112 @@ struct SidebarSettingsSheet: View {
         Binding(
             get: { store.itemVisibility[id] ?? .shown },
             set: { store.setItemVisibility(id, $0) })
+    }
+}
+
+// MARK: - Tag Color Settings Components
+
+struct TagColorPickerOption: View {
+    let color: String
+
+    var body: some View {
+        let hexValue = UInt32(color, radix: 16) ?? 0
+        HStack {
+            Circle().fill(Color(hex: hexValue)).frame(width: 12, height: 12)
+            Text(color).font(.system(size: 11, design: .monospaced))
+        }
+    }
+}
+
+struct TagColorSettingsSheet: View {
+    @EnvironmentObject var store: Store
+    @Environment(\.dismiss) private var dismiss
+    @State private var customTag = ""
+    @State private var customColor = "FF5733"
+
+    let predefinedColors = ["FF5733", "33FF57", "3357FF", "FF33F5", "FFD700", "FF8C00", "00CED1", "FF69B4"]
+
+    var tagList: [(tag: String, color: String?)] {
+        store.allTags
+            .map { (tag: $0, color: store.tagColors[$0]) }
+            .sorted { (a, b) in
+                (a.color != nil ? 0 : 1) < (b.color != nil ? 0 : 1) || a.tag < b.tag
+            }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Tag Colors").font(.system(size: 15, weight: .semibold)).foregroundColor(Theme.textHi)
+            Text("Assign colors to tags. Tasks with colored tags will show a colored left border.")
+                .font(.system(size: 11)).foregroundColor(Theme.textFaint)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(tagList, id: \.tag) { item in
+                        HStack(spacing: 12) {
+                            Text("#\(item.tag)")
+                                .font(.system(size: 12)).foregroundColor(Theme.text)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                            Picker("", selection: Binding(
+                                get: { item.color ?? "" },
+                                set: { newValue in
+                                    if newValue.isEmpty {
+                                        store.setTagColor(tag: item.tag, color: nil)
+                                    } else {
+                                        store.setTagColor(tag: item.tag, color: newValue)
+                                    }
+                                }
+                            )) {
+                                Text("None").tag("")
+                                Divider()
+                                ForEach(predefinedColors, id: \.self) { color in
+                                    TagColorPickerOption(color: color)
+                                }
+                            }
+                            .frame(width: 120)
+                        }
+                    }
+                }
+                .padding(.vertical, 8)
+            }
+            .frame(height: 200)
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Add color for unused tags:")
+                    .font(.system(size: 11)).foregroundColor(Theme.textFaint)
+                HStack(spacing: 12) {
+                    TextField("Tag name (without #)", text: $customTag)
+                        .textFieldStyle(.roundedBorder)
+                    Picker("", selection: $customColor) {
+                        ForEach(predefinedColors, id: \.self) { color in
+                            TagColorPickerOption(color: color)
+                                .tag(color)
+                        }
+                    }
+                    Button("Add") {
+                        if !customTag.trimmingCharacters(in: .whitespaces).isEmpty {
+                            store.setTagColor(tag: customTag.trimmingCharacters(in: .whitespaces), color: customColor)
+                            customTag = ""
+                        }
+                    }
+                    .disabled(customTag.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+
+            Divider()
+            BackupRestoreSection()
+
+            HStack {
+                Spacer()
+                Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(22)
+        .frame(width: 520, height: 500)
+        .background(Theme.panel)
     }
 }
 
@@ -997,6 +1110,15 @@ struct TaskRow: View {
     @State private var hover = false
     @State private var editing = false
 
+    var tagColor: Color? {
+        for tag in task.tags {
+            if let hexColor = store.tagColors[tag], let uint32 = UInt32(hexColor, radix: 16) {
+                return Color(hex: uint32)
+            }
+        }
+        return nil
+    }
+
     var dateBadge: (String, Bool)? {
         let today = Calendar.current.startOfDay(for: Date())
         if let d = task.scheduleDay ?? task.deadlineDay {
@@ -1078,6 +1200,11 @@ struct TaskRow: View {
         }
         .padding(.horizontal, 16).padding(.vertical, 9)
         .background(hover ? Theme.panelHi.opacity(0.5) : .clear)
+        .overlay(alignment: .leading) {
+            if let color = tagColor {
+                color.frame(width: 4)
+            }
+        }
         .opacity(isPending ? 0.7 : 1)
         .onHover { hover = $0 }
         .help(isPending ? "Still syncing to Craft — editing will be available once it's confirmed" : "")

@@ -171,6 +171,7 @@ h1, h2, h3 { font-weight: 600; }
 .task-row {
   display: flex; align-items: flex-start; gap: 12px; padding: 9px 16px;
   border-bottom: 1px solid rgba(58,58,62,0.6); cursor: pointer;
+  border-left: none; /* reset for colored border inline styles */
 }
 .task-row:last-child { border-bottom: none; }
 .task-row:hover { background: rgba(44,44,47,0.5); }

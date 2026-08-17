@@ -231,10 +231,11 @@ export interface ConfigFile {
   dashboards: Dashboard[]
   documentDisplayNames: Record<string, string>
   itemVisibility: Record<string, ItemVisibility>
+  tagColors: Record<string, string>  // tag → hex color (e.g. "#FF5733")
 }
 
 export const emptyConfig: ConfigFile = {
-  filters: [], homeSection: null, dashboards: [], documentDisplayNames: {}, itemVisibility: {},
+  filters: [], homeSection: null, dashboards: [], documentDisplayNames: {}, itemVisibility: {}, tagColors: {},
 }
 
 // ---- Outbox ----

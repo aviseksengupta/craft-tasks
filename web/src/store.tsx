@@ -95,6 +95,8 @@ interface StoreValue {
   group: (tasks: CraftTask[], by: GroupBy) => [string, CraftTask[]][]
   displayName: (id: string, craftTitle: string) => string
   setDisplayName: (id: string, name: string | null) => void
+  tagColors: Record<string, string>
+  setTagColor: (tag: string, color: string | null) => void
 
   sync: () => Promise<void>
   cycleState: (t: CraftTask) => void
@@ -673,6 +675,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     })
   }, [updateConfig])
 
+  const setTagColor = useCallback((tag: string, color: string | null) => {
+    updateConfig(c => {
+      const colors = { ...c.tagColors }
+      if (color && color.trim()) colors[tag.toLowerCase()] = color.trim()
+      else delete colors[tag.toLowerCase()]
+      return { ...c, tagColors: colors }
+    })
+  }, [updateConfig])
+
   const saveDashboard = useCallback((name: string, viewIds: string[]): Dashboard => {
     const order = config.dashboards.reduce((m, x) => Math.max(m, x.order ?? 0), 0) + 1
     const d: Dashboard = {
@@ -764,12 +775,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     tasks, filter, setFilter,
     savedFilters: sortedFilters, dashboards: sortedDashboards, pinnedItems,
     homeSection: config.homeSection, itemVisibility: config.itemVisibility,
-    documentDisplayNames: config.documentDisplayNames,
+    documentDisplayNames: config.documentDisplayNames, tagColors: config.tagColors,
     showCompleted, setShowCompleted, todayIncludesOverdue, setTodayIncludesOverdue, searchText, setSearchText,
     syncing, lastSync, lastSyncSummary, syncError,
     totalPendingCount: pending.length + pendingCreates.length,
     gistStatus, configured,
-    allTags, documents, filtered, apply, group, displayName, setDisplayName,
+    allTags, documents, filtered, apply, group, displayName, setDisplayName, setTagColor,
     sync, cycleState, applyEdit, createTask, deleteTask,
     navigateHome, selectAllTasks, selectInbox, selectToday, selectThisWeek, selectSaved, openDocument,
     saveCurrentFilter, updateSavedFilter, togglePinned, renameFilter, deleteFilter, moveView,

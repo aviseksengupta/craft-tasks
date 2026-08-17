@@ -6,6 +6,7 @@ import { useStore, DocumentSummary, buildBackup, applyBackup, defaultBackup, App
 import * as craft from './craft'
 import { getGistToken, setGistToken } from './gist'
 import { Modal, Icon, DateChip, StateCycle, MenuChip, MenuItem } from './ui'
+import { TAG_COLORS } from './colors'
 
 // ---- Add Task ----
 
@@ -354,8 +355,92 @@ export function SettingsModal({ onClose, forced }: { onClose: () => void; forced
           {refreshing ? 'Refreshing…' : 'Save'}
         </button>
       </div>
-      {!forced && <BackupRestoreSection />}
+      {!forced && (
+        <>
+          <TagColorSettings />
+          <BackupRestoreSection />
+        </>
+      )}
     </Modal>
+  )
+}
+
+// ---- Tag Color Settings ----
+
+function TagColorSettings() {
+  const store = useStore()
+  const [customTag, setCustomTag] = useState('')
+  const [customColor, setCustomColor] = useState('#FF5733')
+
+  const allTagsWithColor = useMemo(() => {
+    return store.allTags
+      .map(tag => ({ tag, color: store.tagColors[tag] ?? null }))
+      .sort((a, b) => (b.color ? 1 : -1) - (a.color ? 1 : -1) || a.tag.localeCompare(b.tag))
+  }, [store.allTags, store.tagColors])
+
+  const handleAddCustom = () => {
+    if (customTag.trim()) {
+      store.setTagColor(customTag.trim(), customColor)
+      setCustomTag('')
+    }
+  }
+
+  return (
+    <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--stroke)' }}>
+      <div className="form-label">TAG COLORS</div>
+      <div className="hint-text" style={{ marginTop: 6, marginBottom: 12 }}>
+        Assign colors to tags. Tasks with tagged items will show a colored left border.
+      </div>
+
+      {allTagsWithColor.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          {allTagsWithColor.map(({ tag, color }) => (
+            <div key={tag} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <span style={{ flex: 1, fontSize: '13px' }}>#{tag}</span>
+              <input
+                type="color"
+                value={color ?? '#FF5733'}
+                onChange={e => store.setTagColor(tag, e.target.value)}
+                style={{ width: 40, height: 32, border: '1px solid var(--stroke)', borderRadius: '6px', cursor: 'pointer' }}
+              />
+              {color && (
+                <button
+                  onClick={() => store.setTagColor(tag, null)}
+                  style={{ padding: '4px 8px', fontSize: '11px', color: 'var(--text-faint)' }}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ marginTop: 12 }}>
+        <div className="hint-text" style={{ marginBottom: 8 }}>Add color for tags not yet used:</div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+          <div style={{ flex: 1 }}>
+            <input
+              type="text"
+              placeholder="Tag name (without #)"
+              value={customTag}
+              onChange={e => setCustomTag(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleAddCustom() }}
+              style={{ width: '100%', marginBottom: 4 }}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <input
+              type="color"
+              value={customColor}
+              onChange={e => setCustomColor(e.target.value)}
+              style={{ width: 40, height: 32, border: '1px solid var(--stroke)', borderRadius: '6px', cursor: 'pointer' }}
+            />
+            <button className="btn" onClick={handleAddCustom} disabled={!customTag.trim()}>Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 

@@ -314,6 +314,23 @@ struct Dashboard: Codable, Equatable, Identifiable {
     }
 }
 
+// MARK: - Tag Colors
+
+struct TagColorsConfig: Codable, Equatable {
+    var tagColors: [String: String] = [:]  // tag name → hex color (e.g. "FF5733")
+
+    subscript(tag: String) -> String? {
+        get { tagColors[tag.lowercased()] }
+        set {
+            if let value = newValue {
+                tagColors[tag.lowercased()] = value
+            } else {
+                tagColors.removeValue(forKey: tag.lowercased())
+            }
+        }
+    }
+}
+
 struct TaskFilter: Codable, Equatable, Identifiable {
     var id: UUID = UUID()
     var name: String = ""

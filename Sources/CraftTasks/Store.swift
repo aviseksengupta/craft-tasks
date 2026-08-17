@@ -50,6 +50,8 @@ final class Store: ObservableObject {
     /// The Craft-side title (CraftTask.documentTitle) is always kept as-is
     /// internally and used as the fallback / reset value.
     @Published var documentDisplayNames: [String: String] = [:]
+    /// Tag color mappings: tag name (lowercased) -> hex color string (e.g. "FF5733")
+    @Published var tagColors: [String: String] = [:]
     /// Needed to build "open in Craft" deep links; nil until fetched (once,
     /// then cached — Craft doesn't expose it via /tasks).
     @Published var spaceId: String? = UserDefaults.standard.string(forKey: "craftSpaceId") {
@@ -92,6 +94,16 @@ final class Store: ObservableObject {
             documentDisplayNames[id] = trimmed
         } else {
             documentDisplayNames.removeValue(forKey: id)
+        }
+        persistFilters()
+    }
+
+    func setTagColor(tag: String, color: String?) {
+        let lowercaseTag = tag.lowercased()
+        if let color, !color.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            tagColors[lowercaseTag] = color.trimmingCharacters(in: .whitespacesAndNewlines)
+        } else {
+            tagColors.removeValue(forKey: lowercaseTag)
         }
         persistFilters()
     }
@@ -480,6 +492,7 @@ final class Store: ObservableObject {
         var dashboards: [Dashboard]?
         var documentDisplayNames: [String: String]?
         var itemVisibility: [String: ItemVisibility]?
+        var tagColors: [String: String]?
     }
 
     private func loadFilters() {
@@ -506,6 +519,7 @@ final class Store: ObservableObject {
         dashboards = f.dashboards ?? []
         documentDisplayNames = f.documentDisplayNames ?? [:]
         itemVisibility = f.itemVisibility ?? [:]
+        tagColors = f.tagColors ?? [:]
         if let hs = f.homeSection {
             homeSection = hs
         } else if let legacyId = f.homeId {
@@ -546,7 +560,7 @@ final class Store: ObservableObject {
 
     private func persistFilters() {
         let f = FiltersFile(filters: savedFilters, homeId: nil, homeSection: homeSection, dashboards: dashboards,
-                            documentDisplayNames: documentDisplayNames, itemVisibility: itemVisibility)
+                            documentDisplayNames: documentDisplayNames, itemVisibility: itemVisibility, tagColors: tagColors)
         guard let data = try? JSONEncoder().encode(f) else { return }
         // Roll the current file to a backup *before* overwriting it, so a
         // future decode regression (like the one that caused this) can be
@@ -579,11 +593,12 @@ final class Store: ObservableObject {
         var dashboards: [Dashboard]
         var documentDisplayNames: [String: String]
         var itemVisibility: [String: ItemVisibility]
+        var tagColors: [String: String] = [:]
     }
 
     static let defaultBackup = AppBackup(
         schemaVersion: backupSchemaVersion, exportedAt: "", apiBase: nil, showCompleted: true,
-        config: BackupConfig(filters: [], homeSection: nil, dashboards: [], documentDisplayNames: [:], itemVisibility: [:]))
+        config: BackupConfig(filters: [], homeSection: nil, dashboards: [], documentDisplayNames: [:], itemVisibility: [:], tagColors: [:]))
 
     func buildBackup() -> AppBackup {
         let iso = ISO8601DateFormatter().string(from: Date())
@@ -591,7 +606,7 @@ final class Store: ObservableObject {
             schemaVersion: Self.backupSchemaVersion, exportedAt: iso,
             apiBase: SyncEngine.apiBase, showCompleted: showCompleted,
             config: BackupConfig(filters: savedFilters, homeSection: homeSection, dashboards: dashboards,
-                                  documentDisplayNames: documentDisplayNames, itemVisibility: itemVisibility))
+                                  documentDisplayNames: documentDisplayNames, itemVisibility: itemVisibility, tagColors: tagColors))
     }
 
     func exportBackupJSON() -> String {
@@ -606,6 +621,7 @@ final class Store: ObservableObject {
         dashboards = backup.config.dashboards
         documentDisplayNames = backup.config.documentDisplayNames
         itemVisibility = backup.config.itemVisibility
+        tagColors = backup.config.tagColors
         homeSection = backup.config.homeSection
         showCompleted = backup.showCompleted
         persistFilters()
