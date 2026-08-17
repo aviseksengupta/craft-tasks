@@ -26,7 +26,7 @@ export function TaskRow({ task, onEdit }: { task: CraftTask; onEdit: (t: CraftTa
 
   return (
     <div className={`task-row${isPending ? ' pending' : ''}`}
-         style={tagColor ? { borderLeftColor: tagColor, borderLeftWidth: '4px', borderLeftStyle: 'solid', paddingLeft: '12px' } : {}}
+         style={tagColor ? { borderLeftColor: tagColor, borderLeftWidth: '4px', borderLeftStyle: 'solid', paddingLeft: '12px', borderTopLeftRadius: '12px', borderBottomLeftRadius: '12px' } : {}}
          data-tag-color={tagColor}
          onClick={() => { if (!isPending) onEdit(task) }}
          title={isPending ? 'Still syncing to Craft — editing available once confirmed' : undefined}>

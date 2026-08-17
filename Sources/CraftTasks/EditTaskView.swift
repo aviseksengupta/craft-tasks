@@ -144,6 +144,7 @@ struct EditTaskView: View {
         .overlay(alignment: .leading) {
             if let color = tagColor {
                 color.frame(width: 4)
+                    .cornerRadius(2, antialiased: true)
             }
         }
         .onAppear {
