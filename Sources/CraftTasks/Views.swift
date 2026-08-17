@@ -301,18 +301,7 @@ struct SidebarSettingsSheet: View {
     @EnvironmentObject var store: Store
     @Environment(\.dismiss) private var dismiss
     let navDefs: [NavItemDef]
-    @State private var selectedTagForColor: String? = nil
-
-    let colorOptions: [(Color, String)] = [
-        (Color(hex: 0xFF5733), "ff5733"),   // Red
-        (Color(hex: 0x33FF57), "33ff57"),   // Green
-        (Color(hex: 0x3357FF), "3357ff"),   // Blue
-        (Color(hex: 0xFF33F5), "ff33f5"),   // Purple
-        (Color(hex: 0xFFD700), "ffd700"),   // Gold
-        (Color(hex: 0xFF8C00), "ff8c00"),   // Orange
-        (Color(hex: 0x00CED1), "00ced1"),   // Turquoise
-        (Color(hex: 0xFF69B4), "ff69b4"),   // Hot Pink
-    ]
+    @State private var showColorPickerFor: String? = nil
 
     var allTagsList: [String] {
         store.allTags.sorted()
@@ -351,37 +340,57 @@ struct SidebarSettingsSheet: View {
                 Divider()
 
                 Text("Tag Colors").font(.system(size: 15, weight: .semibold)).foregroundColor(Theme.textHi)
-                Text("Assign colors to tags for visual organization.")
+                Text("Click the color button next to a tag to assign a color.")
                     .font(.system(size: 11)).foregroundColor(Theme.textFaint)
 
                 if allTagsList.isEmpty {
                     Text("No tags yet. Create tasks with tags to assign colors.")
                         .font(.system(size: 11)).foregroundColor(Theme.textFaint)
                 } else {
-                    VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 10) {
                         ForEach(allTagsList, id: \.self) { tag in
-                            VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 12) {
                                 Text("#\(tag)")
-                                    .font(.system(size: 12, weight: .semibold))
+                                    .font(.system(size: 12))
                                     .foregroundColor(Theme.text)
 
-                                HStack(spacing: 8) {
-                                    TagColorClearButton(tag: tag, store: store)
+                                Spacer()
 
-                                    ForEach(colorOptions, id: \.1) { color, hex in
-                                        TagColorSwatch(
-                                            color: color,
-                                            isSelected: store.tagColors[tag] == hex,
-                                            action: { store.setTagColor(tag: tag, color: hex) }
-                                        )
+                                if let colorHex = store.tagColors[tag],
+                                   let colorValue = UInt32(colorHex, radix: 16) {
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(Color(hex: colorValue))
+                                        .frame(width: 24, height: 24)
+                                }
+
+                                Button(action: { showColorPickerFor = tag }) {
+                                    Image(systemName: "paintbrush")
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .foregroundColor(.white)
+                                        .frame(width: 28, height: 28)
+                                        .background(Theme.textLo)
+                                        .cornerRadius(6)
+                                }
+                                .buttonStyle(.plain)
+                                .help("Choose color")
+
+                                if store.tagColors[tag] != nil {
+                                    Button(action: { store.setTagColor(tag: tag, color: nil) }) {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(Theme.textFaint)
                                     }
-
-                                    Spacer()
+                                    .buttonStyle(.plain)
+                                    .help("Remove color")
                                 }
                             }
-                            .padding(10)
+                            .padding(8)
                             .background(Theme.chipBg)
-                            .cornerRadius(8)
+                            .cornerRadius(6)
+
+                            if showColorPickerFor == tag {
+                                TagColorPickerPopover(tag: tag, isShowing: $showColorPickerFor, store: store)
+                            }
                         }
                     }
                 }
@@ -396,7 +405,7 @@ struct SidebarSettingsSheet: View {
             }
             .padding(22)
         }
-        .frame(width: 600, height: 700)
+        .frame(width: 550, height: 700)
         .background(Theme.panel)
     }
 
@@ -407,20 +416,55 @@ struct SidebarSettingsSheet: View {
     }
 }
 
-struct TagColorClearButton: View {
+struct TagColorPickerPopover: View {
     let tag: String
+    @Binding var isShowing: String?
     let store: Store
 
+    let colorOptions: [(Color, String, String)] = [
+        (Color(hex: 0xFF5733), "ff5733", "Red"),
+        (Color(hex: 0x33FF57), "33ff57", "Green"),
+        (Color(hex: 0x3357FF), "3357ff", "Blue"),
+        (Color(hex: 0xFF33F5), "ff33f5", "Purple"),
+        (Color(hex: 0xFFD700), "ffd700", "Gold"),
+        (Color(hex: 0xFF8C00), "ff8c00", "Orange"),
+        (Color(hex: 0x00CED1), "00ced1", "Turquoise"),
+        (Color(hex: 0xFF69B4), "ff69b4", "Hot Pink"),
+    ]
+
     var body: some View {
-        if store.tagColors[tag] != nil {
-            Button(action: { store.setTagColor(tag: tag, color: nil) }) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 12))
-                    .foregroundColor(Theme.textFaint)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Select color for #\(tag)")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(Theme.text)
+                Spacer()
+                Button(action: { isShowing = nil }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(Theme.textFaint)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
-            .help("Clear color")
+
+            HStack(spacing: 8) {
+                ForEach(colorOptions, id: \.1) { color, hex, name in
+                    TagColorSwatch(
+                        color: color,
+                        isSelected: store.tagColors[tag] == hex,
+                        action: {
+                            store.setTagColor(tag: tag, color: hex)
+                            isShowing = nil
+                        }
+                    )
+                    .help(name)
+                }
+                Spacer()
+            }
         }
+        .padding(10)
+        .background(Theme.panelHi)
+        .cornerRadius(8)
     }
 }
 
