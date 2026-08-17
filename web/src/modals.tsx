@@ -6,7 +6,6 @@ import { useStore, DocumentSummary, buildBackup, applyBackup, defaultBackup, App
 import * as craft from './craft'
 import { getGistToken, setGistToken } from './gist'
 import { Modal, Icon, DateChip, StateCycle, MenuChip, MenuItem } from './ui'
-import { TAG_COLORS } from './colors'
 
 // ---- Add Task ----
 
