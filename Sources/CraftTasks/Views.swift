@@ -64,7 +64,6 @@ struct Sidebar: View {
     @Binding var section: Section
     @State private var showAddTask = false
     @State private var showSidebarSettings = false
-    @State private var showTagColorSettings = false
     @State private var showMoreItems = false
 
     /// Home is "active" whenever the current section IS whatever Home
@@ -114,17 +113,11 @@ struct Sidebar: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(Theme.textHi)
                 Spacer()
-                Button { showTagColorSettings = true } label: {
-                    Image(systemName: "paintbrush").font(.system(size: 11)).foregroundColor(Theme.textFaint)
-                }
-                .buttonStyle(.plain)
-                .help("Tag colors")
-                .sheet(isPresented: $showTagColorSettings) { TagColorSettingsSheet() }
                 Button { showSidebarSettings = true } label: {
                     Image(systemName: "gearshape").font(.system(size: 11)).foregroundColor(Theme.textFaint)
                 }
                 .buttonStyle(.plain)
-                .help("Sidebar item settings")
+                .help("Sidebar & tag color settings")
                 .sheet(isPresented: $showSidebarSettings) { SidebarSettingsSheet(navDefs: navDefs) }
             }
             .padding(.horizontal, 14).padding(.top, 14).padding(.bottom, 10)
@@ -308,46 +301,102 @@ struct SidebarSettingsSheet: View {
     @EnvironmentObject var store: Store
     @Environment(\.dismiss) private var dismiss
     let navDefs: [NavItemDef]
+    @State private var selectedTagForColor: String? = nil
+
+    let colorOptions: [(Color, String)] = [
+        (Color(hex: 0xFF5733), "ff5733"),   // Red
+        (Color(hex: 0x33FF57), "33ff57"),   // Green
+        (Color(hex: 0x3357FF), "3357ff"),   // Blue
+        (Color(hex: 0xFF33F5), "ff33f5"),   // Purple
+        (Color(hex: 0xFFD700), "ffd700"),   // Gold
+        (Color(hex: 0xFF8C00), "ff8c00"),   // Orange
+        (Color(hex: 0x00CED1), "00ced1"),   // Turquoise
+        (Color(hex: 0xFF69B4), "ff69b4"),   // Hot Pink
+    ]
+
+    var allTagsList: [String] {
+        store.allTags.sorted()
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Sidebar Items").font(.system(size: 15, weight: .semibold)).foregroundColor(Theme.textHi)
-            Text("Choose how each item behaves in the sidebar.")
-                .font(.system(size: 11)).foregroundColor(Theme.textFaint)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Sidebar Items").font(.system(size: 15, weight: .semibold)).foregroundColor(Theme.textHi)
+                Text("Choose how each item behaves in the sidebar.")
+                    .font(.system(size: 11)).foregroundColor(Theme.textFaint)
 
-            VStack(spacing: 12) {
-                ForEach(navDefs) { def in
-                    HStack {
-                        Image(systemName: def.icon).font(.system(size: 11)).foregroundColor(Theme.textLo).frame(width: 16)
-                        Text(def.label).font(.system(size: 12)).foregroundColor(Theme.text)
-                        Spacer()
-                        Picker("", selection: binding(for: def.id)) {
-                            ForEach(ItemVisibility.allCases) { v in Text(v.rawValue).tag(v) }
+                VStack(spacing: 12) {
+                    ForEach(navDefs) { def in
+                        HStack {
+                            Image(systemName: def.icon).font(.system(size: 11)).foregroundColor(Theme.textLo).frame(width: 16)
+                            Text(def.label).font(.system(size: 12)).foregroundColor(Theme.text)
+                            Spacer()
+                            Picker("", selection: binding(for: def.id)) {
+                                ForEach(ItemVisibility.allCases) { v in Text(v.rawValue).tag(v) }
+                            }
+                            .pickerStyle(.segmented)
+                            .labelsHidden()
+                            .frame(width: 270)
                         }
-                        .pickerStyle(.segmented)
-                        .labelsHidden()
-                        .frame(width: 270)
                     }
                 }
+
+                Divider()
+
+                Toggle("Today includes overdue", isOn: $store.todayIncludesOverdue)
+                    .font(.system(size: 12)).foregroundColor(Theme.text)
+                Text("When enabled, the Today view also shows overdue tasks.")
+                    .font(.system(size: 11)).foregroundColor(Theme.textFaint)
+
+                Divider()
+
+                Text("Tag Colors").font(.system(size: 15, weight: .semibold)).foregroundColor(Theme.textHi)
+                Text("Assign colors to tags for visual organization.")
+                    .font(.system(size: 11)).foregroundColor(Theme.textFaint)
+
+                if allTagsList.isEmpty {
+                    Text("No tags yet. Create tasks with tags to assign colors.")
+                        .font(.system(size: 11)).foregroundColor(Theme.textFaint)
+                } else {
+                    VStack(alignment: .leading, spacing: 14) {
+                        ForEach(allTagsList, id: \.self) { tag in
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("#\(tag)")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(Theme.text)
+
+                                HStack(spacing: 8) {
+                                    TagColorClearButton(tag: tag, store: store)
+
+                                    ForEach(colorOptions, id: \.1) { color, hex in
+                                        TagColorSwatch(
+                                            color: color,
+                                            isSelected: store.tagColors[tag] == hex,
+                                            action: { store.setTagColor(tag: tag, color: hex) }
+                                        )
+                                    }
+
+                                    Spacer()
+                                }
+                            }
+                            .padding(10)
+                            .background(Theme.chipBg)
+                            .cornerRadius(8)
+                        }
+                    }
+                }
+
+                Divider()
+                BackupRestoreSection()
+
+                HStack {
+                    Spacer()
+                    Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
+                }
             }
-
-            Divider()
-
-            Toggle("Today includes overdue", isOn: $store.todayIncludesOverdue)
-                .font(.system(size: 12)).foregroundColor(Theme.text)
-            Text("When enabled, the Today view also shows overdue tasks.")
-                .font(.system(size: 11)).foregroundColor(Theme.textFaint)
-
-            Divider()
-            BackupRestoreSection()
-
-            HStack {
-                Spacer()
-                Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
-            }
+            .padding(22)
         }
-        .padding(22)
-        .frame(width: 460)
+        .frame(width: 600, height: 700)
         .background(Theme.panel)
     }
 
@@ -358,109 +407,43 @@ struct SidebarSettingsSheet: View {
     }
 }
 
-// MARK: - Tag Color Settings Components
-
-struct TagColorPickerOption: View {
-    let color: String
+struct TagColorClearButton: View {
+    let tag: String
+    let store: Store
 
     var body: some View {
-        let hexValue = UInt32(color, radix: 16) ?? 0
-        HStack {
-            Circle().fill(Color(hex: hexValue)).frame(width: 12, height: 12)
-            Text(color).font(.system(size: 11, design: .monospaced))
+        if store.tagColors[tag] != nil {
+            Button(action: { store.setTagColor(tag: tag, color: nil) }) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(Theme.textFaint)
+            }
+            .buttonStyle(.plain)
+            .help("Clear color")
         }
     }
 }
 
-struct TagColorSettingsSheet: View {
-    @EnvironmentObject var store: Store
-    @Environment(\.dismiss) private var dismiss
-    @State private var customTag = ""
-    @State private var customColor = "FF5733"
+// MARK: - Tag Color Settings Components
 
-    let predefinedColors = ["FF5733", "33FF57", "3357FF", "FF33F5", "FFD700", "FF8C00", "00CED1", "FF69B4"]
-
-    var tagList: [(tag: String, color: String?)] {
-        store.allTags
-            .map { (tag: $0, color: store.tagColors[$0]) }
-            .sorted { (a, b) in
-                (a.color != nil ? 0 : 1) < (b.color != nil ? 0 : 1) || a.tag < b.tag
-            }
-    }
+struct TagColorSwatch: View {
+    let color: Color
+    let isSelected: Bool
+    let action: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Tag Colors").font(.system(size: 15, weight: .semibold)).foregroundColor(Theme.textHi)
-            Text("Assign colors to tags. Tasks with colored tags will show a colored left border.")
-                .font(.system(size: 11)).foregroundColor(Theme.textFaint)
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(tagList, id: \.tag) { item in
-                        HStack(spacing: 12) {
-                            Text("#\(item.tag)")
-                                .font(.system(size: 12)).foregroundColor(Theme.text)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-
-                            Picker("", selection: Binding(
-                                get: { item.color ?? "" },
-                                set: { newValue in
-                                    if newValue.isEmpty {
-                                        store.setTagColor(tag: item.tag, color: nil)
-                                    } else {
-                                        store.setTagColor(tag: item.tag, color: newValue)
-                                    }
-                                }
-                            )) {
-                                Text("None").tag("")
-                                Divider()
-                                ForEach(predefinedColors, id: \.self) { color in
-                                    TagColorPickerOption(color: color)
-                                }
-                            }
-                            .frame(width: 120)
-                        }
-                    }
-                }
-                .padding(.vertical, 8)
-            }
-            .frame(height: 200)
-
-            Divider()
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Add color for unused tags:")
-                    .font(.system(size: 11)).foregroundColor(Theme.textFaint)
-                HStack(spacing: 12) {
-                    TextField("Tag name (without #)", text: $customTag)
-                        .textFieldStyle(.roundedBorder)
-                    Picker("", selection: $customColor) {
-                        ForEach(predefinedColors, id: \.self) { color in
-                            TagColorPickerOption(color: color)
-                                .tag(color)
-                        }
-                    }
-                    Button("Add") {
-                        if !customTag.trimmingCharacters(in: .whitespaces).isEmpty {
-                            store.setTagColor(tag: customTag.trimmingCharacters(in: .whitespaces), color: customColor)
-                            customTag = ""
-                        }
-                    }
-                    .disabled(customTag.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
-            }
-
-            Divider()
-            BackupRestoreSection()
-
-            HStack {
-                Spacer()
-                Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
-            }
+        Button(action: action) {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(color)
+                .frame(width: 40, height: 40)
+                .overlay(
+                    isSelected ?
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Theme.textHi, lineWidth: 3)
+                        : nil
+                )
         }
-        .padding(22)
-        .frame(width: 520, height: 500)
-        .background(Theme.panel)
+        .buttonStyle(.plain)
     }
 }
 
