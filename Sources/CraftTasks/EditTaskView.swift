@@ -33,6 +33,15 @@ struct EditTaskView: View {
             .map { ns.substring(with: $0.range(at: 1)) }
     }
 
+    private var tagColor: Color? {
+        for tag in currentTags {
+            if let hexColor = store.tagColors[tag.lowercased()], let uint32 = UInt32(hexColor, radix: 16) {
+                return Color(hex: uint32)
+            }
+        }
+        return nil
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(spacing: 12) {
@@ -132,6 +141,11 @@ struct EditTaskView: View {
         .padding(22)
         .frame(width: 480)
         .background(Theme.panel)
+        .overlay(alignment: .leading) {
+            if let color = tagColor {
+                color.frame(width: 4)
+            }
+        }
         .onAppear {
             body_ = task.markdownParts.body
             state = task.state
