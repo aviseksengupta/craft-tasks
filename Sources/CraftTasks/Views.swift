@@ -1067,6 +1067,7 @@ struct TaskGroupBlock: View {
                     }
                 }
                 .background(RoundedRectangle(cornerRadius: 14).fill(Theme.card))
+                .clipShape(RoundedRectangle(cornerRadius: 14))
                 .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.stroke, lineWidth: 1))
                 .craftShadow()
                 .transition(.opacity.combined(with: .move(edge: .top)))
@@ -1108,6 +1109,7 @@ struct KanbanColumn: View {
                 }
             }
             .background(RoundedRectangle(cornerRadius: 14).fill(Theme.card))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.stroke, lineWidth: 1))
             .craftShadow()
         }
