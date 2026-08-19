@@ -398,7 +398,11 @@ struct SidebarSettingsSheet: View {
                             .cornerRadius(6)
 
                             if showColorPickerFor == tag {
-                                TagColorPickerPopover(tag: tag, kind: colorPickerKind, isShowing: $showColorPickerFor, store: store)
+                                HStack {
+                                    Spacer()
+                                    TagColorPickerPopover(tag: tag, kind: colorPickerKind, isShowing: $showColorPickerFor, store: store)
+                                    Spacer()
+                                }
                             }
                         }
                     }
@@ -482,7 +486,7 @@ struct TagColorPickerPopover: View {
                 .buttonStyle(.plain)
             }
 
-            LazyVGrid(columns: Array(repeating: GridItem(.fixed(26), spacing: 6), count: 10), spacing: 6) {
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(26), spacing: 6), count: 7), spacing: 6) {
                 ForEach(colorOptions, id: \.1) { color, hex, name in
                     TagColorSwatch(
                         color: color,
@@ -496,7 +500,6 @@ struct TagColorPickerPopover: View {
                     .help(name)
                 }
             }
-            .frame(width: 314, alignment: .leading)
 
             if currentHex != nil {
                 Button(action: { setColor(nil); isShowing = nil }) {
@@ -507,16 +510,16 @@ struct TagColorPickerPopover: View {
 
             Divider()
 
-            HStack(spacing: 8) {
-                ColorPicker("Custom color…", selection: $customColor, supportsOpacity: false)
+            HStack(spacing: 6) {
+                ColorPicker("", selection: $customColor, supportsOpacity: false)
                     .labelsHidden()
-                    .frame(width: 28)
-                Text("Custom color")
+                    .frame(width: 26)
+                Text("Custom")
                     .font(.system(size: 11)).foregroundColor(Theme.textFaint)
                 Spacer()
                 Button(action: { setColor(customColor.hexString); isShowing = nil }) {
                     Text("Use").font(.system(size: 11, weight: .semibold)).foregroundColor(.white)
-                        .padding(.horizontal, 10).padding(.vertical, 5)
+                        .padding(.horizontal, 8).padding(.vertical, 4)
                         .background(Theme.textLo)
                         .cornerRadius(6)
                 }
@@ -524,7 +527,7 @@ struct TagColorPickerPopover: View {
             }
         }
         .padding(10)
-        .frame(width: 314)
+        .frame(width: 238)
         .background(Theme.panelHi)
         .cornerRadius(8)
         .onAppear {
