@@ -36,6 +36,18 @@ export function taskTags(t: CraftTask): string[] {
   return [...taskTitle(t).matchAll(TAG_RE)].map(m => m[1].toLowerCase())
 }
 
+/// Tag autocomplete: prefix matches first (alphabetical), then substring
+/// matches (alphabetical) — used by both the "add tag" field and the
+/// live #tag token while typing a new task's title.
+export function matchTags(query: string, allTags: string[], exclude: string[] = [], limit = 8): string[] {
+  const q = query.toLowerCase()
+  const pool = allTags.filter(t => !exclude.includes(t.toLowerCase()))
+  if (!q) return pool.slice(0, limit)
+  const prefix = pool.filter(t => t.toLowerCase().startsWith(q)).sort()
+  const substring = pool.filter(t => !t.toLowerCase().startsWith(q) && t.toLowerCase().includes(q)).sort()
+  return [...prefix, ...substring].slice(0, limit)
+}
+
 export function sourceName(t: CraftTask): string {
   if (t.locationType === 'inbox') return 'Inbox'
   return t.documentTitle ?? 'Untitled'

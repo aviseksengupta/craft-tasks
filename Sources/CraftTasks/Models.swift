@@ -477,3 +477,16 @@ enum PinnedItem: Identifiable {
         }
     }
 }
+
+/// Tag autocomplete: prefix matches first (alphabetical), then substring
+/// matches (alphabetical) — used by the "add tag" field and the live
+/// #tag token while typing a new task's title.
+func matchTags(_ query: String, in allTags: [String], excluding: [String] = [], limit: Int = 8) -> [String] {
+    let q = query.lowercased()
+    let excludeSet = Set(excluding.map { $0.lowercased() })
+    let pool = allTags.filter { !excludeSet.contains($0.lowercased()) }
+    if q.isEmpty { return Array(pool.prefix(limit)) }
+    let prefix = pool.filter { $0.lowercased().hasPrefix(q) }.sorted()
+    let substring = pool.filter { !$0.lowercased().hasPrefix(q) && $0.lowercased().contains(q) }.sorted()
+    return Array((prefix + substring).prefix(limit))
+}

@@ -14,6 +14,7 @@ struct AddTaskView: View {
     @State private var deadlineDate: Date? = nil
     @State private var selectedDocument: DocumentSummary? = nil
     @State private var mentionQuery: String? = nil
+    @State private var tagQuery: String? = nil
     @FocusState private var focused: Bool
 
     private var mentionMatches: [DocumentSummary] {
@@ -21,6 +22,11 @@ struct AddTaskView: View {
         let pool = store.documents.filter { $0.id != "inbox" }
         let matches = q.isEmpty ? pool : pool.filter { $0.title.localizedCaseInsensitiveContains(q) }
         return Array(matches.prefix(6))
+    }
+
+    private var tagMatches: [String] {
+        guard let q = tagQuery else { return [] }
+        return matchTags(q, in: store.allTags, excluding: tags, limit: 6)
     }
 
     var body: some View {
@@ -42,7 +48,11 @@ struct AddTaskView: View {
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.stroke, lineWidth: 1))
                     .focused($focused)
                     .onChange(of: rawText) { _, new in processInput(new) }
-                    .onSubmit { if mentionMatches.isEmpty { save() } else if let first = mentionMatches.first { chooseMention(first) } }
+                    .onSubmit {
+                        if let first = mentionMatches.first { chooseMention(first) }
+                        else if let first = tagMatches.first { chooseTag(first) }
+                        else { save() }
+                    }
 
                 if !mentionMatches.isEmpty {
                     VStack(alignment: .leading, spacing: 0) {
@@ -60,6 +70,23 @@ struct AddTaskView: View {
                         if mentionMatches.isEmpty {
                             Text("No matching documents").font(.system(size: 11)).foregroundColor(Theme.textFaint)
                                 .padding(10)
+                        }
+                    }
+                    .background(RoundedRectangle(cornerRadius: 8).fill(Theme.panelHi))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.stroke, lineWidth: 1))
+                }
+
+                if !tagMatches.isEmpty {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(tagMatches, id: \.self) { tag in
+                            Button { chooseTag(tag) } label: {
+                                HStack(spacing: 8) {
+                                    Text("#\(tag)").font(.system(size: 12)).foregroundColor(Theme.text)
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 10).padding(.vertical, 7)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .background(RoundedRectangle(cornerRadius: 8).fill(Theme.panelHi))
@@ -129,6 +156,7 @@ struct AddTaskView: View {
         }
 
         mentionQuery = (liveToken?.hasPrefix("@") == true) ? String(liveToken!.dropFirst()) : nil
+        tagQuery = (liveToken?.hasPrefix("#") == true) ? String(liveToken!.dropFirst()) : nil
 
         let tagRe = try! NSRegularExpression(pattern: #"#([\w/\-]+)"#)
         let cns = committed as NSString
@@ -153,6 +181,15 @@ struct AddTaskView: View {
         rawText = rawText.trimmingCharacters(in: .whitespaces)
         selectedDocument = doc
         mentionQuery = nil
+    }
+
+    private func chooseTag(_ tag: String) {
+        if let r = rawText.range(of: #"#[\w/\-]*$"#, options: .regularExpression) {
+            rawText.removeSubrange(r)
+        }
+        rawText = rawText.trimmingCharacters(in: .whitespaces) + " "
+        if !tags.contains(tag) { tags.append(tag) }
+        tagQuery = nil
     }
 
     /// Creation is optimistic and queued if offline (see Store.createTask),

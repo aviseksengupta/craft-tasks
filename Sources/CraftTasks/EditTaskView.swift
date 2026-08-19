@@ -56,6 +56,10 @@ struct EditTaskView: View {
         return Color(hex: uint32)
     }
 
+    private var tagSuggestions: [String] {
+        matchTags(newTag, in: store.allTags, excluding: currentTags)
+    }
+
     private func toggleInProgress() {
         if let existing = currentTags.first(where: { $0.lowercased() == "inprogress" }) {
             removeTag(existing)
@@ -105,11 +109,29 @@ struct EditTaskView: View {
                         TextField("add tag", text: $newTag)
                             .textFieldStyle(.plain).font(.system(size: 12))
                             .frame(width: 80)
-                            .onSubmit(addTag)
+                            .onSubmit { addTag(tagSuggestions.first) }
                     }
                     .padding(.horizontal, 10).padding(.vertical, 5)
                     .background(Capsule().fill(Theme.bg))
                     .overlay(Capsule().stroke(Theme.stroke, style: StrokeStyle(lineWidth: 1, dash: [3])))
+                }
+
+                if !newTag.trimmingCharacters(in: .whitespaces).isEmpty && !tagSuggestions.isEmpty {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(tagSuggestions, id: \.self) { tag in
+                            Button { addTag(tag) } label: {
+                                HStack {
+                                    Text("#\(tag)").font(.system(size: 12)).foregroundColor(Theme.text)
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 10).padding(.vertical, 6)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .frame(width: 200, alignment: .leading)
+                    .background(RoundedRectangle(cornerRadius: 8).fill(Theme.panelHi))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.stroke, lineWidth: 1))
                 }
             }
 
@@ -229,8 +251,8 @@ struct EditTaskView: View {
         Text(s).font(.system(size: 9, weight: .semibold)).tracking(1.2).foregroundColor(Theme.textFaint)
     }
 
-    private func addTag() {
-        let t = newTag.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: "#", with: "")
+    private func addTag(_ explicit: String? = nil) {
+        let t = (explicit ?? newTag).trimmingCharacters(in: .whitespaces).replacingOccurrences(of: "#", with: "")
         guard !t.isEmpty else { return }
         body_ = body_.trimmingCharacters(in: .whitespacesAndNewlines) + " #\(t)"
         newTag = ""

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  CraftTask, TaskState, ymd, dayOf, markdownParts,
+  CraftTask, TaskState, ymd, dayOf, markdownParts, matchTags,
 } from './types'
 import { useStore, DocumentSummary, buildBackup, applyBackup, defaultBackup, AppBackup } from './store'
 import * as craft from './craft'
@@ -17,6 +17,7 @@ export function AddTaskModal({ onClose }: { onClose: () => void }) {
   const [deadlineDate, setDeadlineDate] = useState<Date | null>(null)
   const [selectedDoc, setSelectedDoc] = useState<DocumentSummary | null>(null)
   const [mentionQuery, setMentionQuery] = useState<string | null>(null)
+  const [tagQuery, setTagQuery] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   useEffect(() => inputRef.current?.focus(), [])
 
@@ -27,13 +28,20 @@ export function AddTaskModal({ onClose }: { onClose: () => void }) {
     return (q === '' ? pool : pool.filter(d => d.title.toLowerCase().includes(q))).slice(0, 6)
   }, [mentionQuery, store.documents])
 
+  const tagMatches = useMemo(() => {
+    if (tagQuery === null) return []
+    return matchTags(tagQuery, store.allTags, tags, 6)
+  }, [tagQuery, store.allTags, tags])
+
   // A completed #tag (ended with a space) becomes a chip; a trailing @query
-  // opens the live document picker. Trailing in-progress tokens stay put.
+  // opens the live document picker; a trailing #query opens tag
+  // autocomplete. Trailing in-progress tokens stay put.
   const processInput = (value: string) => {
     const m = value.match(/[#@][\w/\-]*$/)
     const liveToken = m?.[0] ?? null
     let committed = liveToken ? value.slice(0, value.length - liveToken.length) : value
     setMentionQuery(liveToken?.startsWith('@') ? liveToken.slice(1) : null)
+    setTagQuery(liveToken?.startsWith('#') ? liveToken.slice(1) : null)
     const found = [...committed.matchAll(/#([\w/\-]+)/g)].map(x => x[1].toLowerCase())
     if (found.length) {
       setTags(prev => [...prev, ...found.filter(t => !prev.includes(t))])
@@ -46,6 +54,13 @@ export function AddTaskModal({ onClose }: { onClose: () => void }) {
     setRawText(t => t.replace(/@[\w/\-]*$/, '').trim())
     setSelectedDoc(doc)
     setMentionQuery(null)
+    inputRef.current?.focus()
+  }
+
+  const chooseTag = (tag: string) => {
+    setRawText(t => t.replace(/#[\w/\-]*$/, '').trim() + ' ')
+    setTags(prev => prev.includes(tag) ? prev : [...prev, tag])
+    setTagQuery(null)
     inputRef.current?.focus()
   }
 
@@ -70,6 +85,7 @@ export function AddTaskModal({ onClose }: { onClose: () => void }) {
                onKeyDown={e => {
                  if (e.key === 'Enter') {
                    if (mentionMatches.length > 0) chooseMention(mentionMatches[0])
+                   else if (tagMatches.length > 0) chooseTag(tagMatches[0])
                    else save()
                  }
                }} />
@@ -78,6 +94,15 @@ export function AddTaskModal({ onClose }: { onClose: () => void }) {
             {mentionMatches.map(doc => (
               <button key={doc.id} className="mention-item" onClick={() => chooseMention(doc)}>
                 <Icon name="doc" size={10} /> {doc.title}
+              </button>
+            ))}
+          </div>
+        )}
+        {tagMatches.length > 0 && (
+          <div className="mention-list">
+            {tagMatches.map(tag => (
+              <button key={tag} className="mention-item" onClick={() => chooseTag(tag)}>
+                #{tag}
               </button>
             ))}
           </div>
@@ -149,8 +174,8 @@ export function EditTaskModal({ task, onClose }: { task: CraftTask; onClose: () 
   }, [task.id])
 
   const currentTags = useMemo(() => [...body.matchAll(/#([\w/\-]+)/g)].map(m => m[1]), [body])
-  const addTag = () => {
-    const t = newTag.trim().replace(/#/g, '')
+  const addTag = (explicit?: string) => {
+    const t = (explicit ?? newTag).trim().replace(/#/g, '')
     if (!t) return
     setBody(b => b.trim() + ` #${t}`)
     setNewTag('')
@@ -158,6 +183,9 @@ export function EditTaskModal({ task, onClose }: { task: CraftTask; onClose: () 
   const removeTag = (tag: string) => {
     setBody(b => b.replace(new RegExp(`\\s*#${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`), ''))
   }
+  const tagSuggestions = useMemo(
+    () => matchTags(newTag, store.allTags, currentTags),
+    [newTag, store.allTags, currentTags])
 
   const cycle = () => setState(s => s === 'todo' ? 'done' : s === 'done' ? 'canceled' : 'todo')
 
@@ -258,17 +286,31 @@ export function EditTaskModal({ task, onClose }: { task: CraftTask; onClose: () 
       </div>
       <div>
         <div className="form-label">TAGS</div>
-        <div className="flow-row">
-          {currentTags.map(tag => (
-            <button key={tag} className="tag-chip-lg" onClick={() => removeTag(tag)} title={`Remove #${tag}`}>
-              #{tag} <span className="x"><Icon name="xmark" size={9} weight={2.5} /></span>
-            </button>
-          ))}
-          <span className="tag-add">
-            <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>#</span>
-            <input value={newTag} onChange={e => setNewTag(e.target.value)}
-                   onKeyDown={e => { if (e.key === 'Enter') addTag() }} placeholder="add tag" />
-          </span>
+        <div style={{ position: 'relative' }}>
+          <div className="flow-row">
+            {currentTags.map(tag => (
+              <button key={tag} className="tag-chip-lg" onClick={() => removeTag(tag)} title={`Remove #${tag}`}>
+                #{tag} <span className="x"><Icon name="xmark" size={9} weight={2.5} /></span>
+              </button>
+            ))}
+            <span className="tag-add">
+              <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>#</span>
+              <input value={newTag} onChange={e => setNewTag(e.target.value)}
+                     onKeyDown={e => {
+                       if (e.key === 'Enter') { addTag(tagSuggestions[0] ?? undefined) }
+                       if (e.key === 'Escape') setNewTag('')
+                     }} placeholder="add tag" />
+            </span>
+          </div>
+          {newTag.trim() !== '' && tagSuggestions.length > 0 && (
+            <div className="mention-list" style={{ position: 'absolute', top: '100%', left: 0, zIndex: 10, minWidth: 160 }}>
+              {tagSuggestions.map(tag => (
+                <button key={tag} className="mention-item" onClick={() => addTag(tag)}>
+                  #{tag}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
       <div>
