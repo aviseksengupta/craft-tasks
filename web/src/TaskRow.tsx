@@ -12,6 +12,8 @@ export function TaskRow({ task, onEdit }: { task: CraftTask; onEdit: (t: CraftTa
   const tagColor = firstColoredTag ? store.tagColors[firstColoredTag] : null
   const firstCheckboxTag = tags.find(t => store.tagCheckboxColors[t])
   const checkboxColor = task.state === 'todo' && firstCheckboxTag ? store.tagCheckboxColors[firstCheckboxTag] : null
+  const isInProgress = tags.includes('inprogress')
+  const inProgressColor = store.tagCheckboxColors['inprogress'] ?? null
 
   const today = startOfToday()
   const d = scheduleDay(task) ?? deadlineDay(task)
@@ -53,6 +55,14 @@ export function TaskRow({ task, onEdit }: { task: CraftTask; onEdit: (t: CraftTa
           {cd && <span className="done-note">done {cd.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span>}
         </div>
       </div>
+      {task.state === 'todo' && !isPending && (
+        <button className={`in-progress-btn${isInProgress ? ' active' : ''}`}
+                style={isInProgress && inProgressColor ? { background: inProgressColor, borderColor: inProgressColor } : {}}
+                onClick={e => { e.stopPropagation(); store.toggleTag('inprogress', task) }}
+                title={isInProgress ? 'Mark not in progress' : 'Mark in progress'}>
+          <Icon name="bolt" size={11} />
+        </button>
+      )}
       {deepLink && (
         <a className="open-in-craft" href={deepLink} onClick={e => e.stopPropagation()} title="Open in Craft">
           <Icon name="stack" size={12} weight={1.6} />

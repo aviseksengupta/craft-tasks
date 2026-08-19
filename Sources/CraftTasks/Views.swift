@@ -1294,6 +1294,10 @@ struct TaskRow: View {
             }
             .buttonStyle(.plain)
 
+            if task.state == .todo && !isPending {
+                InProgressButton(task: task)
+            }
+
             if let link = task.craftDeepLink(spaceId: store.spaceId) {
                 OpenInCraftButton(url: link)
             }
@@ -1310,6 +1314,40 @@ struct TaskRow: View {
         .onHover { hover = $0 }
         .help(isPending ? "Still syncing to Craft — editing will be available once it's confirmed" : "")
         .sheet(isPresented: $editing) { EditTaskView(task: task) }
+    }
+}
+
+/// One-click badge that toggles #inprogress on the task — the practical
+/// stand-in for an "in progress" state, since Craft tasks only have
+/// open/done/canceled. Colors itself with whatever checkbox-ring color is
+/// assigned to the "inprogress" tag (Settings → Tag Colors), if any.
+struct InProgressButton: View {
+    @EnvironmentObject var store: Store
+    let task: CraftTask
+    @State private var hover = false
+    static let tagName = "inprogress"
+
+    var isActive: Bool { task.tags.contains(Self.tagName) }
+
+    var activeColor: Color {
+        if let hex = store.tagCheckboxColors[Self.tagName], let uint32 = UInt32(hex, radix: 16) {
+            return Color(hex: uint32)
+        }
+        return Theme.accent
+    }
+
+    var body: some View {
+        Button { store.toggleTag(Self.tagName, on: task) } label: {
+            Image(systemName: "bolt.fill")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(isActive || hover ? .black : Theme.textLo)
+                .frame(width: 24, height: 24)
+                .background(Circle().fill(isActive ? activeColor : (hover ? Theme.accent : Theme.panelHi)))
+                .overlay(Circle().stroke(isActive ? activeColor : (hover ? Theme.accent : Theme.stroke), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .onHover { hover = $0 }
+        .help(isActive ? "Mark not in progress" : "Mark in progress")
     }
 }
 

@@ -102,6 +102,7 @@ interface StoreValue {
 
   sync: () => Promise<void>
   cycleState: (t: CraftTask) => void
+  toggleTag: (tag: string, t: CraftTask) => void
   applyEdit: (t: CraftTask, body: string, state: TaskState, scheduleDate: string | null,
               deadlineDate: string | null, destination?: { kind: 'unchanged' } | { kind: 'inbox' } | { kind: 'document'; id: string }) => void
   createTask: (title: string, tags: string[], scheduleDate: string | null,
@@ -360,6 +361,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const cycleState = useCallback((t: CraftTask) => {
     const next: TaskState = t.state === 'todo' ? 'done' : t.state === 'done' ? 'canceled' : 'todo'
     applyEdit(t, markdownParts(t.markdown).body, next, t.scheduleDate, t.deadlineDate)
+  }, [applyEdit])
+
+  const toggleTag = useCallback((tag: string, t: CraftTask) => {
+    let body = markdownParts(t.markdown).body
+    if (taskTags(t).includes(tag.toLowerCase())) {
+      body = body.replace(new RegExp(`\\s*#${tag}\\b`, 'i'), '')
+    } else {
+      body = body.trim() + ` #${tag}`
+    }
+    applyEdit(t, body, t.state, t.scheduleDate, t.deadlineDate)
   }, [applyEdit])
 
   const documentsForCreate = useRef<DocumentSummary[]>([])
@@ -792,7 +803,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     totalPendingCount: pending.length + pendingCreates.length,
     gistStatus, configured,
     allTags, documents, filtered, apply, group, displayName, setDisplayName, setTagColor, setTagCheckboxColor,
-    sync, cycleState, applyEdit, createTask, deleteTask,
+    sync, cycleState, toggleTag, applyEdit, createTask, deleteTask,
     navigateHome, selectAllTasks, selectInbox, selectToday, selectThisWeek, selectSaved, openDocument,
     saveCurrentFilter, updateSavedFilter, togglePinned, renameFilter, deleteFilter, moveView,
     setHomeTarget, isHomeTarget, setItemVisibility,

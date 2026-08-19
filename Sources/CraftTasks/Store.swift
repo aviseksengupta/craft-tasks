@@ -273,6 +273,20 @@ final class Store: ObservableObject {
                   scheduleDate: task.scheduleDate, deadlineDate: task.deadlineDate)
     }
 
+    /// One-click tag add/remove from any list row — used by the "In Progress"
+    /// badge, which just toggles #inprogress rather than opening the editor.
+    func toggleTag(_ tag: String, on task: CraftTask) {
+        var body = task.markdownParts.body
+        if task.tags.contains(tag.lowercased()) {
+            body = body.replacingOccurrences(
+                of: "\\s*#\(tag)\\b", with: "", options: [.regularExpression, .caseInsensitive])
+        } else {
+            body = body.trimmingCharacters(in: .whitespaces) + " #\(tag)"
+        }
+        applyEdit(to: task, body: body, state: task.state,
+                  scheduleDate: task.scheduleDate, deadlineDate: task.deadlineDate)
+    }
+
     init() {
         tasks = db.loadAll()
         pendingCount = db.pendingUpdates().count

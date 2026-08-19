@@ -31,6 +31,7 @@ const paths: Record<string, ReactNode> = {
   arrowUpRight: <path d="M4 12 12 4M6 4h6v6" />,
   menuBars: <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11" />,
   checkCircle: <><circle cx="8" cy="8" r="6.5" /><path d="m5 8.3 2 2 4-4.3" /></>,
+  bolt: <path d="M8.5 1.5 3 9h4l-.5 5.5L13 7H9z" fill="currentColor" stroke="none" />,
 }
 
 export function Icon({ name, size = 14, weight = 1.4 }: { name: string; size?: number; weight?: number }) {

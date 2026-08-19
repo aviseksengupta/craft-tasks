@@ -51,12 +51,29 @@ struct EditTaskView: View {
         return nil
     }
 
+    private var inProgressColor: Color? {
+        guard let hexColor = store.tagCheckboxColors["inprogress"], let uint32 = UInt32(hexColor, radix: 16) else { return nil }
+        return Color(hex: uint32)
+    }
+
+    private func toggleInProgress() {
+        if let existing = currentTags.first(where: { $0.lowercased() == "inprogress" }) {
+            removeTag(existing)
+        } else {
+            body_ = body_.trimmingCharacters(in: .whitespacesAndNewlines) + " #inprogress"
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(spacing: 12) {
                 StateCycleButton(state: $state, ringColor: checkboxRingColor)
                 Text("Edit Task").font(.system(size: 15, weight: .semibold)).foregroundColor(Theme.textHi)
                 Spacer()
+                if state == .todo {
+                    InProgressToggle(isActive: currentTags.contains { $0.lowercased() == "inprogress" },
+                                      activeColor: inProgressColor, toggle: toggleInProgress)
+                }
                 if let link = task.craftDeepLink(spaceId: store.spaceId) {
                     OpenInCraftButton(url: link)
                 }
@@ -314,6 +331,30 @@ struct StateCycleButton: View {
         .onHover { hover = $0 }
         .help("Click to cycle: open → done → canceled")
         .animation(.easeOut(duration: 0.12), value: state)
+    }
+}
+
+/// Same one-click "#inprogress" toggle as the list row's InProgressButton,
+/// but working against this sheet's unsaved `body_` instead of pushing an
+/// edit immediately — the tag change is saved along with everything else.
+struct InProgressToggle: View {
+    let isActive: Bool
+    let activeColor: Color?
+    let toggle: () -> Void
+    @State private var hover = false
+
+    var body: some View {
+        Button(action: toggle) {
+            Image(systemName: "bolt.fill")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(isActive || hover ? .black : Theme.textLo)
+                .frame(width: 24, height: 24)
+                .background(Circle().fill(isActive ? (activeColor ?? Theme.accent) : (hover ? Theme.accent : Theme.panelHi)))
+                .overlay(Circle().stroke(isActive ? (activeColor ?? Theme.accent) : (hover ? Theme.accent : Theme.stroke), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .onHover { hover = $0 }
+        .help(isActive ? "Mark not in progress" : "Mark in progress")
     }
 }
 

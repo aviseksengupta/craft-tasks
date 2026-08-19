@@ -161,6 +161,14 @@ export function EditTaskModal({ task, onClose }: { task: CraftTask; onClose: () 
 
   const cycle = () => setState(s => s === 'todo' ? 'done' : s === 'done' ? 'canceled' : 'todo')
 
+  const isInProgress = currentTags.some(t => t.toLowerCase() === 'inprogress')
+  const inProgressColor = store.tagCheckboxColors['inprogress'] ?? null
+  const toggleInProgress = () => {
+    const existing = currentTags.find(t => t.toLowerCase() === 'inprogress')
+    if (existing) removeTag(existing)
+    else setBody(b => b.trim() + ' #inprogress')
+  }
+
   const docLabel = selectedDocumentId
     ? store.documents.find(d => d.id === selectedDocumentId)?.title ?? 'Document'
     : 'Inbox'
@@ -211,6 +219,14 @@ export function EditTaskModal({ task, onClose }: { task: CraftTask; onClose: () 
                         return t ? store.tagCheckboxColors[t.toLowerCase()] : null
                       })()} />
           Edit Task
+          {state === 'todo' && (
+            <button className={`in-progress-btn${isInProgress ? ' active' : ''}`}
+                    style={isInProgress && inProgressColor ? { background: inProgressColor, borderColor: inProgressColor } : {}}
+                    onClick={toggleInProgress}
+                    title={isInProgress ? 'Mark not in progress' : 'Mark in progress'}>
+              <Icon name="bolt" size={11} />
+            </button>
+          )}
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {deepLink && (
