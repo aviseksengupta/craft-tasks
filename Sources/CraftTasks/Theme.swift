@@ -27,6 +27,17 @@ extension Color {
                   green: Double((hex >> 8) & 0xFF) / 255,
                   blue: Double(hex & 0xFF) / 255)
     }
+
+    /// Lowercase 6-digit hex string (no leading "#"), matching the format
+    /// tag colors are stored in — used to persist a color picked from the
+    /// native macOS color panel (ColorPicker), not just the preset swatches.
+    var hexString: String {
+        let ns = NSColor(self).usingColorSpace(.sRGB) ?? NSColor(self)
+        let r = Int((ns.redComponent * 255).rounded())
+        let g = Int((ns.greenComponent * 255).rounded())
+        let b = Int((ns.blueComponent * 255).rounded())
+        return String(format: "%02x%02x%02x", r, g, b)
+    }
 }
 
 /// Soft, low, wide shadow — the gentle "paper lifted off the desk" elevation

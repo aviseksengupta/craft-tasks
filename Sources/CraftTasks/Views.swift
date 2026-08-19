@@ -440,7 +440,21 @@ struct TagColorPickerPopover: View {
         (Color(hex: 0xFF8C00), "ff8c00", "Orange"),
         (Color(hex: 0x00CED1), "00ced1", "Turquoise"),
         (Color(hex: 0xFF69B4), "ff69b4", "Hot Pink"),
+        (Color(hex: 0xE74C3C), "e74c3c", "Crimson"),
+        (Color(hex: 0x2ECC71), "2ecc71", "Emerald"),
+        (Color(hex: 0x1ABC9C), "1abc9c", "Teal"),
+        (Color(hex: 0x3498DB), "3498db", "Sky Blue"),
+        (Color(hex: 0x9B59B6), "9b59b6", "Amethyst"),
+        (Color(hex: 0x8E44AD), "8e44ad", "Violet"),
+        (Color(hex: 0xF1C40F), "f1c40f", "Yellow"),
+        (Color(hex: 0xE67E22), "e67e22", "Carrot"),
+        (Color(hex: 0x95A5A6), "95a5a6", "Gray"),
+        (Color(hex: 0x2C3E50), "2c3e50", "Midnight"),
+        (Color(hex: 0xC0392B), "c0392b", "Brick"),
+        (Color(hex: 0x16A085), "16a085", "Pine"),
     ]
+
+    @State private var customColor: Color = .white
 
     private var currentHex: String? {
         kind == .border ? store.tagColors[tag] : store.tagCheckboxColors[tag]
@@ -488,10 +502,33 @@ struct TagColorPickerPopover: View {
                     .buttonStyle(.plain)
                 }
             }
+
+            Divider()
+
+            HStack(spacing: 8) {
+                ColorPicker("Custom color…", selection: $customColor, supportsOpacity: false)
+                    .labelsHidden()
+                    .frame(width: 28)
+                Text("Custom — opens the macOS color picker")
+                    .font(.system(size: 11)).foregroundColor(Theme.textFaint)
+                Spacer()
+                Button(action: { setColor(customColor.hexString); isShowing = nil }) {
+                    Text("Use").font(.system(size: 11, weight: .semibold)).foregroundColor(.white)
+                        .padding(.horizontal, 10).padding(.vertical, 5)
+                        .background(Theme.textLo)
+                        .cornerRadius(6)
+                }
+                .buttonStyle(.plain)
+            }
         }
         .padding(10)
         .background(Theme.panelHi)
         .cornerRadius(8)
+        .onAppear {
+            if let hex = currentHex, let uint32 = UInt32(hex, radix: 16) {
+                customColor = Color(hex: uint32)
+            }
+        }
     }
 }
 
