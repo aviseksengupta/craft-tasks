@@ -253,11 +253,12 @@ export function DateChip({ title, icon, date, onChange }: {
   )
 }
 
-export function StateCycle({ state, onCycle, size = 24 }: {
-  state: 'todo' | 'done' | 'canceled'; onCycle: () => void; size?: number
+export function StateCycle({ state, onCycle, size = 24, ringColor }: {
+  state: 'todo' | 'done' | 'canceled'; onCycle: () => void; size?: number; ringColor?: string | null
 }) {
   return (
-    <button className={`state-cycle ${state}`} style={{ width: size, height: size }}
+    <button className={`state-cycle ${state}`}
+            style={{ width: size, height: size, ...(state === 'todo' && ringColor ? { borderColor: ringColor, borderWidth: '2px' } : {}) }}
             onClick={onCycle} title="Click to cycle: open → done → canceled">
       {state === 'done' && <Icon name="check" size={12} weight={2.5} />}
       {state === 'canceled' && <Icon name="xmark" size={10} weight={2.5} />}

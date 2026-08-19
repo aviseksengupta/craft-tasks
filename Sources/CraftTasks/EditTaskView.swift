@@ -42,10 +42,19 @@ struct EditTaskView: View {
         return nil
     }
 
+    private var checkboxRingColor: Color? {
+        for tag in currentTags {
+            if let hexColor = store.tagCheckboxColors[tag.lowercased()], let uint32 = UInt32(hexColor, radix: 16) {
+                return Color(hex: uint32)
+            }
+        }
+        return nil
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(spacing: 12) {
-                StateCycleButton(state: $state)
+                StateCycleButton(state: $state, ringColor: checkboxRingColor)
                 Text("Edit Task").font(.system(size: 15, weight: .semibold)).foregroundColor(Theme.textHi)
                 Spacer()
                 if let link = task.craftDeepLink(spaceId: store.spaceId) {
@@ -272,6 +281,7 @@ struct EditTaskView: View {
 /// One checkbox-like control: click cycles open → done → canceled → open.
 struct StateCycleButton: View {
     @Binding var state: TaskState
+    var ringColor: Color? = nil
     @State private var hover = false
 
     var body: some View {
@@ -286,7 +296,8 @@ struct StateCycleButton: View {
                 RoundedRectangle(cornerRadius: 7)
                     .fill(state == .todo ? Theme.chipBg : Theme.accent)
                 RoundedRectangle(cornerRadius: 7)
-                    .stroke(hover ? Theme.textLo : Theme.stroke, lineWidth: 1.5)
+                    .stroke(hover ? Theme.textLo : (state == .todo ? (ringColor ?? Theme.stroke) : Theme.stroke),
+                            lineWidth: state == .todo && ringColor != nil ? 2 : 1.5)
                 switch state {
                 case .todo: EmptyView()
                 case .done:

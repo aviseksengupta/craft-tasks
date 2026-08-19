@@ -97,6 +97,8 @@ interface StoreValue {
   setDisplayName: (id: string, name: string | null) => void
   tagColors: Record<string, string>
   setTagColor: (tag: string, color: string | null) => void
+  tagCheckboxColors: Record<string, string>
+  setTagCheckboxColor: (tag: string, color: string | null) => void
 
   sync: () => Promise<void>
   cycleState: (t: CraftTask) => void
@@ -684,6 +686,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     })
   }, [updateConfig])
 
+  const setTagCheckboxColor = useCallback((tag: string, color: string | null) => {
+    updateConfig(c => {
+      const colors = { ...(c.tagCheckboxColors ?? {}) }
+      if (color && color.trim()) colors[tag.toLowerCase()] = color.trim()
+      else delete colors[tag.toLowerCase()]
+      return { ...c, tagCheckboxColors: colors }
+    })
+  }, [updateConfig])
+
   const saveDashboard = useCallback((name: string, viewIds: string[]): Dashboard => {
     const order = config.dashboards.reduce((m, x) => Math.max(m, x.order ?? 0), 0) + 1
     const d: Dashboard = {
@@ -775,12 +786,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     tasks, filter, setFilter,
     savedFilters: sortedFilters, dashboards: sortedDashboards, pinnedItems,
     homeSection: config.homeSection, itemVisibility: config.itemVisibility,
-    documentDisplayNames: config.documentDisplayNames, tagColors: config.tagColors,
+    documentDisplayNames: config.documentDisplayNames, tagColors: config.tagColors, tagCheckboxColors: config.tagCheckboxColors ?? {},
     showCompleted, setShowCompleted, todayIncludesOverdue, setTodayIncludesOverdue, searchText, setSearchText,
     syncing, lastSync, lastSyncSummary, syncError,
     totalPendingCount: pending.length + pendingCreates.length,
     gistStatus, configured,
-    allTags, documents, filtered, apply, group, displayName, setDisplayName, setTagColor,
+    allTags, documents, filtered, apply, group, displayName, setDisplayName, setTagColor, setTagCheckboxColor,
     sync, cycleState, applyEdit, createTask, deleteTask,
     navigateHome, selectAllTasks, selectInbox, selectToday, selectThisWeek, selectSaved, openDocument,
     saveCurrentFilter, updateSavedFilter, togglePinned, renameFilter, deleteFilter, moveView,

@@ -10,6 +10,8 @@ export function TaskRow({ task, onEdit }: { task: CraftTask; onEdit: (t: CraftTa
   const tags = taskTags(task)
   const firstColoredTag = tags.find(t => store.tagColors[t])
   const tagColor = firstColoredTag ? store.tagColors[firstColoredTag] : null
+  const firstCheckboxTag = tags.find(t => store.tagCheckboxColors[t])
+  const checkboxColor = task.state === 'todo' && firstCheckboxTag ? store.tagCheckboxColors[firstCheckboxTag] : null
 
   const today = startOfToday()
   const d = scheduleDay(task) ?? deadlineDay(task)
@@ -31,6 +33,7 @@ export function TaskRow({ task, onEdit }: { task: CraftTask; onEdit: (t: CraftTa
          onClick={() => { if (!isPending) onEdit(task) }}
          title={isPending ? 'Still syncing to Craft — editing available once confirmed' : undefined}>
       <button className={`checkbox ${task.state}`}
+              style={checkboxColor ? { borderColor: checkboxColor, borderWidth: '2px' } : {}}
               onClick={e => { e.stopPropagation(); if (!isPending) store.cycleState(task) }}
               title="Click to cycle state">
         {task.state === 'done' && <Icon name="check" size={9} weight={2.5} />}

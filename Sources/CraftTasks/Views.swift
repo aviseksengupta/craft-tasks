@@ -297,11 +297,14 @@ func decodePinnedRef(_ raw: String) -> PinnedRef? {
 
 /// Per-item control over the top sidebar row: Always shown / Hidden (tucked
 /// behind "More") / Invisible (not rendered at all, anywhere).
+enum TagColorKind { case border, checkbox }
+
 struct SidebarSettingsSheet: View {
     @EnvironmentObject var store: Store
     @Environment(\.dismiss) private var dismiss
     let navDefs: [NavItemDef]
     @State private var showColorPickerFor: String? = nil
+    @State private var colorPickerKind: TagColorKind = .border
 
     var allTagsList: [String] {
         store.allTags.sorted()
@@ -340,7 +343,7 @@ struct SidebarSettingsSheet: View {
                 Divider()
 
                 Text("Tag Colors").font(.system(size: 15, weight: .semibold)).foregroundColor(Theme.textHi)
-                Text("Click the color button next to a tag to assign a color.")
+                Text("Border colors a task's card. Checkbox colors its ring while open — handy for a status like \"in progress\" without colliding with a category color.")
                     .font(.system(size: 11)).foregroundColor(Theme.textFaint)
 
                 if allTagsList.isEmpty {
@@ -349,7 +352,7 @@ struct SidebarSettingsSheet: View {
                 } else {
                     VStack(alignment: .leading, spacing: 10) {
                         ForEach(allTagsList, id: \.self) { tag in
-                            HStack(spacing: 12) {
+                            HStack(spacing: 10) {
                                 Text("#\(tag)")
                                     .font(.system(size: 12))
                                     .foregroundColor(Theme.text)
@@ -360,36 +363,42 @@ struct SidebarSettingsSheet: View {
                                    let colorValue = UInt32(colorHex, radix: 16) {
                                     RoundedRectangle(cornerRadius: 4)
                                         .fill(Color(hex: colorValue))
-                                        .frame(width: 24, height: 24)
+                                        .frame(width: 20, height: 20)
                                 }
-
-                                Button(action: { showColorPickerFor = tag }) {
-                                    Image(systemName: "paintbrush")
+                                Button(action: { showColorPickerFor = tag; colorPickerKind = .border }) {
+                                    Text("Border")
                                         .font(.system(size: 10, weight: .semibold))
                                         .foregroundColor(.white)
-                                        .frame(width: 28, height: 28)
+                                        .padding(.horizontal, 8).padding(.vertical, 6)
                                         .background(Theme.textLo)
                                         .cornerRadius(6)
                                 }
                                 .buttonStyle(.plain)
-                                .help("Choose color")
+                                .help("Set border color")
 
-                                if store.tagColors[tag] != nil {
-                                    Button(action: { store.setTagColor(tag: tag, color: nil) }) {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .font(.system(size: 12))
-                                            .foregroundColor(Theme.textFaint)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .help("Remove color")
+                                if let colorHex = store.tagCheckboxColors[tag],
+                                   let colorValue = UInt32(colorHex, radix: 16) {
+                                    Circle()
+                                        .stroke(Color(hex: colorValue), lineWidth: 3)
+                                        .frame(width: 18, height: 18)
                                 }
+                                Button(action: { showColorPickerFor = tag; colorPickerKind = .checkbox }) {
+                                    Text("Checkbox")
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 8).padding(.vertical, 6)
+                                        .background(Theme.textLo)
+                                        .cornerRadius(6)
+                                }
+                                .buttonStyle(.plain)
+                                .help("Set checkbox ring color")
                             }
                             .padding(8)
                             .background(Theme.chipBg)
                             .cornerRadius(6)
 
                             if showColorPickerFor == tag {
-                                TagColorPickerPopover(tag: tag, isShowing: $showColorPickerFor, store: store)
+                                TagColorPickerPopover(tag: tag, kind: colorPickerKind, isShowing: $showColorPickerFor, store: store)
                             }
                         }
                     }
@@ -418,6 +427,7 @@ struct SidebarSettingsSheet: View {
 
 struct TagColorPickerPopover: View {
     let tag: String
+    let kind: TagColorKind
     @Binding var isShowing: String?
     let store: Store
 
@@ -432,10 +442,21 @@ struct TagColorPickerPopover: View {
         (Color(hex: 0xFF69B4), "ff69b4", "Hot Pink"),
     ]
 
+    private var currentHex: String? {
+        kind == .border ? store.tagColors[tag] : store.tagCheckboxColors[tag]
+    }
+
+    private func setColor(_ hex: String?) {
+        switch kind {
+        case .border: store.setTagColor(tag: tag, color: hex)
+        case .checkbox: store.setTagCheckboxColor(tag: tag, color: hex)
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Select color for #\(tag)")
+                Text("Select \(kind == .border ? "border" : "checkbox") color for #\(tag)")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(Theme.text)
                 Spacer()
@@ -451,15 +472,21 @@ struct TagColorPickerPopover: View {
                 ForEach(colorOptions, id: \.1) { color, hex, name in
                     TagColorSwatch(
                         color: color,
-                        isSelected: store.tagColors[tag] == hex,
+                        isSelected: currentHex == hex,
                         action: {
-                            store.setTagColor(tag: tag, color: hex)
+                            setColor(hex)
                             isShowing = nil
                         }
                     )
                     .help(name)
                 }
                 Spacer()
+                if currentHex != nil {
+                    Button(action: { setColor(nil); isShowing = nil }) {
+                        Text("Clear").font(.system(size: 11)).foregroundColor(Theme.textFaint)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
         .padding(10)
@@ -1274,13 +1301,24 @@ struct RowCheckbox: View {
 
     var isPending: Bool { task.id.hasPrefix("local-") }
 
+    var ringColor: Color? {
+        guard task.state == .todo else { return nil }
+        for tag in task.tags {
+            if let hexColor = store.tagCheckboxColors[tag], let uint32 = UInt32(hexColor, radix: 16) {
+                return Color(hex: uint32)
+            }
+        }
+        return nil
+    }
+
     var body: some View {
         Button { if !isPending { store.cycleState(task) } } label: {
             ZStack {
                 RoundedRectangle(cornerRadius: 5)
                     .fill(task.state == .todo ? Color.clear : Theme.accent)
                 RoundedRectangle(cornerRadius: 5)
-                    .stroke(hover ? Theme.textHi : (task.state == .todo ? Theme.textLo : Theme.accent), lineWidth: 1.3)
+                    .stroke(hover ? Theme.textHi : (ringColor ?? (task.state == .todo ? Theme.textLo : Theme.accent)),
+                            lineWidth: ringColor != nil ? 2 : 1.3)
                 switch task.state {
                 case .todo: EmptyView()
                 case .done:

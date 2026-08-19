@@ -205,7 +205,11 @@ export function EditTaskModal({ task, onClose }: { task: CraftTask; onClose: () 
     <Modal onClose={onClose}>
       <h2 style={{ justifyContent: 'space-between' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <StateCycle state={state} onCycle={cycle} />
+          <StateCycle state={state} onCycle={cycle}
+                      ringColor={(() => {
+                        const t = currentTags.find(t => store.tagCheckboxColors[t.toLowerCase()])
+                        return t ? store.tagCheckboxColors[t.toLowerCase()] : null
+                      })()} />
           Edit Task
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -366,79 +370,104 @@ export function SettingsModal({ onClose, forced }: { onClose: () => void; forced
 
 // ---- Tag Color Settings ----
 
+const TAG_COLOR_OPTIONS = [
+  { hex: '#FF5733', name: 'Red' },
+  { hex: '#33FF57', name: 'Green' },
+  { hex: '#3357FF', name: 'Blue' },
+  { hex: '#FF33F5', name: 'Purple' },
+  { hex: '#FFD700', name: 'Gold' },
+  { hex: '#FF8C00', name: 'Orange' },
+  { hex: '#00CED1', name: 'Turquoise' },
+  { hex: '#FF69B4', name: 'Hot Pink' },
+]
+
 function TagColorSettings() {
   const store = useStore()
-  const [customTag, setCustomTag] = useState('')
-  const [customColor, setCustomColor] = useState('#FF5733')
+  const [openPicker, setOpenPicker] = useState<{ tag: string; kind: 'border' | 'checkbox' } | null>(null)
 
-  const allTagsWithColor = useMemo(() => {
-    return store.allTags
-      .map(tag => ({ tag, color: store.tagColors[tag] ?? null }))
-      .sort((a, b) => (b.color ? 1 : -1) - (a.color ? 1 : -1) || a.tag.localeCompare(b.tag))
-  }, [store.allTags, store.tagColors])
-
-  const handleAddCustom = () => {
-    if (customTag.trim()) {
-      store.setTagColor(customTag.trim(), customColor)
-      setCustomTag('')
-    }
-  }
+  const allTagsList = useMemo(() => [...store.allTags].sort(), [store.allTags])
 
   return (
     <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--stroke)' }}>
       <div className="form-label">TAG COLORS</div>
       <div className="hint-text" style={{ marginTop: 6, marginBottom: 12 }}>
-        Assign colors to tags. Tasks with tagged items will show a colored left border.
+        Border colors a task's card. Checkbox colors its ring while open — handy for a status like
+        "in progress" without colliding with a category color.
       </div>
 
-      {allTagsWithColor.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          {allTagsWithColor.map(({ tag, color }) => (
-            <div key={tag} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-              <span style={{ flex: 1, fontSize: '13px' }}>#{tag}</span>
-              <input
-                type="color"
-                value={color ?? '#FF5733'}
-                onChange={e => store.setTagColor(tag, e.target.value)}
-                style={{ width: 40, height: 32, border: '1px solid var(--stroke)', borderRadius: '6px', cursor: 'pointer' }}
-              />
-              {color && (
-                <button
-                  onClick={() => store.setTagColor(tag, null)}
-                  style={{ padding: '4px 8px', fontSize: '11px', color: 'var(--text-faint)' }}
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-          ))}
+      {allTagsList.length === 0 ? (
+        <div className="hint-text">No tags yet. Create tasks with tags to assign colors.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {allTagsList.map(tag => {
+            const borderColor = store.tagColors[tag] ?? null
+            const checkboxColor = store.tagCheckboxColors[tag] ?? null
+            return (
+              <div key={tag}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 8, background: 'var(--chip-bg)', borderRadius: 6 }}>
+                  <span style={{ flex: 1, fontSize: '12px' }}>#{tag}</span>
+
+                  {borderColor && (
+                    <div title="Border color" style={{ width: 20, height: 20, borderRadius: 4, backgroundColor: borderColor }} />
+                  )}
+                  <button
+                    onClick={() => setOpenPicker(openPicker?.tag === tag && openPicker.kind === 'border' ? null : { tag, kind: 'border' })}
+                    title="Set border color"
+                    style={{ padding: '6px 10px', fontSize: '11px', background: 'var(--text-lo)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                  >
+                    Border
+                  </button>
+
+                  {checkboxColor && (
+                    <div title="Checkbox ring color"
+                         style={{ width: 20, height: 20, borderRadius: '50%', border: `3px solid ${checkboxColor}`, background: 'transparent' }} />
+                  )}
+                  <button
+                    onClick={() => setOpenPicker(openPicker?.tag === tag && openPicker.kind === 'checkbox' ? null : { tag, kind: 'checkbox' })}
+                    title="Set checkbox ring color"
+                    style={{ padding: '6px 10px', fontSize: '11px', background: 'var(--text-lo)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                  >
+                    Checkbox
+                  </button>
+                </div>
+
+                {openPicker?.tag === tag && (
+                  <div style={{ padding: 10, background: 'var(--panel-hi)', borderRadius: 6, marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                    {TAG_COLOR_OPTIONS.map(({ hex, name }) => {
+                      const current = openPicker.kind === 'border' ? borderColor : checkboxColor
+                      const setter = openPicker.kind === 'border' ? store.setTagColor : store.setTagCheckboxColor
+                      return (
+                        <button
+                          key={hex}
+                          onClick={() => { setter(tag, hex); setOpenPicker(null) }}
+                          title={name}
+                          style={{
+                            width: 32, height: 32, borderRadius: 6, backgroundColor: hex,
+                            border: current === hex ? '3px solid var(--text-hi)' : '1px solid var(--stroke)',
+                            cursor: 'pointer',
+                          }}
+                        />
+                      )
+                    })}
+                    {(openPicker.kind === 'border' ? borderColor : checkboxColor) && (
+                      <button
+                        onClick={() => {
+                          const setter = openPicker.kind === 'border' ? store.setTagColor : store.setTagCheckboxColor
+                          setter(tag, null)
+                          setOpenPicker(null)
+                        }}
+                        style={{ padding: '4px 8px', fontSize: '11px', color: 'var(--text-faint)', background: 'none', border: 'none', cursor: 'pointer' }}
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
-
-      <div style={{ marginTop: 12 }}>
-        <div className="hint-text" style={{ marginBottom: 8 }}>Add color for tags not yet used:</div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-          <div style={{ flex: 1 }}>
-            <input
-              type="text"
-              placeholder="Tag name (without #)"
-              value={customTag}
-              onChange={e => setCustomTag(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleAddCustom() }}
-              style={{ width: '100%', marginBottom: 4 }}
-            />
-          </div>
-          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            <input
-              type="color"
-              value={customColor}
-              onChange={e => setCustomColor(e.target.value)}
-              style={{ width: 40, height: 32, border: '1px solid var(--stroke)', borderRadius: '6px', cursor: 'pointer' }}
-            />
-            <button className="btn" onClick={handleAddCustom} disabled={!customTag.trim()}>Add</button>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }

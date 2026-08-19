@@ -50,8 +50,10 @@ final class Store: ObservableObject {
     /// The Craft-side title (CraftTask.documentTitle) is always kept as-is
     /// internally and used as the fallback / reset value.
     @Published var documentDisplayNames: [String: String] = [:]
-    /// Tag color mappings: tag name (lowercased) -> hex color string (e.g. "FF5733")
+    /// Tag color mappings: tag name (lowercased) -> hex color string (e.g. "FF5733"), used for the card's left border.
     @Published var tagColors: [String: String] = [:]
+    /// Tag checkbox-ring color mappings: tag name (lowercased) -> hex color string, used for the checkbox ring on open tasks.
+    @Published var tagCheckboxColors: [String: String] = [:]
     /// Needed to build "open in Craft" deep links; nil until fetched (once,
     /// then cached — Craft doesn't expose it via /tasks).
     @Published var spaceId: String? = UserDefaults.standard.string(forKey: "craftSpaceId") {
@@ -104,6 +106,16 @@ final class Store: ObservableObject {
             tagColors[lowercaseTag] = color.trimmingCharacters(in: .whitespacesAndNewlines)
         } else {
             tagColors.removeValue(forKey: lowercaseTag)
+        }
+        persistFilters()
+    }
+
+    func setTagCheckboxColor(tag: String, color: String?) {
+        let lowercaseTag = tag.lowercased()
+        if let color, !color.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            tagCheckboxColors[lowercaseTag] = color.trimmingCharacters(in: .whitespacesAndNewlines)
+        } else {
+            tagCheckboxColors.removeValue(forKey: lowercaseTag)
         }
         persistFilters()
     }
@@ -493,6 +505,7 @@ final class Store: ObservableObject {
         var documentDisplayNames: [String: String]?
         var itemVisibility: [String: ItemVisibility]?
         var tagColors: [String: String]?
+        var tagCheckboxColors: [String: String]?
     }
 
     private func loadFilters() {
@@ -520,6 +533,7 @@ final class Store: ObservableObject {
         documentDisplayNames = f.documentDisplayNames ?? [:]
         itemVisibility = f.itemVisibility ?? [:]
         tagColors = f.tagColors ?? [:]
+        tagCheckboxColors = f.tagCheckboxColors ?? [:]
         if let hs = f.homeSection {
             homeSection = hs
         } else if let legacyId = f.homeId {
@@ -560,7 +574,8 @@ final class Store: ObservableObject {
 
     private func persistFilters() {
         let f = FiltersFile(filters: savedFilters, homeId: nil, homeSection: homeSection, dashboards: dashboards,
-                            documentDisplayNames: documentDisplayNames, itemVisibility: itemVisibility, tagColors: tagColors)
+                            documentDisplayNames: documentDisplayNames, itemVisibility: itemVisibility, tagColors: tagColors,
+                            tagCheckboxColors: tagCheckboxColors)
         guard let data = try? JSONEncoder().encode(f) else { return }
         // Roll the current file to a backup *before* overwriting it, so a
         // future decode regression (like the one that caused this) can be
@@ -594,11 +609,12 @@ final class Store: ObservableObject {
         var documentDisplayNames: [String: String]
         var itemVisibility: [String: ItemVisibility]
         var tagColors: [String: String] = [:]
+        var tagCheckboxColors: [String: String] = [:]
     }
 
     static let defaultBackup = AppBackup(
         schemaVersion: backupSchemaVersion, exportedAt: "", apiBase: nil, showCompleted: true,
-        config: BackupConfig(filters: [], homeSection: nil, dashboards: [], documentDisplayNames: [:], itemVisibility: [:], tagColors: [:]))
+        config: BackupConfig(filters: [], homeSection: nil, dashboards: [], documentDisplayNames: [:], itemVisibility: [:], tagColors: [:], tagCheckboxColors: [:]))
 
     func buildBackup() -> AppBackup {
         let iso = ISO8601DateFormatter().string(from: Date())
@@ -606,7 +622,8 @@ final class Store: ObservableObject {
             schemaVersion: Self.backupSchemaVersion, exportedAt: iso,
             apiBase: SyncEngine.apiBase, showCompleted: showCompleted,
             config: BackupConfig(filters: savedFilters, homeSection: homeSection, dashboards: dashboards,
-                                  documentDisplayNames: documentDisplayNames, itemVisibility: itemVisibility, tagColors: tagColors))
+                                  documentDisplayNames: documentDisplayNames, itemVisibility: itemVisibility, tagColors: tagColors,
+                                  tagCheckboxColors: tagCheckboxColors))
     }
 
     func exportBackupJSON() -> String {
@@ -622,6 +639,7 @@ final class Store: ObservableObject {
         documentDisplayNames = backup.config.documentDisplayNames
         itemVisibility = backup.config.itemVisibility
         tagColors = backup.config.tagColors
+        tagCheckboxColors = backup.config.tagCheckboxColors
         homeSection = backup.config.homeSection
         showCompleted = backup.showCompleted
         persistFilters()

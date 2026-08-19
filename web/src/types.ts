@@ -231,11 +231,12 @@ export interface ConfigFile {
   dashboards: Dashboard[]
   documentDisplayNames: Record<string, string>
   itemVisibility: Record<string, ItemVisibility>
-  tagColors: Record<string, string>  // tag → hex color (e.g. "#FF5733")
+  tagColors: Record<string, string>  // tag → hex color (e.g. "#FF5733"), used for the card's left border
+  tagCheckboxColors: Record<string, string>  // tag → hex color, used for the checkbox ring on open tasks
 }
 
 export const emptyConfig: ConfigFile = {
-  filters: [], homeSection: null, dashboards: [], documentDisplayNames: {}, itemVisibility: {}, tagColors: {},
+  filters: [], homeSection: null, dashboards: [], documentDisplayNames: {}, itemVisibility: {}, tagColors: {}, tagCheckboxColors: {},
 }
 
 // ---- Outbox ----
