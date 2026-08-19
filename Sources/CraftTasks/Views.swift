@@ -482,7 +482,7 @@ struct TagColorPickerPopover: View {
                 .buttonStyle(.plain)
             }
 
-            HStack(spacing: 8) {
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(26), spacing: 6), count: 10), spacing: 6) {
                 ForEach(colorOptions, id: \.1) { color, hex, name in
                     TagColorSwatch(
                         color: color,
@@ -490,17 +490,19 @@ struct TagColorPickerPopover: View {
                         action: {
                             setColor(hex)
                             isShowing = nil
-                        }
+                        },
+                        size: 26
                     )
                     .help(name)
                 }
-                Spacer()
-                if currentHex != nil {
-                    Button(action: { setColor(nil); isShowing = nil }) {
-                        Text("Clear").font(.system(size: 11)).foregroundColor(Theme.textFaint)
-                    }
-                    .buttonStyle(.plain)
+            }
+            .frame(width: 314, alignment: .leading)
+
+            if currentHex != nil {
+                Button(action: { setColor(nil); isShowing = nil }) {
+                    Text("Clear").font(.system(size: 11)).foregroundColor(Theme.textFaint)
                 }
+                .buttonStyle(.plain)
             }
 
             Divider()
@@ -509,7 +511,7 @@ struct TagColorPickerPopover: View {
                 ColorPicker("Custom color…", selection: $customColor, supportsOpacity: false)
                     .labelsHidden()
                     .frame(width: 28)
-                Text("Custom — opens the macOS color picker")
+                Text("Custom color")
                     .font(.system(size: 11)).foregroundColor(Theme.textFaint)
                 Spacer()
                 Button(action: { setColor(customColor.hexString); isShowing = nil }) {
@@ -522,6 +524,7 @@ struct TagColorPickerPopover: View {
             }
         }
         .padding(10)
+        .frame(width: 314)
         .background(Theme.panelHi)
         .cornerRadius(8)
         .onAppear {
@@ -538,15 +541,16 @@ struct TagColorSwatch: View {
     let color: Color
     let isSelected: Bool
     let action: () -> Void
+    var size: CGFloat = 40
 
     var body: some View {
         Button(action: action) {
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: size * 0.2)
                 .fill(color)
-                .frame(width: 40, height: 40)
+                .frame(width: size, height: size)
                 .overlay(
                     isSelected ?
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: size * 0.2)
                             .stroke(Theme.textHi, lineWidth: 3)
                         : nil
                 )
