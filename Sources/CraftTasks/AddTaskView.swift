@@ -53,8 +53,9 @@ struct AddTaskView: View {
                         else if let first = tagMatches.first { chooseTag(first) }
                         else { save() }
                     }
-
-                if !mentionMatches.isEmpty {
+            }
+            .floatingBelow {
+                if !mentionMatches.isEmpty || !tagMatches.isEmpty {
                     VStack(alignment: .leading, spacing: 0) {
                         ForEach(mentionMatches) { doc in
                             Button { chooseMention(doc) } label: {
@@ -67,17 +68,6 @@ struct AddTaskView: View {
                             }
                             .buttonStyle(.plain)
                         }
-                        if mentionMatches.isEmpty {
-                            Text("No matching documents").font(.system(size: 11)).foregroundColor(Theme.textFaint)
-                                .padding(10)
-                        }
-                    }
-                    .background(RoundedRectangle(cornerRadius: 8).fill(Theme.panelHi))
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.stroke, lineWidth: 1))
-                }
-
-                if !tagMatches.isEmpty {
-                    VStack(alignment: .leading, spacing: 0) {
                         ForEach(tagMatches, id: \.self) { tag in
                             Button { chooseTag(tag) } label: {
                                 HStack(spacing: 8) {
@@ -89,8 +79,10 @@ struct AddTaskView: View {
                             .buttonStyle(.plain)
                         }
                     }
+                    .frame(minWidth: 200, alignment: .leading)
                     .background(RoundedRectangle(cornerRadius: 8).fill(Theme.panelHi))
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.stroke, lineWidth: 1))
+                    .craftShadow()
                 }
             }
 

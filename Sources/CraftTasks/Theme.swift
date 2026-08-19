@@ -46,6 +46,37 @@ extension View {
     func craftShadow(radius: CGFloat = 14, y: CGFloat = 5) -> some View {
         shadow(color: Theme.shadow, radius: radius, x: 0, y: y)
     }
+
+    /// Renders `content` as a floating overlay pinned just below this view,
+    /// tracking its actual (possibly variable) height via GeometryReader —
+    /// used for autocomplete dropdowns. An overlay never affects layout
+    /// size, unlike a normal sibling view, which is the point: a dropdown
+    /// that resizes as matches change shouldn't make the whole window/sheet
+    /// visibly jump while typing.
+    func floatingBelow<Content: View>(gap: CGFloat = 4, @ViewBuilder content: @escaping () -> Content) -> some View {
+        modifier(FloatingBelowModifier(gap: gap, overlayContent: content))
+    }
+}
+
+private struct FloatingBelowModifier<OverlayContent: View>: ViewModifier {
+    let gap: CGFloat
+    @ViewBuilder let overlayContent: () -> OverlayContent
+    @State private var height: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .background(
+                GeometryReader { proxy in
+                    Color.clear.onAppear { height = proxy.size.height }
+                        .onChange(of: proxy.size.height) { _, new in height = new }
+                }
+            )
+            .overlay(alignment: .topLeading) {
+                overlayContent()
+                    .offset(y: height + gap)
+            }
+            .zIndex(1)
+    }
 }
 
 struct Chip: View {

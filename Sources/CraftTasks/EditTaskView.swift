@@ -115,7 +115,8 @@ struct EditTaskView: View {
                     .background(Capsule().fill(Theme.bg))
                     .overlay(Capsule().stroke(Theme.stroke, style: StrokeStyle(lineWidth: 1, dash: [3])))
                 }
-
+            }
+            .floatingBelow {
                 if !newTag.trimmingCharacters(in: .whitespaces).isEmpty && !tagSuggestions.isEmpty {
                     VStack(alignment: .leading, spacing: 0) {
                         ForEach(tagSuggestions, id: \.self) { tag in
@@ -132,6 +133,7 @@ struct EditTaskView: View {
                     .frame(width: 200, alignment: .leading)
                     .background(RoundedRectangle(cornerRadius: 8).fill(Theme.panelHi))
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.stroke, lineWidth: 1))
+                    .craftShadow()
                 }
             }
 

@@ -77,7 +77,7 @@ export function AddTaskModal({ onClose }: { onClose: () => void }) {
   return (
     <Modal onClose={onClose}>
       <h2><Icon name="plusCircle" size={15} /> New Task</h2>
-      <div>
+      <div style={{ position: 'relative' }}>
         <div className="form-label">TITLE</div>
         <input ref={inputRef} type="text" placeholder="What needs doing? Try #tag or @document"
                value={rawText}
@@ -89,17 +89,13 @@ export function AddTaskModal({ onClose }: { onClose: () => void }) {
                    else save()
                  }
                }} />
-        {mentionMatches.length > 0 && (
-          <div className="mention-list">
+        {(mentionMatches.length > 0 || tagMatches.length > 0) && (
+          <div className="mention-list" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10 }}>
             {mentionMatches.map(doc => (
               <button key={doc.id} className="mention-item" onClick={() => chooseMention(doc)}>
                 <Icon name="doc" size={10} /> {doc.title}
               </button>
             ))}
-          </div>
-        )}
-        {tagMatches.length > 0 && (
-          <div className="mention-list">
             {tagMatches.map(tag => (
               <button key={tag} className="mention-item" onClick={() => chooseTag(tag)}>
                 #{tag}
