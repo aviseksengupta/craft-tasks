@@ -1,3 +1,49 @@
+# Craft Tasks — Unified Task Screens
+
+## ✨ New Task and Edit Task now behave the same
+
+The New Task and Task Details screens were inconsistent — mentions,
+tags, and descriptions worked differently (or not at all) depending on
+which one you had open. Both are now the same form with the same
+inputs, on both the PWA and the macOS app.
+
+### Features
+
+**Both PWA and macOS app**
+- `@document` and `#tag` live autocomplete now works identically whether
+  you're creating a new task or editing an existing one
+- New: `@<date>` autocomplete sets the **Scheduled** date (not the
+  deadline) — type `@today`, `@tomorrow`, `@monday`, `@15`, `@3/15`, or
+  `@2026-03-15` and pick the suggestion, Craft-style
+- New Task now has a **Description** field, matching Task Details —
+  it's saved to Craft as soon as the task itself finishes creating
+- Task Details' separate "add tag" box is gone; typing `#tag` inline in
+  the task field does the same thing New Task already did
+
+### Installation
+
+**macOS:**
+1. Download `CraftTasks.app` (or build with `./build_app.sh`)
+2. Drag `Craft Tasks` to Applications folder
+3. Launch from Applications (unsigned — "Allow anyway" on first launch)
+
+**PWA (Web):**
+- Deployed via `npm run deploy` in `web/` — visit the deployed app URL,
+  no action needed
+
+### Requirements
+
+- **macOS:** 11.0 or later (Big Sur+)
+- **Web:** Modern browser with localStorage support
+
+---
+
+**Build Date:** 2026-08-21
+**Commit:** 2f0b637
+**Architecture:** arm64 (Apple Silicon)
+
+---
+
 # Craft Tasks v1.0 Release
 
 ## 🎨 New Feature: Tag Colors
