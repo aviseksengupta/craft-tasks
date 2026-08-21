@@ -13,6 +13,7 @@ struct AddTaskView: View {
     @State private var scheduleDate: Date? = nil
     @State private var deadlineDate: Date? = nil
     @State private var selectedDocument: DocumentSummary? = nil
+    @State private var description = ""
     @State private var mentionQuery: String? = nil
     @State private var tagQuery: String? = nil
     @FocusState private var focused: Bool
@@ -27,6 +28,11 @@ struct AddTaskView: View {
     private var tagMatches: [String] {
         guard let q = tagQuery else { return [] }
         return matchTags(q, in: store.allTags, excluding: tags, limit: 6)
+    }
+
+    private var dateMatch: DateMatch? {
+        guard let q = mentionQuery else { return nil }
+        return parseDateQuery(q)
     }
 
     var body: some View {
@@ -49,14 +55,26 @@ struct AddTaskView: View {
                     .focused($focused)
                     .onChange(of: rawText) { _, new in processInput(new) }
                     .onSubmit {
-                        if let first = mentionMatches.first { chooseMention(first) }
+                        if let dateMatch { chooseDate(dateMatch.date) }
+                        else if let first = mentionMatches.first { chooseMention(first) }
                         else if let first = tagMatches.first { chooseTag(first) }
                         else { save() }
                     }
             }
             .floatingBelow {
-                if !mentionMatches.isEmpty || !tagMatches.isEmpty {
+                if dateMatch != nil || !mentionMatches.isEmpty || !tagMatches.isEmpty {
                     VStack(alignment: .leading, spacing: 0) {
+                        if let dateMatch {
+                            Button { chooseDate(dateMatch.date) } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "calendar").font(.system(size: 10)).foregroundColor(Theme.textFaint)
+                                    Text(dateMatch.label).font(.system(size: 12)).foregroundColor(Theme.text)
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 10).padding(.vertical, 7)
+                            }
+                            .buttonStyle(.plain)
+                        }
                         ForEach(mentionMatches) { doc in
                             Button { chooseMention(doc) } label: {
                                 HStack(spacing: 8) {
@@ -108,6 +126,18 @@ struct AddTaskView: View {
                         }
                     }
                 }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                label("DESCRIPTION")
+                TextEditor(text: $description)
+                    .font(.system(size: 12))
+                    .foregroundColor(Theme.text)
+                    .scrollContentBackground(.hidden)
+                    .padding(8)
+                    .frame(minHeight: 50, maxHeight: 100)
+                    .background(RoundedRectangle(cornerRadius: 8).fill(Theme.chipBg))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.stroke, lineWidth: 1))
             }
 
             HStack(spacing: 14) {
@@ -175,6 +205,15 @@ struct AddTaskView: View {
         mentionQuery = nil
     }
 
+    private func chooseDate(_ date: Date) {
+        if let r = rawText.range(of: #"@[\w/\-]*$"#, options: .regularExpression) {
+            rawText.removeSubrange(r)
+        }
+        rawText = rawText.trimmingCharacters(in: .whitespaces)
+        scheduleDate = date
+        mentionQuery = nil
+    }
+
     private func chooseTag(_ tag: String) {
         if let r = rawText.range(of: #"#[\w/\-]*$"#, options: .regularExpression) {
             rawText.removeSubrange(r)
@@ -195,7 +234,8 @@ struct AddTaskView: View {
             title: title, tags: tags,
             scheduleDate: scheduleDate.map { DateFormatter.ymd.string(from: $0) },
             deadlineDate: deadlineDate.map { DateFormatter.ymd.string(from: $0) },
-            documentId: selectedDocument?.id)
+            documentId: selectedDocument?.id,
+            description: description.trimmingCharacters(in: .whitespacesAndNewlines))
         dismiss()
     }
 }

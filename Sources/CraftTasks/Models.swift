@@ -478,6 +478,82 @@ enum PinnedItem: Identifiable {
     }
 }
 
+/// A live `@` mention that resolved to a date instead of a document.
+struct DateMatch {
+    let date: Date
+    let label: String
+}
+
+private let weekdayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]
+
+/// Shared @-mention date parsing (Craft-style: `@15`, `@today`, `@tomorrow`,
+/// `@monday`, `@3/15`, `@2026-03-15`) — mirrors web/src/modals.tsx
+/// parseDateQuery so both apps recognize the same tokens.
+func parseDateQuery(_ raw: String) -> DateMatch? {
+    let q = raw.trimmingCharacters(in: .whitespaces).lowercased()
+    guard !q.isEmpty else { return nil }
+    let cal = Calendar.current
+    let today = cal.startOfDay(for: Date())
+
+    if q.count >= 3, "today".hasPrefix(q) { return DateMatch(date: today, label: "Today") }
+    if q.count >= 3, "tomorrow".hasPrefix(q) {
+        let d = cal.date(byAdding: .day, value: 1, to: today)!
+        return DateMatch(date: d, label: "Tomorrow")
+    }
+    if q.count >= 4, "yesterday".hasPrefix(q) {
+        let d = cal.date(byAdding: .day, value: -1, to: today)!
+        return DateMatch(date: d, label: "Yesterday")
+    }
+    if q.count >= 3, let wd = weekdayNames.firstIndex(where: { $0.hasPrefix(q) }) {
+        let todayWeekday = cal.component(.weekday, from: today) - 1 // 0 = Sunday
+        let diff = ((wd - todayWeekday) % 7 + 7) % 7
+        let offset = diff == 0 ? 7 : diff
+        let d = cal.date(byAdding: .day, value: offset, to: today)!
+        let name = weekdayNames[wd]
+        return DateMatch(date: d, label: name.prefix(1).uppercased() + name.dropFirst())
+    }
+
+    let isoRe = try! NSRegularExpression(pattern: #"^(\d{4})-(\d{1,2})-(\d{1,2})$"#)
+    let ns = q as NSString
+    if let m = isoRe.firstMatch(in: q, range: NSRange(location: 0, length: ns.length)) {
+        let year = Int(ns.substring(with: m.range(at: 1)))!
+        let month = Int(ns.substring(with: m.range(at: 2)))!
+        let day = Int(ns.substring(with: m.range(at: 3)))!
+        guard let d = cal.date(from: DateComponents(year: year, month: month, day: day)) else { return nil }
+        let f = DateFormatter(); f.dateFormat = "MMM d, yyyy"
+        return DateMatch(date: d, label: f.string(from: d))
+    }
+
+    let mdRe = try! NSRegularExpression(pattern: #"^(\d{1,2})[/-](\d{1,2})$"#)
+    if let m = mdRe.firstMatch(in: q, range: NSRange(location: 0, length: ns.length)) {
+        let month = Int(ns.substring(with: m.range(at: 1)))!
+        let day = Int(ns.substring(with: m.range(at: 2)))!
+        guard (1...12).contains(month), (1...31).contains(day) else { return nil }
+        var comps = cal.dateComponents([.year], from: today)
+        comps.month = month; comps.day = day
+        guard var d = cal.date(from: comps) else { return nil }
+        if d < today { comps.year = (comps.year ?? 0) + 1; d = cal.date(from: comps)! }
+        let f = DateFormatter(); f.dateFormat = "MMM d"
+        return DateMatch(date: d, label: f.string(from: d))
+    }
+
+    let dayRe = try! NSRegularExpression(pattern: #"^(\d{1,2})$"#)
+    if let m = dayRe.firstMatch(in: q, range: NSRange(location: 0, length: ns.length)) {
+        let n = Int(ns.substring(with: m.range(at: 1)))!
+        guard (1...31).contains(n) else { return nil }
+        var comps = cal.dateComponents([.year, .month], from: today)
+        comps.day = n
+        guard var d = cal.date(from: comps) else { return nil }
+        if d < today {
+            comps.month = (comps.month ?? 0) + 1
+            d = cal.date(from: comps)!
+        }
+        let f = DateFormatter(); f.dateFormat = "MMM d"
+        return DateMatch(date: d, label: f.string(from: d))
+    }
+    return nil
+}
+
 /// Tag autocomplete: prefix matches first (alphabetical), then substring
 /// matches (alphabetical) — used by the "add tag" field and the live
 /// #tag token while typing a new task's title.

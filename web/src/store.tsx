@@ -106,7 +106,7 @@ interface StoreValue {
   applyEdit: (t: CraftTask, body: string, state: TaskState, scheduleDate: string | null,
               deadlineDate: string | null, destination?: { kind: 'unchanged' } | { kind: 'inbox' } | { kind: 'document'; id: string }) => void
   createTask: (title: string, tags: string[], scheduleDate: string | null,
-               deadlineDate: string | null, documentId: string | null) => void
+               deadlineDate: string | null, documentId: string | null, description?: string) => void
   deleteTask: (t: CraftTask) => Promise<void>
 
   navigateHome: () => Section
@@ -259,6 +259,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const created = await craft.createTask(item.payload)
         persistTasks([...tasksRef.current.filter(t => t.id !== item.localId), created])
         persistPendingCreates(pendingCreatesRef.current.filter(x => x.localId !== item.localId))
+        if (item.description) {
+          // Best-effort: the task line itself already synced, so a failure
+          // here shouldn't roll anything back — just leave it undescribed.
+          craft.pushDescription(created.id, [], item.description).catch(() => {})
+        }
       } catch (e) {
         const err = e as craft.ApiError
         if (err.isLikelyTransient === false) {
@@ -376,7 +381,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const documentsForCreate = useRef<DocumentSummary[]>([])
 
   const createTask = useCallback((title: string, tags: string[], scheduleDate: string | null,
-                                  deadlineDate: string | null, documentId: string | null) => {
+                                  deadlineDate: string | null, documentId: string | null, description?: string) => {
     const tagSuffix = tags.length ? ' ' + tags.map(t => `#${t}`).join(' ') : ''
     const markdown = '- [ ] ' + title.trim() + tagSuffix
     const location = documentId ? { type: 'document', documentId } : { type: 'inbox' }
@@ -393,7 +398,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (scheduleDate) taskInfo.scheduleDate = scheduleDate
     if (deadlineDate) taskInfo.deadlineDate = deadlineDate
     if (Object.keys(taskInfo).length) payload.taskInfo = taskInfo
-    persistPendingCreates([...pendingCreatesRef.current, { localId, payload }])
+    const trimmedDescription = description?.trim()
+    persistPendingCreates([...pendingCreatesRef.current,
+      { localId, payload, ...(trimmedDescription ? { description: trimmedDescription } : {}) }])
     flushPendingCreates()
   }, [persistTasks, persistPendingCreates, flushPendingCreates])
 

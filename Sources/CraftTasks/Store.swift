@@ -344,7 +344,7 @@ final class Store: ObservableObject {
     /// same whether or not you're online. Never throws: from the caller's
     /// perspective, creating a task always "succeeds" immediately.
     func createTask(title: String, tags: [String], scheduleDate: String?,
-                     deadlineDate: String?, documentId: String?) {
+                     deadlineDate: String?, documentId: String?, description: String? = nil) {
         let tagSuffix = tags.isEmpty ? "" : " " + tags.map { "#\($0)" }.joined(separator: " ")
         let markdown = "- [ ] " + title.trimmingCharacters(in: .whitespacesAndNewlines) + tagSuffix
         let location: [String: Any] = documentId.map { ["type": "document", "documentId": $0] } ?? ["type": "inbox"]
@@ -365,6 +365,8 @@ final class Store: ObservableObject {
         if let scheduleDate { taskInfo["scheduleDate"] = scheduleDate }
         if let deadlineDate { taskInfo["deadlineDate"] = deadlineDate }
         if !taskInfo.isEmpty { payload["taskInfo"] = taskInfo }
+        let trimmedDescription = description?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let trimmedDescription, !trimmedDescription.isEmpty { payload["description"] = trimmedDescription }
         if let data = try? JSONSerialization.data(withJSONObject: payload),
            let json = String(data: data, encoding: .utf8) {
             db.enqueuePendingCreate(localId: localId, payload: json)
@@ -397,6 +399,11 @@ final class Store: ObservableObject {
                 db.delete(ids: [item.localId])
                 db.upsert(created)
                 db.removePendingCreate(localId: item.localId)
+                if let description = dict["description"] as? String, !description.isEmpty {
+                    // Best-effort: the task line itself already synced, so a
+                    // failure here shouldn't roll anything back.
+                    Task { try? await SyncEngine.pushDescription(taskId: created.id, existingBlockIds: [], newText: description) }
+                }
             } catch {
                 // Stays queued either way, but only report it as blocked
                 // (vs. silently retrying) when it's a permanent rejection —

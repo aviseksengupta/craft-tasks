@@ -254,4 +254,4 @@ export const emptyConfig: ConfigFile = {
 // ---- Outbox ----
 
 export interface PendingUpdate { taskId: string; payload: Record<string, unknown> }
-export interface PendingCreate { localId: string; payload: Record<string, unknown> }
+export interface PendingCreate { localId: string; payload: Record<string, unknown>; description?: string }

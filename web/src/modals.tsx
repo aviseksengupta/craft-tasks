@@ -7,6 +7,57 @@ import * as craft from './craft'
 import { getGistToken, setGistToken } from './gist'
 import { Modal, Icon, DateChip, StateCycle, MenuChip, MenuItem } from './ui'
 
+// ---- Shared @-mention date parsing (Craft-style: @<day number>, @<weekday>,
+// @today/@tomorrow, @m/d, @yyyy-mm-dd) ----
+
+const WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+
+export function parseDateQuery(raw: string): { date: Date; label: string } | null {
+  const q = raw.trim().toLowerCase()
+  if (!q) return null
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  if (q.length >= 3 && 'today'.startsWith(q)) return { date: today, label: 'Today' }
+  if (q.length >= 3 && 'tomorrow'.startsWith(q)) {
+    const d = new Date(today); d.setDate(d.getDate() + 1)
+    return { date: d, label: 'Tomorrow' }
+  }
+  if (q.length >= 4 && 'yesterday'.startsWith(q)) {
+    const d = new Date(today); d.setDate(d.getDate() - 1)
+    return { date: d, label: 'Yesterday' }
+  }
+  const wd = WEEKDAYS.findIndex(w => w.startsWith(q))
+  if (wd >= 0 && q.length >= 3) {
+    const d = new Date(today)
+    const diff = (wd - d.getDay() + 7) % 7 || 7
+    d.setDate(d.getDate() + diff)
+    return { date: d, label: WEEKDAYS[wd][0].toUpperCase() + WEEKDAYS[wd].slice(1) }
+  }
+  const iso = q.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
+  if (iso) {
+    const d = new Date(+iso[1], +iso[2] - 1, +iso[3])
+    return { date: d, label: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) }
+  }
+  const md = q.match(/^(\d{1,2})[/-](\d{1,2})$/)
+  if (md) {
+    const month = +md[1], day = +md[2]
+    if (month < 1 || month > 12 || day < 1 || day > 31) return null
+    let d = new Date(today.getFullYear(), month - 1, day)
+    if (d < today) d = new Date(today.getFullYear() + 1, month - 1, day)
+    return { date: d, label: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) }
+  }
+  const dayOnly = q.match(/^(\d{1,2})$/)
+  if (dayOnly) {
+    const n = +dayOnly[1]
+    if (n < 1 || n > 31) return null
+    let d = new Date(today.getFullYear(), today.getMonth(), n)
+    if (d < today) d = new Date(today.getFullYear(), today.getMonth() + 1, n)
+    return { date: d, label: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) }
+  }
+  return null
+}
+
 // ---- Add Task ----
 
 export function AddTaskModal({ onClose }: { onClose: () => void }) {
@@ -16,6 +67,7 @@ export function AddTaskModal({ onClose }: { onClose: () => void }) {
   const [scheduleDate, setScheduleDate] = useState<Date | null>(null)
   const [deadlineDate, setDeadlineDate] = useState<Date | null>(null)
   const [selectedDoc, setSelectedDoc] = useState<DocumentSummary | null>(null)
+  const [description, setDescription] = useState('')
   const [mentionQuery, setMentionQuery] = useState<string | null>(null)
   const [tagQuery, setTagQuery] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -33,9 +85,12 @@ export function AddTaskModal({ onClose }: { onClose: () => void }) {
     return matchTags(tagQuery, store.allTags, tags, 6)
   }, [tagQuery, store.allTags, tags])
 
+  const dateMatch = useMemo(() => mentionQuery !== null ? parseDateQuery(mentionQuery) : null, [mentionQuery])
+
   // A completed #tag (ended with a space) becomes a chip; a trailing @query
-  // opens the live document picker; a trailing #query opens tag
-  // autocomplete. Trailing in-progress tokens stay put.
+  // opens the live document picker (or a date suggestion if it looks like a
+  // day/date, Craft-style); a trailing #query opens tag autocomplete.
+  // Trailing in-progress tokens stay put.
   const processInput = (value: string) => {
     const m = value.match(/[#@][\w/\-]*$/)
     const liveToken = m?.[0] ?? null
@@ -57,6 +112,13 @@ export function AddTaskModal({ onClose }: { onClose: () => void }) {
     inputRef.current?.focus()
   }
 
+  const chooseDate = (date: Date) => {
+    setRawText(t => t.replace(/@[\w/\-]*$/, '').trim())
+    setScheduleDate(date)
+    setMentionQuery(null)
+    inputRef.current?.focus()
+  }
+
   const chooseTag = (tag: string) => {
     setRawText(t => t.replace(/#[\w/\-]*$/, '').trim() + ' ')
     setTags(prev => prev.includes(tag) ? prev : [...prev, tag])
@@ -70,7 +132,8 @@ export function AddTaskModal({ onClose }: { onClose: () => void }) {
     store.createTask(title, tags,
       scheduleDate ? ymd(scheduleDate) : null,
       deadlineDate ? ymd(deadlineDate) : null,
-      selectedDoc?.id ?? null)
+      selectedDoc?.id ?? null,
+      description.trim() || undefined)
     onClose()
   }
 
@@ -84,13 +147,19 @@ export function AddTaskModal({ onClose }: { onClose: () => void }) {
                onChange={e => processInput(e.target.value)}
                onKeyDown={e => {
                  if (e.key === 'Enter') {
-                   if (mentionMatches.length > 0) chooseMention(mentionMatches[0])
+                   if (dateMatch) chooseDate(dateMatch.date)
+                   else if (mentionMatches.length > 0) chooseMention(mentionMatches[0])
                    else if (tagMatches.length > 0) chooseTag(tagMatches[0])
                    else save()
                  }
                }} />
-        {(mentionMatches.length > 0 || tagMatches.length > 0) && (
+        {(dateMatch || mentionMatches.length > 0 || tagMatches.length > 0) && (
           <div className="mention-list" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10 }}>
+            {dateMatch && (
+              <button className="mention-item" onClick={() => chooseDate(dateMatch.date)}>
+                <Icon name="calendar" size={10} /> {dateMatch.label}
+              </button>
+            )}
             {mentionMatches.map(doc => (
               <button key={doc.id} className="mention-item" onClick={() => chooseMention(doc)}>
                 <Icon name="doc" size={10} /> {doc.title}
@@ -121,6 +190,10 @@ export function AddTaskModal({ onClose }: { onClose: () => void }) {
           </div>
         </div>
       )}
+      <div>
+        <div className="form-label">DESCRIPTION</div>
+        <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} style={{ fontSize: 12 }} />
+      </div>
       <div className="flow-row" style={{ gap: 14 }}>
         <DateChip title="Scheduled" icon="calendar" date={scheduleDate} onChange={setScheduleDate} />
         <DateChip title="Deadline" icon="flag" date={deadlineDate} onChange={setDeadlineDate} />
@@ -142,7 +215,9 @@ export function EditTaskModal({ task, onClose }: { task: CraftTask; onClose: () 
   const [state, setState] = useState<TaskState>(task.state)
   const [scheduleDate, setScheduleDate] = useState<Date | null>(dayOf(task.scheduleDate))
   const [deadlineDate, setDeadlineDate] = useState<Date | null>(dayOf(task.deadlineDate))
-  const [newTag, setNewTag] = useState('')
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null)
+  const [tagQuery, setTagQuery] = useState<string | null>(null)
+  const bodyRef = useRef<HTMLTextAreaElement>(null)
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(
     task.locationType === 'inbox' ? null : task.documentId)
   const [description, setDescription] = useState('')
@@ -170,18 +245,53 @@ export function EditTaskModal({ task, onClose }: { task: CraftTask; onClose: () 
   }, [task.id])
 
   const currentTags = useMemo(() => [...body.matchAll(/#([\w/\-]+)/g)].map(m => m[1]), [body])
-  const addTag = (explicit?: string) => {
-    const t = (explicit ?? newTag).trim().replace(/#/g, '')
-    if (!t) return
-    setBody(b => b.trim() + ` #${t}`)
-    setNewTag('')
-  }
   const removeTag = (tag: string) => {
     setBody(b => b.replace(new RegExp(`\\s*#${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`), ''))
   }
-  const tagSuggestions = useMemo(
-    () => matchTags(newTag, store.allTags, currentTags),
-    [newTag, store.allTags, currentTags])
+
+  // Same inline @doc / @date / #tag autocomplete as the New Task field, so
+  // both screens behave identically while editing.
+  const mentionMatches = useMemo(() => {
+    if (mentionQuery === null) return []
+    const pool = store.documents.filter(d => d.id !== 'inbox')
+    const q = mentionQuery.toLowerCase()
+    return (q === '' ? pool : pool.filter(d => d.title.toLowerCase().includes(q))).slice(0, 6)
+  }, [mentionQuery, store.documents])
+
+  const dateMatch = useMemo(() => mentionQuery !== null ? parseDateQuery(mentionQuery) : null, [mentionQuery])
+
+  const tagSuggestions = useMemo(() => {
+    if (tagQuery === null) return []
+    return matchTags(tagQuery, store.allTags, currentTags, 6)
+  }, [tagQuery, store.allTags, currentTags])
+
+  const processBody = (value: string) => {
+    const m = value.match(/[#@][\w/\-]*$/)
+    const liveToken = m?.[0] ?? null
+    setMentionQuery(liveToken?.startsWith('@') ? liveToken.slice(1) : null)
+    setTagQuery(liveToken?.startsWith('#') ? liveToken.slice(1) : null)
+    setBody(value)
+  }
+
+  const chooseMention = (doc: DocumentSummary) => {
+    setBody(b => b.replace(/@[\w/\-]*$/, '').trim())
+    setSelectedDocumentId(doc.id)
+    setMentionQuery(null)
+    bodyRef.current?.focus()
+  }
+
+  const chooseDate = (date: Date) => {
+    setBody(b => b.replace(/@[\w/\-]*$/, '').trim())
+    setScheduleDate(date)
+    setMentionQuery(null)
+    bodyRef.current?.focus()
+  }
+
+  const chooseTag = (tag: string) => {
+    setBody(b => b.replace(/#[\w/\-]*$/, '').trim() + ` #${tag}`)
+    setTagQuery(null)
+    bodyRef.current?.focus()
+  }
 
   const cycle = () => setState(s => s === 'todo' ? 'done' : s === 'done' ? 'canceled' : 'todo')
 
@@ -276,39 +386,50 @@ export function EditTaskModal({ task, onClose }: { task: CraftTask; onClose: () 
         </MenuChip>
         </span>
       </h2>
-      <div>
+      <div style={{ position: 'relative' }}>
         <div className="form-label">TASK</div>
-        <textarea value={body} onChange={e => setBody(e.target.value)} rows={3} />
+        <textarea ref={bodyRef} value={body} onChange={e => processBody(e.target.value)} rows={3}
+                  placeholder="Try #tag or @document or @date"
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && (dateMatch || mentionMatches.length > 0 || tagSuggestions.length > 0)) {
+                      e.preventDefault()
+                      if (dateMatch) chooseDate(dateMatch.date)
+                      else if (mentionMatches.length > 0) chooseMention(mentionMatches[0])
+                      else if (tagSuggestions.length > 0) chooseTag(tagSuggestions[0])
+                    }
+                  }} />
+        {(dateMatch || mentionMatches.length > 0 || tagSuggestions.length > 0) && (
+          <div className="mention-list" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10 }}>
+            {dateMatch && (
+              <button className="mention-item" onClick={() => chooseDate(dateMatch.date)}>
+                <Icon name="calendar" size={10} /> {dateMatch.label}
+              </button>
+            )}
+            {mentionMatches.map(doc => (
+              <button key={doc.id} className="mention-item" onClick={() => chooseMention(doc)}>
+                <Icon name="doc" size={10} /> {doc.title}
+              </button>
+            ))}
+            {tagSuggestions.map(tag => (
+              <button key={tag} className="mention-item" onClick={() => chooseTag(tag)}>
+                #{tag}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
-      <div>
-        <div className="form-label">TAGS</div>
-        <div style={{ position: 'relative' }}>
+      {currentTags.length > 0 && (
+        <div>
+          <div className="form-label">TAGS</div>
           <div className="flow-row">
             {currentTags.map(tag => (
               <button key={tag} className="tag-chip-lg" onClick={() => removeTag(tag)} title={`Remove #${tag}`}>
                 #{tag} <span className="x"><Icon name="xmark" size={9} weight={2.5} /></span>
               </button>
             ))}
-            <span className="tag-add">
-              <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>#</span>
-              <input value={newTag} onChange={e => setNewTag(e.target.value)}
-                     onKeyDown={e => {
-                       if (e.key === 'Enter') { addTag(tagSuggestions[0] ?? undefined) }
-                       if (e.key === 'Escape') setNewTag('')
-                     }} placeholder="add tag" />
-            </span>
           </div>
-          {newTag.trim() !== '' && tagSuggestions.length > 0 && (
-            <div className="mention-list" style={{ position: 'absolute', top: '100%', left: 0, zIndex: 10, minWidth: 160 }}>
-              {tagSuggestions.map(tag => (
-                <button key={tag} className="mention-item" onClick={() => addTag(tag)}>
-                  #{tag}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
-      </div>
+      )}
       <div>
         <div className="form-label">DESCRIPTION {loadingDescription && <span>…</span>}</div>
         <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3}
@@ -433,6 +554,18 @@ const TAG_COLOR_OPTIONS = [
   { hex: '#FF8C00', name: 'Orange' },
   { hex: '#00CED1', name: 'Turquoise' },
   { hex: '#FF69B4', name: 'Hot Pink' },
+  { hex: '#E74C3C', name: 'Crimson' },
+  { hex: '#2ECC71', name: 'Emerald' },
+  { hex: '#1ABC9C', name: 'Teal' },
+  { hex: '#3498DB', name: 'Sky Blue' },
+  { hex: '#9B59B6', name: 'Amethyst' },
+  { hex: '#8E44AD', name: 'Violet' },
+  { hex: '#F1C40F', name: 'Yellow' },
+  { hex: '#E67E22', name: 'Carrot' },
+  { hex: '#95A5A6', name: 'Gray' },
+  { hex: '#2C3E50', name: 'Midnight' },
+  { hex: '#C0392B', name: 'Brick' },
+  { hex: '#16A085', name: 'Pine' },
 ]
 
 function TagColorSettings() {

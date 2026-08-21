@@ -7,6 +7,18 @@ export const TAG_COLORS = [
   '#FF8C00', // Orange
   '#00CED1', // Turquoise
   '#FF69B4', // Hot Pink
+  '#E74C3C', // Crimson
+  '#2ECC71', // Emerald
+  '#1ABC9C', // Teal
+  '#3498DB', // Sky Blue
+  '#9B59B6', // Amethyst
+  '#8E44AD', // Violet
+  '#F1C40F', // Yellow
+  '#E67E22', // Carrot
+  '#95A5A6', // Gray
+  '#2C3E50', // Midnight
+  '#C0392B', // Brick
+  '#16A085', // Pine
 ]
 
 export function getLuminance(hex: string): number {

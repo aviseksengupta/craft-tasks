@@ -9,7 +9,8 @@ struct EditTaskView: View {
     @State private var state: TaskState = .todo
     @State private var scheduleDate: Date? = nil
     @State private var deadlineDate: Date? = nil
-    @State private var newTag = ""
+    @State private var mentionQuery: String? = nil
+    @State private var tagQuery: String? = nil
     // nil = Inbox, otherwise a target document id — lets a task be moved
     // between documents (or to/from the inbox) from the edit sheet.
     @State private var selectedDocumentId: String?
@@ -56,8 +57,60 @@ struct EditTaskView: View {
         return Color(hex: uint32)
     }
 
+    // Same inline @doc / @date / #tag autocomplete as the New Task field, so
+    // both screens behave identically while editing.
+    private var mentionMatches: [DocumentSummary] {
+        guard let q = mentionQuery else { return [] }
+        let pool = store.documents.filter { $0.id != "inbox" }
+        let matches = q.isEmpty ? pool : pool.filter { $0.title.localizedCaseInsensitiveContains(q) }
+        return Array(matches.prefix(6))
+    }
+
+    private var dateMatch: DateMatch? {
+        guard let q = mentionQuery else { return nil }
+        return parseDateQuery(q)
+    }
+
     private var tagSuggestions: [String] {
-        matchTags(newTag, in: store.allTags, excluding: currentTags)
+        guard let q = tagQuery else { return [] }
+        return matchTags(q, in: store.allTags, excluding: currentTags, limit: 6)
+    }
+
+    private func processBody(_ newValue: String) {
+        let ns = newValue as NSString
+        let trailingRe = try! NSRegularExpression(pattern: #"[#@][\w/\-]*$"#)
+        var liveToken: String?
+        if let m = trailingRe.firstMatch(in: newValue, range: NSRange(location: 0, length: ns.length)) {
+            liveToken = ns.substring(with: m.range)
+        }
+        mentionQuery = (liveToken?.hasPrefix("@") == true) ? String(liveToken!.dropFirst()) : nil
+        tagQuery = (liveToken?.hasPrefix("#") == true) ? String(liveToken!.dropFirst()) : nil
+    }
+
+    private func chooseMention(_ doc: DocumentSummary) {
+        if let r = body_.range(of: #"@[\w/\-]*$"#, options: .regularExpression) {
+            body_.removeSubrange(r)
+        }
+        body_ = body_.trimmingCharacters(in: .whitespaces)
+        selectedDocumentId = doc.id
+        mentionQuery = nil
+    }
+
+    private func chooseDate(_ date: Date) {
+        if let r = body_.range(of: #"@[\w/\-]*$"#, options: .regularExpression) {
+            body_.removeSubrange(r)
+        }
+        body_ = body_.trimmingCharacters(in: .whitespaces)
+        scheduleDate = date
+        mentionQuery = nil
+    }
+
+    private func chooseTag(_ tag: String) {
+        if let r = body_.range(of: #"#[\w/\-]*$"#, options: .regularExpression) {
+            body_.removeSubrange(r)
+        }
+        body_ = body_.trimmingCharacters(in: .whitespaces) + " #\(tag)"
+        tagQuery = nil
     }
 
     private func toggleInProgress() {
@@ -84,7 +137,8 @@ struct EditTaskView: View {
                 documentPicker
             }
 
-            // Task text (name / description, hashtags inline)
+            // Task text (name / description, hashtags inline) — same inline
+            // #tag / @document / @date autocomplete as New Task.
             VStack(alignment: .leading, spacing: 6) {
                 label("TASK")
                 TextEditor(text: $body_)
@@ -95,32 +149,35 @@ struct EditTaskView: View {
                     .frame(minHeight: 64, maxHeight: 120)
                     .background(RoundedRectangle(cornerRadius: 8).fill(Theme.chipBg))
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.stroke, lineWidth: 1))
-            }
-
-            // Tags — click a chip to remove it
-            VStack(alignment: .leading, spacing: 8) {
-                label("TAGS")
-                FlowRow(spacing: 6) {
-                    ForEach(currentTags, id: \.self) { tag in
-                        TagChip(tag: tag) { removeTag(tag) }
-                    }
-                    HStack(spacing: 4) {
-                        Text("#").font(.system(size: 12)).foregroundColor(Theme.textFaint)
-                        TextField("add tag", text: $newTag)
-                            .textFieldStyle(.plain).font(.system(size: 12))
-                            .frame(width: 80)
-                            .onSubmit { addTag(tagSuggestions.first) }
-                    }
-                    .padding(.horizontal, 10).padding(.vertical, 5)
-                    .background(Capsule().fill(Theme.bg))
-                    .overlay(Capsule().stroke(Theme.stroke, style: StrokeStyle(lineWidth: 1, dash: [3])))
-                }
+                    .onChange(of: body_) { _, new in processBody(new) }
             }
             .floatingBelow {
-                if !newTag.trimmingCharacters(in: .whitespaces).isEmpty && !tagSuggestions.isEmpty {
+                if dateMatch != nil || !mentionMatches.isEmpty || !tagSuggestions.isEmpty {
                     VStack(alignment: .leading, spacing: 0) {
+                        if let dateMatch {
+                            Button { chooseDate(dateMatch.date) } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "calendar").font(.system(size: 10)).foregroundColor(Theme.textFaint)
+                                    Text(dateMatch.label).font(.system(size: 12)).foregroundColor(Theme.text)
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 10).padding(.vertical, 7)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        ForEach(mentionMatches) { doc in
+                            Button { chooseMention(doc) } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "doc.text").font(.system(size: 10)).foregroundColor(Theme.textFaint)
+                                    Text(doc.title).font(.system(size: 12)).foregroundColor(Theme.text)
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 10).padding(.vertical, 7)
+                            }
+                            .buttonStyle(.plain)
+                        }
                         ForEach(tagSuggestions, id: \.self) { tag in
-                            Button { addTag(tag) } label: {
+                            Button { chooseTag(tag) } label: {
                                 HStack {
                                     Text("#\(tag)").font(.system(size: 12)).foregroundColor(Theme.text)
                                     Spacer()
@@ -130,10 +187,22 @@ struct EditTaskView: View {
                             .buttonStyle(.plain)
                         }
                     }
-                    .frame(width: 200, alignment: .leading)
+                    .frame(minWidth: 200, alignment: .leading)
                     .background(RoundedRectangle(cornerRadius: 8).fill(Theme.panelHi))
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(Theme.stroke, lineWidth: 1))
                     .craftShadow()
+                }
+            }
+
+            // Tags — click a chip to remove it
+            if !currentTags.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    label("TAGS")
+                    FlowRow(spacing: 6) {
+                        ForEach(currentTags, id: \.self) { tag in
+                            TagChip(tag: tag) { removeTag(tag) }
+                        }
+                    }
                 }
             }
 
@@ -251,13 +320,6 @@ struct EditTaskView: View {
 
     private func label(_ s: String) -> some View {
         Text(s).font(.system(size: 9, weight: .semibold)).tracking(1.2).foregroundColor(Theme.textFaint)
-    }
-
-    private func addTag(_ explicit: String? = nil) {
-        let t = (explicit ?? newTag).trimmingCharacters(in: .whitespaces).replacingOccurrences(of: "#", with: "")
-        guard !t.isEmpty else { return }
-        body_ = body_.trimmingCharacters(in: .whitespacesAndNewlines) + " #\(t)"
-        newTag = ""
     }
 
     private func removeTag(_ tag: String) {
