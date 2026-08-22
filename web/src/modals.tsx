@@ -523,6 +523,16 @@ export function SettingsModal({ onClose, forced }: { onClose: () => void; forced
           tasks due today.
         </div>
       </div>
+      <div>
+        <div className="form-label">BACKLOG TAG</div>
+        <input type="text" value={store.backlogTagInput}
+               onChange={e => store.setBacklogTag(e.target.value)}
+               placeholder="later" />
+        <div className="hint-text" style={{ marginTop: 6 }}>
+          Tasks tagged with this (e.g. #{store.backlogTag || 'later'}) are treated as backlog/later
+          tasks and can be hidden with the Backlog toggle shown on task views and dashboards.
+        </div>
+      </div>
       <div className="hint-text">
         Save clears the cached app and reloads — the reliable way to force this installed PWA
         onto the latest version, since there's no manual "clear cache" gesture on iOS.

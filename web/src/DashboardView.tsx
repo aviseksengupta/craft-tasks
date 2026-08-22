@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { CraftTask, Dashboard, DashboardWidget, TaskFilter } from './types'
 import { useStore } from './store'
 import { Chip, Icon, PageHeadSticky } from './ui'
-import { CompletedToggle } from './TaskList'
+import { CompletedToggle, BacklogToggle } from './TaskList'
 import { TaskRow } from './TaskRow'
 import { EditTaskModal, ViewPicker } from './modals'
 
@@ -83,6 +83,7 @@ export function DashboardView({ dashboardId }: { dashboardId: string }) {
           <span className="count">{widgets.length} widgets</span>
           <span className="spacer" />
           <CompletedToggle />
+          <BacklogToggle />
           <Chip text="Add view" icon="plus" onClick={() => setShowAddViews(true)} />
         </div>
         <div className="hairline" />

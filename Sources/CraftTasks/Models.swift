@@ -55,6 +55,12 @@ struct CraftTask: Identifiable, Codable, Equatable {
         return documentTitle ?? "Untitled"
     }
 
+    /// Whether this task carries the configured backlog/"later" tag, e.g. #later.
+    func isBacklog(tag: String) -> Bool {
+        let t = tag.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return !t.isEmpty && tags.contains(t)
+    }
+
     /// Deep link to open this task's own block in the Craft app, via the
     /// craftdocs:// URL scheme — lands on the task itself (including inside
     /// a nested subpage), not just the top of its containing document. nil

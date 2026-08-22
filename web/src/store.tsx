@@ -5,6 +5,7 @@ import {
   TaskState, GroupBy, PendingUpdate, PendingCreate,
   newFilter, filterMatches, sectionEq, emptyConfig, taskTitle, taskTags, displayTitle,
   scheduleDay, deadlineDay, completedDay, sourceName, startOfToday, markdownParts, rebuiltMarkdown,
+  isBacklogTask, DEFAULT_BACKLOG_TAG,
 } from './types'
 import * as craft from './craft'
 import { loadFromGist, saveToGist, getGistToken } from './gist'
@@ -37,6 +38,7 @@ export interface AppBackup {
   exportedAt: string
   apiBase: string | null
   showCompleted: boolean
+  showBacklog: boolean
   config: ConfigFile
 }
 
@@ -45,6 +47,7 @@ export const defaultBackup: AppBackup = {
   exportedAt: '',
   apiBase: null,
   showCompleted: true,
+  showBacklog: true,
   config: emptyConfig,
 }
 
@@ -54,6 +57,7 @@ export function buildBackup(): AppBackup {
     exportedAt: new Date().toISOString(),
     apiBase: craft.getApiBase(),
     showCompleted: loadJson('showCompleted', true),
+    showBacklog: loadJson('showBacklog', true),
     config: loadJson('config', emptyConfig),
   }
 }
@@ -61,6 +65,7 @@ export function buildBackup(): AppBackup {
 export function applyBackup(backup: AppBackup) {
   saveJson('config', backup.config)
   saveJson('showCompleted', backup.showCompleted)
+  saveJson('showBacklog', backup.showBacklog ?? true)
   if (backup.apiBase) craft.setApiBase(backup.apiBase)
 }
 
@@ -76,6 +81,11 @@ interface StoreValue {
   documentDisplayNames: Record<string, string>
   showCompleted: boolean
   setShowCompleted: (b: boolean) => void
+  showBacklog: boolean
+  setShowBacklog: (b: boolean) => void
+  backlogTag: string
+  backlogTagInput: string
+  setBacklogTag: (tag: string) => void
   todayIncludesOverdue: boolean
   setTodayIncludesOverdue: (b: boolean) => void
   searchText: string
@@ -156,6 +166,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [filter, setFilter] = useState<TaskFilter>(() => newFilter())
   const [config, setConfig] = useState<ConfigFile>(() => loadJson('config', emptyConfig))
   const [showCompleted, setShowCompletedState] = useState<boolean>(() => loadJson('showCompleted', true))
+  const [showBacklog, setShowBacklogState] = useState<boolean>(() => loadJson('showBacklog', true))
   const [todayIncludesOverdue, setTodayIncludesOverdueState] = useState<boolean>(() => loadJson('todayIncludesOverdue', false))
   const [searchText, setSearchText] = useState('')
   const [syncing, setSyncing] = useState(false)
@@ -230,6 +241,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const setShowCompleted = useCallback((b: boolean) => {
     setShowCompletedState(b); saveJson('showCompleted', b)
   }, [])
+
+  const setShowBacklog = useCallback((b: boolean) => {
+    setShowBacklogState(b); saveJson('showBacklog', b)
+  }, [])
+
+  const backlogTagInput = config.backlogTag ?? DEFAULT_BACKLOG_TAG
+  const backlogTag = config.backlogTag || DEFAULT_BACKLOG_TAG
+  const setBacklogTag = useCallback((tag: string) => {
+    updateConfig(c => ({ ...c, backlogTag: tag.toLowerCase().replace(/^#/, '') }))
+  }, [updateConfig])
 
   const setTodayIncludesOverdue = useCallback((b: boolean) => {
     setTodayIncludesOverdueState(b); saveJson('todayIncludesOverdue', b)
@@ -467,8 +488,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const apply = useCallback((f: TaskFilter) =>
     tasks.filter(t =>
       filterMatches(f, t, todayIncludesOverdue) && (showCompleted || t.state === 'todo')
+        && (showBacklog || !isBacklogTask(t, backlogTag))
         && (searchText === '' || taskTitle(t).toLowerCase().includes(searchText.toLowerCase()))
-    ).sort(taskSort), [tasks, showCompleted, todayIncludesOverdue, searchText, taskSort])
+    ).sort(taskSort), [tasks, showCompleted, showBacklog, backlogTag, todayIncludesOverdue, searchText, taskSort])
 
   const filtered = useMemo(() => apply(filter), [apply, filter])
 
@@ -805,7 +827,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     savedFilters: sortedFilters, dashboards: sortedDashboards, pinnedItems,
     homeSection: config.homeSection, itemVisibility: config.itemVisibility,
     documentDisplayNames: config.documentDisplayNames, tagColors: config.tagColors, tagCheckboxColors: config.tagCheckboxColors ?? {},
-    showCompleted, setShowCompleted, todayIncludesOverdue, setTodayIncludesOverdue, searchText, setSearchText,
+    showCompleted, setShowCompleted, showBacklog, setShowBacklog, backlogTag, backlogTagInput, setBacklogTag,
+    todayIncludesOverdue, setTodayIncludesOverdue, searchText, setSearchText,
     syncing, lastSync, lastSyncSummary, syncError,
     totalPendingCount: pending.length + pendingCreates.length,
     gistStatus, configured,

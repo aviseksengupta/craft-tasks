@@ -34,9 +34,16 @@ final class Store: ObservableObject {
     @Published var pendingCount = 0
     @Published var pendingCreateCount = 0
     var totalPendingCount: Int { pendingCount + pendingCreateCount }
+    static let defaultBacklogTag = "later"
     @Published var showCompleted: Bool = UserDefaults.standard.object(forKey: "showCompleted") as? Bool ?? true {
         didSet { UserDefaults.standard.set(showCompleted, forKey: "showCompleted") }
     }
+    @Published var showBacklog: Bool = UserDefaults.standard.object(forKey: "showBacklog") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(showBacklog, forKey: "showBacklog") }
+    }
+    /// Tag (without '#') marking a task as backlog/later, persisted alongside
+    /// the other config in filters.json so it round-trips through backup/restore.
+    @Published var backlogTag: String = Store.defaultBacklogTag
     @Published var todayIncludesOverdue: Bool = UserDefaults.standard.object(forKey: "todayIncludesOverdue") as? Bool ?? false {
         didSet { UserDefaults.standard.set(todayIncludesOverdue, forKey: "todayIncludesOverdue") }
     }
@@ -120,6 +127,16 @@ final class Store: ObservableObject {
         persistFilters()
     }
 
+    /// Falls back to the default when the user has cleared the field, without
+    /// forcing that default back into the field while they're still typing.
+    var effectiveBacklogTag: String { backlogTag.isEmpty ? Self.defaultBacklogTag : backlogTag }
+
+    func setBacklogTag(_ tag: String) {
+        backlogTag = tag.trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased().replacingOccurrences(of: "#", with: "")
+        persistFilters()
+    }
+
     var documents: [DocumentSummary] {
         var groups: [String: (title: String, tasks: [CraftTask])] = [:]
         let today = Calendar.current.startOfDay(for: Date())
@@ -141,8 +158,10 @@ final class Store: ObservableObject {
 
     /// Filter + sort used everywhere (main list and dashboard sections).
     func apply(_ f: TaskFilter) -> [CraftTask] {
-        tasks.filter {
+        let tag = effectiveBacklogTag
+        return tasks.filter {
             f.matches($0, todayIncludesOverdue: todayIncludesOverdue) && (showCompleted || $0.state == .todo)
+                && (showBacklog || !$0.isBacklog(tag: tag))
                 && (searchText.isEmpty || $0.title.localizedCaseInsensitiveContains(searchText))
         }.sorted(by: Self.taskSort)
     }
@@ -527,6 +546,7 @@ final class Store: ObservableObject {
         var itemVisibility: [String: ItemVisibility]?
         var tagColors: [String: String]?
         var tagCheckboxColors: [String: String]?
+        var backlogTag: String?
     }
 
     private func loadFilters() {
@@ -555,6 +575,7 @@ final class Store: ObservableObject {
         itemVisibility = f.itemVisibility ?? [:]
         tagColors = f.tagColors ?? [:]
         tagCheckboxColors = f.tagCheckboxColors ?? [:]
+        backlogTag = f.backlogTag ?? Self.defaultBacklogTag
         if let hs = f.homeSection {
             homeSection = hs
         } else if let legacyId = f.homeId {
@@ -596,7 +617,7 @@ final class Store: ObservableObject {
     private func persistFilters() {
         let f = FiltersFile(filters: savedFilters, homeId: nil, homeSection: homeSection, dashboards: dashboards,
                             documentDisplayNames: documentDisplayNames, itemVisibility: itemVisibility, tagColors: tagColors,
-                            tagCheckboxColors: tagCheckboxColors)
+                            tagCheckboxColors: tagCheckboxColors, backlogTag: backlogTag)
         guard let data = try? JSONEncoder().encode(f) else { return }
         // Roll the current file to a backup *before* overwriting it, so a
         // future decode regression (like the one that caused this) can be
@@ -620,6 +641,7 @@ final class Store: ObservableObject {
         var exportedAt: String
         var apiBase: String?
         var showCompleted: Bool
+        var showBacklog: Bool = true
         var config: BackupConfig
     }
 
@@ -631,20 +653,21 @@ final class Store: ObservableObject {
         var itemVisibility: [String: ItemVisibility]
         var tagColors: [String: String] = [:]
         var tagCheckboxColors: [String: String] = [:]
+        var backlogTag: String = Store.defaultBacklogTag
     }
 
     static let defaultBackup = AppBackup(
-        schemaVersion: backupSchemaVersion, exportedAt: "", apiBase: nil, showCompleted: true,
-        config: BackupConfig(filters: [], homeSection: nil, dashboards: [], documentDisplayNames: [:], itemVisibility: [:], tagColors: [:], tagCheckboxColors: [:]))
+        schemaVersion: backupSchemaVersion, exportedAt: "", apiBase: nil, showCompleted: true, showBacklog: true,
+        config: BackupConfig(filters: [], homeSection: nil, dashboards: [], documentDisplayNames: [:], itemVisibility: [:], tagColors: [:], tagCheckboxColors: [:], backlogTag: Store.defaultBacklogTag))
 
     func buildBackup() -> AppBackup {
         let iso = ISO8601DateFormatter().string(from: Date())
         return AppBackup(
             schemaVersion: Self.backupSchemaVersion, exportedAt: iso,
-            apiBase: SyncEngine.apiBase, showCompleted: showCompleted,
+            apiBase: SyncEngine.apiBase, showCompleted: showCompleted, showBacklog: showBacklog,
             config: BackupConfig(filters: savedFilters, homeSection: homeSection, dashboards: dashboards,
                                   documentDisplayNames: documentDisplayNames, itemVisibility: itemVisibility, tagColors: tagColors,
-                                  tagCheckboxColors: tagCheckboxColors))
+                                  tagCheckboxColors: tagCheckboxColors, backlogTag: backlogTag))
     }
 
     func exportBackupJSON() -> String {
@@ -661,8 +684,10 @@ final class Store: ObservableObject {
         itemVisibility = backup.config.itemVisibility
         tagColors = backup.config.tagColors
         tagCheckboxColors = backup.config.tagCheckboxColors
+        backlogTag = backup.config.backlogTag
         homeSection = backup.config.homeSection
         showCompleted = backup.showCompleted
+        showBacklog = backup.showBacklog
         persistFilters()
     }
 

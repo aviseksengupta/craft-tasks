@@ -342,6 +342,19 @@ struct SidebarSettingsSheet: View {
 
                 Divider()
 
+                Text("Backlog Tag").font(.system(size: 15, weight: .semibold)).foregroundColor(Theme.textHi)
+                TextField("later", text: Binding(
+                    get: { store.backlogTag },
+                    set: { store.setBacklogTag($0) }
+                ))
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 12))
+                    .frame(maxWidth: 220)
+                Text("Tasks tagged with this (e.g. #\(store.effectiveBacklogTag)) are treated as backlog/later tasks and can be hidden with the Backlog toggle shown on task views and dashboards.")
+                    .font(.system(size: 11)).foregroundColor(Theme.textFaint)
+
+                Divider()
+
                 Text("Tag Colors").font(.system(size: 15, weight: .semibold)).foregroundColor(Theme.textHi)
                 Text("Border colors a task's card. Checkbox colors its ring while open — handy for a status like \"in progress\" without colliding with a category color.")
                     .font(.system(size: 11)).foregroundColor(Theme.textFaint)
@@ -860,6 +873,7 @@ struct TaskListView: View {
                 .font(.system(size: 13)).foregroundColor(Theme.textFaint)
             Spacer()
             CompletedToggle()
+            BacklogToggle()
             if let id = editableViewId {
                 if hasUnsavedViewChanges {
                     Button { store.updateSavedFilter(id) } label: {
@@ -1202,6 +1216,19 @@ struct CompletedToggle: View {
     }
 }
 
+struct BacklogToggle: View {
+    @EnvironmentObject var store: Store
+    var body: some View {
+        Button { store.showBacklog.toggle() } label: {
+            Chip(text: store.showBacklog ? "Backlog shown" : "Backlog hidden",
+                 icon: "clock",
+                 active: !store.showBacklog)
+        }
+        .buttonStyle(.plain)
+        .help("Show or hide backlog tasks (tagged #\(store.effectiveBacklogTag)) everywhere")
+    }
+}
+
 // MARK: - Task row
 
 struct TaskRow: View {
@@ -1467,6 +1494,7 @@ struct DashboardView: View {
                     .font(.system(size: 12)).foregroundColor(Theme.textFaint)
                 Spacer()
                 CompletedToggle()
+                BacklogToggle()
                 Button { showAddViews = true } label: {
                     Chip(text: "Add view", icon: "plus")
                 }
@@ -1784,6 +1812,7 @@ struct ViewsPageView: View {
                 Text("\(visibleFilters.count)").font(.system(size: 12)).foregroundColor(Theme.textFaint)
                 Spacer()
                 CompletedToggle()
+                BacklogToggle()
             }
             .padding(.horizontal, 24).padding(.top, 14).padding(.bottom, 14)
             Rectangle().fill(Theme.stroke).frame(height: 1)
@@ -2134,6 +2163,7 @@ struct DocumentsView: View {
                     .font(.system(size: 12)).foregroundColor(Theme.textFaint)
                 Spacer()
                 CompletedToggle()
+                BacklogToggle()
             }
             .padding(.horizontal, 24).padding(.top, 14).padding(.bottom, 14)
             Rectangle().fill(Theme.stroke).frame(height: 1)
