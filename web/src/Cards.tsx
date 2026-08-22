@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { Section, TaskFilter, Dashboard, scheduleDay, deadlineDay, startOfToday, stateLabel } from './types'
 import { useStore, DocumentSummary } from './store'
 import { Icon, useContextMenu, PageHeadSticky, Chip } from './ui'
-import { CompletedToggle } from './TaskList'
+import { CompletedToggle, BacklogToggle } from './TaskList'
 import { NamePrompt, ViewPicker } from './modals'
 
 function StatRow({ open, done, overdue }: { open: number; done: number; overdue: number }) {
@@ -47,6 +47,7 @@ export function DocumentsView({ setSection }: { setSection: (s: Section) => void
           <span className="count">{docs.length} with tasks</span>
           <span className="spacer" />
           <CompletedToggle />
+          <BacklogToggle />
         </div>
         <div className="hairline" />
       </PageHeadSticky>
@@ -108,6 +109,7 @@ export function ViewsPage({ setSection }: { setSection: (s: Section) => void }) 
           <span className="count">{visible.length}</span>
           <span className="spacer" />
           <CompletedToggle />
+          <BacklogToggle />
         </div>
         <div className="hairline" />
       </PageHeadSticky>

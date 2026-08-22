@@ -19,6 +19,17 @@ export function CompletedToggle() {
   )
 }
 
+export function BacklogToggle() {
+  const store = useStore()
+  return (
+    <Chip text={store.showBacklog ? 'Backlog shown' : 'Backlog hidden'}
+          icon="clock"
+          active={!store.showBacklog}
+          onClick={() => store.setShowBacklog(!store.showBacklog)}
+          title={`Show or hide backlog tasks (tagged #${store.backlogTag}) everywhere`} />
+  )
+}
+
 export function TaskListView({ section }: { section: Section }) {
   const store = useStore()
   const [showSaveSheet, setShowSaveSheet] = useState(false)
@@ -57,6 +68,7 @@ export function TaskListView({ section }: { section: Section }) {
           <span className="count">{store.filtered.length}</span>
           <span className="spacer" />
           <CompletedToggle />
+          <BacklogToggle />
           {editableViewId && hasUnsavedViewChanges && (
             <Chip text="Update view" icon="refresh" onClick={() => store.updateSavedFilter(editableViewId)} />
           )}

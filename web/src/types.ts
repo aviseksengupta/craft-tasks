@@ -36,6 +36,14 @@ export function taskTags(t: CraftTask): string[] {
   return [...taskTitle(t).matchAll(TAG_RE)].map(m => m[1].toLowerCase())
 }
 
+export const DEFAULT_BACKLOG_TAG = 'later'
+
+/// Whether a task carries the configured backlog/"later" tag, e.g. #later.
+export function isBacklogTask(t: CraftTask, backlogTag: string): boolean {
+  const tag = backlogTag.trim().toLowerCase()
+  return tag !== '' && taskTags(t).includes(tag)
+}
+
 /// Tag autocomplete: prefix matches first (alphabetical), then substring
 /// matches (alphabetical) — used by both the "add tag" field and the
 /// live #tag token while typing a new task's title.
@@ -245,10 +253,12 @@ export interface ConfigFile {
   itemVisibility: Record<string, ItemVisibility>
   tagColors: Record<string, string>  // tag → hex color (e.g. "#FF5733"), used for the card's left border
   tagCheckboxColors: Record<string, string>  // tag → hex color, used for the checkbox ring on open tasks
+  backlogTag: string  // tag (without '#') marking a task as backlog/later, e.g. "later"
 }
 
 export const emptyConfig: ConfigFile = {
   filters: [], homeSection: null, dashboards: [], documentDisplayNames: {}, itemVisibility: {}, tagColors: {}, tagCheckboxColors: {},
+  backlogTag: DEFAULT_BACKLOG_TAG,
 }
 
 // ---- Outbox ----
