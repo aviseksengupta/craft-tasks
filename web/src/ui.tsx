@@ -45,12 +45,12 @@ export function Icon({ name, size = 14, weight = 1.4 }: { name: string; size?: n
   )
 }
 
-export function Chip({ text, icon, active, onClick, title }: {
-  text: string; icon?: string; active?: boolean; onClick?: () => void; title?: string
+export function Chip({ text, icon, active, small, onClick, title }: {
+  text: string; icon?: string; active?: boolean; small?: boolean; onClick?: () => void; title?: string
 }) {
   return (
-    <button className={`chip${active ? ' active' : ''}`} onClick={onClick} title={title}>
-      {icon && <span className="chip-icon"><Icon name={icon} size={10} /></span>}
+    <button className={`chip${active ? ' active' : ''}${small ? ' small' : ''}`} onClick={onClick} title={title}>
+      {icon && <span className="chip-icon"><Icon name={icon} size={small ? 9 : 10} /></span>}
       {text}
     </button>
   )

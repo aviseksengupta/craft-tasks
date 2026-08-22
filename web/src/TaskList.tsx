@@ -11,22 +11,24 @@ import { EditTaskModal, NamePrompt } from './modals'
 export function CompletedToggle() {
   const store = useStore()
   return (
-    <Chip text={store.showCompleted ? 'Completed shown' : 'Completed hidden'}
+    <Chip text="Completed" small
           icon={store.showCompleted ? 'eye' : 'eyeSlash'}
           active={!store.showCompleted}
           onClick={() => store.setShowCompleted(!store.showCompleted)}
-          title="Show or hide completed & canceled tasks everywhere" />
+          title={store.showCompleted ? 'Completed & canceled tasks shown — click to hide' : 'Completed & canceled tasks hidden — click to show'} />
   )
 }
 
 export function BacklogToggle() {
   const store = useStore()
   return (
-    <Chip text={store.showBacklog ? 'Backlog shown' : 'Backlog hidden'}
-          icon="clock"
+    <Chip text="Backlog" small
+          icon={store.showBacklog ? 'eye' : 'eyeSlash'}
           active={!store.showBacklog}
           onClick={() => store.setShowBacklog(!store.showBacklog)}
-          title={`Show or hide backlog tasks (tagged #${store.backlogTag}) everywhere`} />
+          title={store.showBacklog
+            ? `Backlog tasks (tagged #${store.backlogTag}) shown — click to hide`
+            : `Backlog tasks (tagged #${store.backlogTag}) hidden — click to show`} />
   )
 }
 

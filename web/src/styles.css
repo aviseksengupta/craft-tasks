@@ -121,6 +121,8 @@ h1, h2, h3 { font-weight: 600; }
 }
 .chip.active { background: var(--accent); color: #000; border-color: transparent; }
 .chip .chip-icon { font-size: 9px; }
+.chip.small { padding: 2px 7px; font-size: 10px; gap: 3px; }
+.chip.small .chip-icon { font-size: 8px; }
 
 .filter-bar { display: flex; gap: 8px; padding: 0 24px 12px; flex-wrap: wrap; align-items: center; flex-shrink: 0; }
 

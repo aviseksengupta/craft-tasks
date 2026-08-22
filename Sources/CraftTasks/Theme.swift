@@ -83,12 +83,13 @@ struct Chip: View {
     let text: String
     var icon: String? = nil
     var active: Bool = false
+    var small: Bool = false
     var body: some View {
-        HStack(spacing: 4) {
-            if let icon { Image(systemName: icon).font(.system(size: 9, weight: .medium)) }
-            Text(text).font(.system(size: 11, weight: .medium, design: .rounded))
+        HStack(spacing: small ? 3 : 4) {
+            if let icon { Image(systemName: icon).font(.system(size: small ? 8 : 9, weight: .medium)) }
+            Text(text).font(.system(size: small ? 10 : 11, weight: .medium, design: .rounded))
         }
-        .padding(.horizontal, 8).padding(.vertical, 3)
+        .padding(.horizontal, small ? 7 : 8).padding(.vertical, small ? 2 : 3)
         .background(active ? Theme.accent : Theme.chipBg)
         .foregroundColor(active ? Color.black : Theme.textLo)
         .clipShape(Capsule())

@@ -1207,12 +1207,12 @@ struct CompletedToggle: View {
     @EnvironmentObject var store: Store
     var body: some View {
         Button { store.showCompleted.toggle() } label: {
-            Chip(text: store.showCompleted ? "Completed shown" : "Completed hidden",
+            Chip(text: "Completed",
                  icon: store.showCompleted ? "eye" : "eye.slash",
-                 active: !store.showCompleted)
+                 active: !store.showCompleted, small: true)
         }
         .buttonStyle(.plain)
-        .help("Show or hide completed & canceled tasks everywhere")
+        .help(store.showCompleted ? "Completed & canceled tasks shown — click to hide" : "Completed & canceled tasks hidden — click to show")
     }
 }
 
@@ -1220,12 +1220,14 @@ struct BacklogToggle: View {
     @EnvironmentObject var store: Store
     var body: some View {
         Button { store.showBacklog.toggle() } label: {
-            Chip(text: store.showBacklog ? "Backlog shown" : "Backlog hidden",
-                 icon: "clock",
-                 active: !store.showBacklog)
+            Chip(text: "Backlog",
+                 icon: store.showBacklog ? "eye" : "eye.slash",
+                 active: !store.showBacklog, small: true)
         }
         .buttonStyle(.plain)
-        .help("Show or hide backlog tasks (tagged #\(store.effectiveBacklogTag)) everywhere")
+        .help(store.showBacklog
+              ? "Backlog tasks (tagged #\(store.effectiveBacklogTag)) shown — click to hide"
+              : "Backlog tasks (tagged #\(store.effectiveBacklogTag)) hidden — click to show")
     }
 }
 
