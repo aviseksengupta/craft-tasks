@@ -2,10 +2,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, ReactNode } from 'react'
 import {
   CraftTask, TaskFilter, Dashboard, DashboardWidget, Section, ConfigFile, ItemVisibility, PinnedItem,
-  TaskState, GroupBy, PendingUpdate, PendingCreate,
+  TaskState, GroupBy, PendingUpdate, PendingCreate, TagColorOption,
   newFilter, filterMatches, sectionEq, emptyConfig, taskTitle, taskTags, displayTitle,
   scheduleDay, deadlineDay, completedDay, sourceName, startOfToday, markdownParts, rebuiltMarkdown,
-  isBacklogTask, DEFAULT_BACKLOG_TAG,
+  isBacklogTask, DEFAULT_BACKLOG_TAG, DEFAULT_TAG_COLOR_PALETTE,
 } from './types'
 import * as craft from './craft'
 import { loadFromGist, saveToGist, getGistToken } from './gist'
@@ -109,6 +109,7 @@ interface StoreValue {
   setTagColor: (tag: string, color: string | null) => void
   tagCheckboxColors: Record<string, string>
   setTagCheckboxColor: (tag: string, color: string | null) => void
+  tagColorPalette: TagColorOption[]
 
   sync: () => Promise<void>
   cycleState: (t: CraftTask) => void
@@ -827,6 +828,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     savedFilters: sortedFilters, dashboards: sortedDashboards, pinnedItems,
     homeSection: config.homeSection, itemVisibility: config.itemVisibility,
     documentDisplayNames: config.documentDisplayNames, tagColors: config.tagColors, tagCheckboxColors: config.tagCheckboxColors ?? {},
+    tagColorPalette: config.tagColorPalette?.length ? config.tagColorPalette : DEFAULT_TAG_COLOR_PALETTE,
     showCompleted, setShowCompleted, showBacklog, setShowBacklog, backlogTag, backlogTagInput, setBacklogTag,
     todayIncludesOverdue, setTodayIncludesOverdue, searchText, setSearchText,
     syncing, lastSync, lastSyncSummary, syncError,

@@ -555,29 +555,6 @@ export function SettingsModal({ onClose, forced }: { onClose: () => void; forced
 
 // ---- Tag Color Settings ----
 
-const TAG_COLOR_OPTIONS = [
-  { hex: '#FF5733', name: 'Red' },
-  { hex: '#33FF57', name: 'Green' },
-  { hex: '#3357FF', name: 'Blue' },
-  { hex: '#FF33F5', name: 'Purple' },
-  { hex: '#FFD700', name: 'Gold' },
-  { hex: '#FF8C00', name: 'Orange' },
-  { hex: '#00CED1', name: 'Turquoise' },
-  { hex: '#FF69B4', name: 'Hot Pink' },
-  { hex: '#E74C3C', name: 'Crimson' },
-  { hex: '#2ECC71', name: 'Emerald' },
-  { hex: '#1ABC9C', name: 'Teal' },
-  { hex: '#3498DB', name: 'Sky Blue' },
-  { hex: '#9B59B6', name: 'Amethyst' },
-  { hex: '#8E44AD', name: 'Violet' },
-  { hex: '#F1C40F', name: 'Yellow' },
-  { hex: '#E67E22', name: 'Carrot' },
-  { hex: '#95A5A6', name: 'Gray' },
-  { hex: '#2C3E50', name: 'Midnight' },
-  { hex: '#C0392B', name: 'Brick' },
-  { hex: '#16A085', name: 'Pine' },
-]
-
 function TagColorSettings() {
   const store = useStore()
   const [openPicker, setOpenPicker] = useState<{ tag: string; kind: 'border' | 'checkbox' } | null>(null)
@@ -630,7 +607,7 @@ function TagColorSettings() {
 
                 {openPicker?.tag === tag && (
                   <div style={{ padding: 10, background: 'var(--panel-hi)', borderRadius: 6, marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                    {TAG_COLOR_OPTIONS.map(({ hex, name }) => {
+                    {store.tagColorPalette.map(({ hex, name }) => {
                       const current = openPicker.kind === 'border' ? borderColor : checkboxColor
                       const setter = openPicker.kind === 'border' ? store.setTagColor : store.setTagCheckboxColor
                       return (

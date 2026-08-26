@@ -245,6 +245,31 @@ export function sectionEq(a: Section | null | undefined, b: Section | null | und
 
 // ---- Persisted config (synced to Gist) ----
 
+export interface TagColorOption { hex: string; name: string }
+
+export const DEFAULT_TAG_COLOR_PALETTE: TagColorOption[] = [
+  { hex: '#FF5733', name: 'Red' },
+  { hex: '#33FF57', name: 'Green' },
+  { hex: '#3357FF', name: 'Blue' },
+  { hex: '#FF33F5', name: 'Purple' },
+  { hex: '#FFD700', name: 'Gold' },
+  { hex: '#FF8C00', name: 'Orange' },
+  { hex: '#00CED1', name: 'Turquoise' },
+  { hex: '#FF69B4', name: 'Hot Pink' },
+  { hex: '#E74C3C', name: 'Crimson' },
+  { hex: '#2ECC71', name: 'Emerald' },
+  { hex: '#1ABC9C', name: 'Teal' },
+  { hex: '#3498DB', name: 'Sky Blue' },
+  { hex: '#9B59B6', name: 'Amethyst' },
+  { hex: '#8E44AD', name: 'Violet' },
+  { hex: '#F1C40F', name: 'Yellow' },
+  { hex: '#E67E22', name: 'Carrot' },
+  { hex: '#95A5A6', name: 'Gray' },
+  { hex: '#2C3E50', name: 'Midnight' },
+  { hex: '#C0392B', name: 'Brick' },
+  { hex: '#16A085', name: 'Pine' },
+]
+
 export interface ConfigFile {
   filters: TaskFilter[]
   homeSection: Section | null
@@ -253,11 +278,13 @@ export interface ConfigFile {
   itemVisibility: Record<string, ItemVisibility>
   tagColors: Record<string, string>  // tag → hex color (e.g. "#FF5733"), used for the card's left border
   tagCheckboxColors: Record<string, string>  // tag → hex color, used for the checkbox ring on open tasks
+  tagColorPalette: TagColorOption[]  // colors offered when assigning a tag color
   backlogTag: string  // tag (without '#') marking a task as backlog/later, e.g. "later"
 }
 
 export const emptyConfig: ConfigFile = {
   filters: [], homeSection: null, dashboards: [], documentDisplayNames: {}, itemVisibility: {}, tagColors: {}, tagCheckboxColors: {},
+  tagColorPalette: DEFAULT_TAG_COLOR_PALETTE,
   backlogTag: DEFAULT_BACKLOG_TAG,
 }
 
