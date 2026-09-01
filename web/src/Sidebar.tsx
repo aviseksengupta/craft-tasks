@@ -1,8 +1,28 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Section, sectionEq, PinnedItem } from './types'
 import { useStore } from './store'
 import { Icon, useContextMenu } from './ui'
-import { SidebarSettingsModal, NamePrompt } from './modals'
+import { SidebarSettingsModal, NamePrompt, LogModal } from './modals'
+
+/** True while ⌘ (Mac) or Ctrl (elsewhere) is held — drives the ⌘-number
+ * hints on the pinned rows, the way Claude desktop reveals ⌘1…⌘9. */
+function useModifierHeld(): boolean {
+  const [held, setHeld] = useState(false)
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => { if (e.key === 'Meta' || e.key === 'Control') setHeld(true) }
+    const up = (e: KeyboardEvent) => { if (e.key === 'Meta' || e.key === 'Control') setHeld(false) }
+    const clear = () => setHeld(false)
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', up)
+    window.addEventListener('blur', clear)
+    return () => {
+      window.removeEventListener('keydown', down)
+      window.removeEventListener('keyup', up)
+      window.removeEventListener('blur', clear)
+    }
+  }, [])
+  return held
+}
 
 export interface NavDef { id: string; icon: string; label: string; section: Section; select: () => void }
 
@@ -17,7 +37,9 @@ export function Sidebar({ section, setSection, open, onNavigate, onClose, onOpen
 }) {
   const store = useStore()
   const [showSidebarSettings, setShowSidebarSettings] = useState(false)
+  const [showLog, setShowLog] = useState(false)
   const [showMore, setShowMore] = useState(false)
+  const cmdHeld = useModifierHeld()
   const [renaming, setRenaming] = useState<{ kind: 'view' | 'dashboard'; id: string; name: string } | null>(null)
   const [pinDropTarget, setPinDropTarget] = useState<string | null>(null)
   const draggedPin = useRef<{ kind: 'view' | 'dashboard'; id: string } | null>(null)
@@ -48,7 +70,9 @@ export function Sidebar({ section, setSection, open, onNavigate, onClose, onOpen
             }])}>
       <span className="glyph"><Icon name={def.icon} size={12} /></span>
       {def.label}
-      {def.id !== 'home' && store.isHomeTarget(def.section) && <span className="home-mark"><Icon name="house" size={8} /></span>}
+      {def.id === 'home' && cmdHeld
+        ? <span className="shortcut-hint">⌘0</span>
+        : def.id !== 'home' && store.isHomeTarget(def.section) && <span className="home-mark"><Icon name="house" size={8} /></span>}
     </button>
   )
 
@@ -61,6 +85,9 @@ export function Sidebar({ section, setSection, open, onNavigate, onClose, onOpen
       <div className={`sidebar${open ? ' open' : ''}`}>
         <div className="sidebar-head">
           <span className="sidebar-title"><Icon name="stack" size={13} /> Craft Tasks</span>
+          <button className="icon-btn" onClick={() => setShowLog(true)} title="Sync activity log">
+            <Icon name="clock" size={12} />
+          </button>
           <button className="icon-btn" onClick={() => setShowSidebarSettings(true)} title="Sidebar item settings">
             <Icon name="gear" size={12} />
           </button>
@@ -78,7 +105,7 @@ export function Sidebar({ section, setSection, open, onNavigate, onClose, onOpen
 
         <div className="search-box">
           <Icon name="search" size={10} />
-          <input placeholder="Search tasks & documents" value={store.searchText}
+          <input id="sidebarSearch" placeholder="Search tasks & documents" value={store.searchText}
                  onChange={e => store.setSearchText(e.target.value)} />
           {store.searchText && (
             <button className="icon-btn" onClick={() => store.setSearchText('')}><Icon name="xmark" size={9} /></button>
@@ -102,12 +129,13 @@ export function Sidebar({ section, setSection, open, onNavigate, onClose, onOpen
         {pinnedItems.length > 0 && (
           <>
             <div className="sidebar-section-label">PINNED</div>
-            {pinnedItems.map(item => {
+            {pinnedItems.map((item, idx) => {
               const ref = pinnedRef(item)
               const key = `${ref.kind}:${ref.id}`
               return (
                 <PinnedRow key={key} item={item} section={section} setSection={setSection}
                            onNavigate={onNavigate} openAt={openAt} setRenaming={setRenaming}
+                           shortcutHint={cmdHeld && idx < 9 ? idx + 1 : undefined}
                            isDropTarget={pinDropTarget === key}
                            onDragStart={() => { draggedPin.current = ref }}
                            onDragOver={() => setPinDropTarget(key)}
@@ -129,6 +157,7 @@ export function Sidebar({ section, setSection, open, onNavigate, onClose, onOpen
 
       {menu}
       {showSidebarSettings && <SidebarSettingsModal navDefs={navDefs} onClose={() => setShowSidebarSettings(false)} />}
+      {showLog && <LogModal onClose={() => setShowLog(false)} />}
       {renaming && (
         <NamePrompt title={renaming.kind === 'view' ? 'View name' : 'Dashboard name'} initial={renaming.name}
                     onClose={() => setRenaming(null)}
@@ -148,13 +177,14 @@ function pinnedRef(item: PinnedItem): { kind: 'view' | 'dashboard'; id: string }
 }
 
 function PinnedRow({ item, section, setSection, onNavigate, openAt, setRenaming,
-                     isDropTarget, onDragStart, onDragOver, onDragLeave, onDrop }: {
+                     shortcutHint, isDropTarget, onDragStart, onDragOver, onDragLeave, onDrop }: {
   item: PinnedItem
   section: Section
   setSection: (s: Section) => void
   onNavigate: () => void
   openAt: (e: React.MouseEvent, items: { label: string; danger?: boolean; action: () => void }[]) => void
   setRenaming: (r: { kind: 'view' | 'dashboard'; id: string; name: string } | null) => void
+  shortcutHint?: number
   isDropTarget: boolean
   onDragStart: () => void
   onDragOver: () => void
@@ -201,7 +231,9 @@ function PinnedRow({ item, section, setSection, onNavigate, openAt, setRenaming,
             ])}>
       <span className="glyph"><Icon name={icon} size={11} /></span>
       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
-      {store.isHomeTarget(target) && <span className="home-mark"><Icon name="house" size={8} /></span>}
+      {shortcutHint != null
+        ? <span className="shortcut-hint">⌘{shortcutHint}</span>
+        : store.isHomeTarget(target) && <span className="home-mark"><Icon name="house" size={8} /></span>}
     </button>
   )
 }

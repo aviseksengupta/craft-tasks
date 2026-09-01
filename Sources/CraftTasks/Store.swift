@@ -335,14 +335,29 @@ final class Store: ObservableObject {
             let pendingIds = Set(db.pendingUpdates().map(\.taskId))
                 .union(db.pendingCreates().map(\.localId))
             let r = try await SyncEngine.fetchAndDiff(db: db, skipping: pendingIds)
-            if !r.unchanged { tasks = db.loadAll() }
+            if !r.unchanged {
+                tasks = db.loadAll()
+                AppLog.shared.log("Sync pulled +\(r.added) ~\(r.updated) −\(r.removed) (\(r.total) tasks)")
+            }
             lastSync = Date()
             lastSyncSummary = r.unchanged
                 ? "Up to date · \(r.total) tasks"
                 : "+\(r.added) · ~\(r.updated) · −\(r.removed) · \(r.total) tasks"
         } catch {
             syncError = Self.describe(error)
+            AppLog.shared.log("Sync failed: \(Self.describe(error))")
         }
+    }
+
+    /// A short human label for a queued payload, for log lines — strips the
+    /// checkbox prefix, Craft wrapper tags, and collapses whitespace.
+    static func logLabel(_ markdown: String?) -> String {
+        guard let markdown, !markdown.isEmpty else { return "(unknown task)" }
+        var s = markdown.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+        s = s.replacingOccurrences(of: #"^\s*-\s*\[[ xX-]?\]\s*"#, with: "", options: .regularExpression)
+        s = s.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return s.count > 60 ? String(s.prefix(60)) + "…" : s
     }
 
     /// Prefers Craft's own error message when available (e.g. "Cannot
@@ -365,7 +380,7 @@ final class Store: ObservableObject {
     func createTask(title: String, tags: [String], scheduleDate: String?,
                      deadlineDate: String?, documentId: String?, description: String? = nil) {
         let tagSuffix = tags.isEmpty ? "" : " " + tags.map { "#\($0)" }.joined(separator: " ")
-        let markdown = "- [ ] " + title.trimmingCharacters(in: .whitespacesAndNewlines) + tagSuffix
+        let markdown = "- [ ] " + CraftTask.sanitizeMarkdown(title) + tagSuffix
         let location: [String: Any] = documentId.map { ["type": "document", "documentId": $0] } ?? ["type": "inbox"]
 
         let localId = "local-\(UUID().uuidString)"
@@ -389,6 +404,7 @@ final class Store: ObservableObject {
         if let data = try? JSONSerialization.data(withJSONObject: payload),
            let json = String(data: data, encoding: .utf8) {
             db.enqueuePendingCreate(localId: localId, payload: json)
+            AppLog.shared.log("Queued new task \"\(Self.logLabel(markdown))\"")
         }
         pendingCreateCount = db.pendingCreates().count
         Task { await flushPendingCreates() }
@@ -418,6 +434,7 @@ final class Store: ObservableObject {
                 db.delete(ids: [item.localId])
                 db.upsert(created)
                 db.removePendingCreate(localId: item.localId)
+                AppLog.shared.log("Created \"\(Self.logLabel(markdown))\" [\(created.id)]")
                 if let description = dict["description"] as? String, !description.isEmpty {
                     // Best-effort: the task line itself already synced, so a
                     // failure here shouldn't roll anything back.
@@ -429,6 +446,7 @@ final class Store: ObservableObject {
                 // same reasoning as flushPending() above.
                 if (error as? SyncError)?.isLikelyTransient == false {
                     syncError = "New task can't sync: \(Self.describe(error))"
+                    AppLog.shared.log("✗ New task rejected \"\(Self.logLabel(markdown))\" — \(Self.describe(error))")
                 }
             }
         }
@@ -493,6 +511,7 @@ final class Store: ObservableObject {
         if let data = try? JSONSerialization.data(withJSONObject: payload),
            let json = String(data: data, encoding: .utf8) {
             db.enqueuePending(taskId: task.id, payload: json)
+            AppLog.shared.log("Queued edit \"\(Self.logLabel(newMarkdown))\" [\(task.id)]")
         }
         pendingCount = db.pendingUpdates().count
         Task { await flushPending() }
@@ -510,11 +529,38 @@ final class Store: ObservableObject {
             try await SyncEngine.pushUpdates(payloads)
             db.removePending(taskIds: pending.map(\.taskId))
             pendingCount = 0
+            AppLog.shared.log("Pushed \(payloads.count) queued edit(s)")
         } catch {
-            let reason = Self.describe(error)
-            syncError = (error as? SyncError)?.isLikelyTransient == false
-                ? "\(pending.count) change(s) can't sync: \(reason)"
-                : "Offline — \(pending.count) change(s) queued"
+            // A transient failure (offline / 5xx) rejects the whole batch —
+            // keep everything queued and don't bother probing individually.
+            if (error as? SyncError)?.isLikelyTransient != false {
+                syncError = "Offline — \(pending.count) change(s) queued"
+                AppLog.shared.log("Offline — \(pending.count) edit(s) still queued")
+                return
+            }
+            // Permanent rejection: the batch fails as a unit, so one bad
+            // payload blocks every other change. Retry each on its own to
+            // push the good ones and pin down which task Craft rejects.
+            AppLog.shared.log("Batch push rejected — isolating (\(pending.count) edits)")
+            var pushed = 0, rejected = 0
+            var lastReason = Self.describe(error)
+            for item in pending {
+                let dict = (item.payload.data(using: .utf8)
+                    .flatMap { try? JSONSerialization.jsonObject(with: $0) }) as? [String: Any]
+                guard let dict else { db.removePending(taskIds: [item.taskId]); continue }
+                do {
+                    try await SyncEngine.pushUpdates([dict])
+                    db.removePending(taskIds: [item.taskId])
+                    pushed += 1
+                } catch {
+                    rejected += 1
+                    lastReason = Self.describe(error)
+                    AppLog.shared.log("✗ Rejected \"\(Self.logLabel(dict["markdown"] as? String))\" [\(item.taskId)] — \(lastReason)")
+                }
+            }
+            pendingCount = db.pendingUpdates().count
+            if pushed > 0 { AppLog.shared.log("Pushed \(pushed) edit(s); \(rejected) still rejected") }
+            syncError = rejected > 0 ? "\(rejected) change(s) can't sync: \(lastReason)" : nil
         }
     }
 
@@ -527,6 +573,7 @@ final class Store: ObservableObject {
         db.removePending(taskIds: [task.id])
         tasks = db.loadAll()
         pendingCount = db.pendingUpdates().count
+        AppLog.shared.log("Deleted \"\(Self.logLabel(task.markdown))\" [\(task.id)]")
     }
 
     // MARK: saved filters persistence

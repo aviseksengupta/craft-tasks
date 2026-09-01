@@ -88,6 +88,8 @@ struct CraftTask: Identifiable, Codable, Equatable {
     /// Splits raw markdown into wrapper prefix (e.g. "<callout>"), checkbox
     /// prefix ("- [ ] "), editable body, and wrapper suffix, so edits can
     /// rewrite the body while preserving Craft's structural tags.
+    static func sanitizeMarkdown(_ s: String) -> String { s.flattenedToSingleLine() }
+
     struct MarkdownParts {
         var pre: String
         var check: String
@@ -95,6 +97,11 @@ struct CraftTask: Identifiable, Codable, Equatable {
         var post: String
 
         func rebuilt(body newBody: String, state: TaskState) -> String {
+            // A Craft task is a single block: any newline in the body makes
+            // the API parse the markdown into multiple blocks and reject the
+            // whole PUT with MARKDOWN_PARSING_ERROR (400), which then blocks
+            // every other queued change from syncing. Collapse to one line.
+            let newBody = newBody.flattenedToSingleLine()
             var c = check
             if !c.isEmpty {
                 let mark = state == .done ? "x" : (state == .canceled ? "-" : " ")
@@ -571,4 +578,15 @@ func matchTags(_ query: String, in allTags: [String], excluding: [String] = [], 
     let prefix = pool.filter { $0.lowercased().hasPrefix(q) }.sorted()
     let substring = pool.filter { !$0.lowercased().hasPrefix(q) && $0.lowercased().contains(q) }.sorted()
     return Array((prefix + substring).prefix(limit))
+}
+
+extension String {
+    /// Collapses newlines (and the runs of whitespace around them) into a
+    /// single space and trims the ends. Used to keep task markdown a single
+    /// block — Craft rejects multi-block markdown on PUT/POST /tasks.
+    func flattenedToSingleLine() -> String {
+        let joined = replacingOccurrences(
+            of: #"\s*[\r\n]+\s*"#, with: " ", options: .regularExpression)
+        return joined.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 }
