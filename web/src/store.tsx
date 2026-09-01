@@ -5,10 +5,11 @@ import {
   TaskState, GroupBy, PendingUpdate, PendingCreate, TagColorOption,
   newFilter, filterMatches, sectionEq, emptyConfig, taskTitle, taskTags, displayTitle,
   scheduleDay, deadlineDay, completedDay, sourceName, startOfToday, markdownParts, rebuiltMarkdown,
-  isBacklogTask, DEFAULT_BACKLOG_TAG, DEFAULT_TAG_COLOR_PALETTE,
+  isBacklogTask, DEFAULT_BACKLOG_TAG, DEFAULT_TAG_COLOR_PALETTE, flattenSingleLine,
 } from './types'
 import * as craft from './craft'
 import { loadFromGist, saveToGist, getGistToken } from './gist'
+import { logLine, logLabel } from './log'
 
 export interface DocumentSummary {
   id: string; title: string; craftTitle: string
@@ -265,11 +266,37 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       await craft.pushUpdates(p.map(x => x.payload))
       persistPending([])
       setSyncError(null)
+      logLine(`Pushed ${p.length} queued edit(s)`)
     } catch (e) {
       const err = e as craft.ApiError
-      setSyncError(err.isLikelyTransient === false
-        ? `${p.length} change(s) can't sync: ${err.message}`
-        : `Offline — ${p.length} change(s) queued`)
+      // Transient (offline / 5xx): the whole batch is rejected — keep it
+      // all queued, don't bother probing individually.
+      if (err.isLikelyTransient !== false) {
+        setSyncError(`Offline — ${p.length} change(s) queued`)
+        logLine(`Offline — ${p.length} edit(s) still queued`)
+        return
+      }
+      // Permanent rejection: the batch fails as a unit, so one bad payload
+      // blocks every other change. Retry each on its own to push the good
+      // ones and pin down which task Craft rejects.
+      logLine(`Batch push rejected — isolating (${p.length} edits)`)
+      let pushed = 0, rejected = 0
+      let lastReason = err.message
+      const stuck: typeof p = []
+      for (const item of p) {
+        try {
+          await craft.pushUpdates([item.payload])
+          pushed++
+        } catch (e2) {
+          rejected++
+          lastReason = e2 instanceof Error ? e2.message : String(e2)
+          stuck.push(item)
+          logLine(`✗ Rejected "${logLabel(item.payload.markdown as string)}" [${item.taskId}] — ${lastReason}`)
+        }
+      }
+      persistPending(stuck)
+      if (pushed > 0) logLine(`Pushed ${pushed} edit(s); ${rejected} still rejected`)
+      setSyncError(rejected > 0 ? `${rejected} change(s) can't sync: ${lastReason}` : null)
     }
   }, [persistPending])
 
@@ -281,6 +308,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const created = await craft.createTask(item.payload)
         persistTasks([...tasksRef.current.filter(t => t.id !== item.localId), created])
         persistPendingCreates(pendingCreatesRef.current.filter(x => x.localId !== item.localId))
+        logLine(`Created "${logLabel(item.payload.markdown as string)}" [${created.id}]`)
         if (item.description) {
           // Best-effort: the task line itself already synced, so a failure
           // here shouldn't roll anything back — just leave it undescribed.
@@ -290,6 +318,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const err = e as craft.ApiError
         if (err.isLikelyTransient === false) {
           setSyncError(`New task can't sync: ${err.message}`)
+          logLine(`✗ New task rejected "${logLabel(item.payload.markdown as string)}" — ${err.message}`)
           // Permanent rejection: drop from queue and remove the optimistic row.
           persistTasks(tasksRef.current.filter(t => t.id !== item.localId))
           persistPendingCreates(pendingCreatesRef.current.filter(x => x.localId !== item.localId))
@@ -329,7 +358,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (!seen.has(t.id) && pendingIds.has(t.id)) next.push(t)
       }
       const removed = tasksRef.current.filter(t => !seen.has(t.id) && !pendingIds.has(t.id)).length
-      if (added || updated || removed) persistTasks(next)
+      if (added || updated || removed) {
+        persistTasks(next)
+        logLine(`Sync pulled +${added} ~${updated} −${removed} (${remote.length} tasks)`)
+      }
       const now = new Date()
       setLastSync(now)
       localStorage.setItem('lastSync', now.toISOString())
@@ -337,7 +369,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         ? `Up to date · ${remote.length} tasks`
         : `+${added} · ~${updated} · −${removed} · ${remote.length} tasks`)
     } catch (e) {
-      setSyncError(e instanceof Error ? e.message : String(e))
+      const msg = e instanceof Error ? e.message : String(e)
+      setSyncError(msg)
+      logLine(`Sync failed: ${msg}`)
     } finally {
       syncingRef.current = false
       setSyncing(false)
@@ -382,6 +416,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
     if (locationPayload) payload.location = locationPayload
     persistPending([...pendingRef.current.filter(x => x.taskId !== task.id), { taskId: task.id, payload }])
+    logLine(`Queued edit "${logLabel(newMarkdown)}" [${task.id}]`)
     flushPending()
   }, [persistTasks, persistPending, flushPending])
 
@@ -405,7 +440,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const createTask = useCallback((title: string, tags: string[], scheduleDate: string | null,
                                   deadlineDate: string | null, documentId: string | null, description?: string) => {
     const tagSuffix = tags.length ? ' ' + tags.map(t => `#${t}`).join(' ') : ''
-    const markdown = '- [ ] ' + title.trim() + tagSuffix
+    const markdown = '- [ ] ' + flattenSingleLine(title) + tagSuffix
     const location = documentId ? { type: 'document', documentId } : { type: 'inbox' }
     const localId = `local-${crypto.randomUUID()}`
     const optimistic: CraftTask = {
@@ -423,6 +458,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const trimmedDescription = description?.trim()
     persistPendingCreates([...pendingCreatesRef.current,
       { localId, payload, ...(trimmedDescription ? { description: trimmedDescription } : {}) }])
+    logLine(`Queued new task "${logLabel(markdown)}"`)
     flushPendingCreates()
   }, [persistTasks, persistPendingCreates, flushPendingCreates])
 
@@ -430,6 +466,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await craft.deleteTask(task.id)
     persistTasks(tasksRef.current.filter(t => t.id !== task.id))
     persistPending(pendingRef.current.filter(x => x.taskId !== task.id))
+    logLine(`Deleted "${logLabel(task.markdown)}" [${task.id}]`)
   }, [persistTasks, persistPending])
 
   // ---- derived ----

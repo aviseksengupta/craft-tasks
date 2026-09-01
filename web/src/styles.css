@@ -313,6 +313,37 @@ h1, h2, h3 { font-weight: 600; }
 }
 .modal textarea { min-height: 64px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; align-items: center; }
+
+/* ⌘-number hints on sidebar rows (revealed while ⌘/Ctrl is held) */
+.sidebar-item .shortcut-hint {
+  margin-left: auto; font-size: 10px; font-weight: 500; color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sync activity log viewer */
+.log-view {
+  background: var(--chip-bg); border: 1px solid var(--stroke); border-radius: 8px;
+  padding: 10px; max-height: 46vh; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.log-line {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px;
+  color: var(--text-lo); white-space: pre-wrap; word-break: break-word;
+}
+.log-line.problem { color: var(--danger); }
+
+/* ⌘K quick-open */
+.quick-open { display: flex; flex-direction: column; gap: 10px; }
+.qo-field { display: flex; align-items: center; gap: 8px; color: var(--text-faint); }
+.qo-field input { flex: 1; padding: 4px 0 !important; border: none !important; font-size: 15px !important; background: none; }
+.qo-list { display: flex; flex-direction: column; gap: 2px; }
+.qo-item {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px;
+  color: var(--text); font-size: 13px; text-align: left; width: 100%;
+}
+.qo-item.active { background: var(--panel-hi); }
+.qo-item .qo-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qo-item .qo-count { font-size: 10px; color: var(--text-faint); flex-shrink: 0; }
 .btn { padding: 6px 14px; border-radius: 7px; font-size: 12px; font-weight: 500; background: var(--chip-bg); border: 1px solid var(--stroke); color: var(--text); }
 .btn:hover { background: var(--panel-hi); }
 .btn.primary { background: var(--accent); color: #000; border-color: transparent; font-weight: 600; }

@@ -96,7 +96,17 @@ export function markdownParts(md: string): MarkdownParts {
   return { pre: m[1] ?? '', check: m[2] ?? '', body: m[3] ?? '', post: m[4] ?? '' }
 }
 
+/// Collapse newlines (and surrounding whitespace) to a single space and
+/// trim. A Craft task must be a single block — a newline in the markdown
+/// makes the API parse it into multiple blocks and reject the whole
+/// PUT/POST with MARKDOWN_PARSING_ERROR (400), which blocks every other
+/// queued change from syncing.
+export function flattenSingleLine(s: string): string {
+  return s.replace(/\s*[\r\n]+\s*/g, ' ').trim()
+}
+
 export function rebuiltMarkdown(parts: MarkdownParts, body: string, state: TaskState): string {
+  body = flattenSingleLine(body)
   let c = parts.check
   if (c) {
     const mark = state === 'done' ? 'x' : state === 'canceled' ? '-' : ' '

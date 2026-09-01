@@ -1,3 +1,37 @@
+# Craft Tasks — Keyboard Shortcuts & Sync Activity Log
+
+## ⌨️ Keyboard shortcuts
+
+Both the macOS app and the PWA now respond to:
+
+- **⌘F** — jump to the sidebar search box
+- **⌘K** — open a Spotlight-style quick-open bar that filters your
+  **documents by name**; ↑/↓ to move, ⏎ to open, click also works
+- **⌘0** — go Home
+- **⌘1**–**⌘9** — open the 1st–9th pinned view or dashboard (in the
+  order they appear in the sidebar's PINNED section)
+
+Hold **⌘** and the pinned rows (and Home) reveal their ⌘-number badge,
+the way Claude desktop hints its chat shortcuts.
+
+## 🩺 Sync Activity log
+
+A new list icon next to the sidebar's gear opens **Sync Activity** — the
+last ~50 lines of what synced, what was queued, and, when Craft rejects
+a change, **exactly which task and why**. If a batch of queued edits is
+rejected, each edit is now retried on its own so one bad task can't
+block the rest — and the offending task is named in the log.
+
+## 🐛 Fixed: one bad task could stall all syncing
+
+A task whose text contained a line break was rejected by Craft with a
+`MARKDOWN_PARSING_ERROR` (a task must be a single block), and because
+edits are pushed as one batch, that single rejection blocked every other
+queued change. Task text is now flattened to a single line on save, on
+both apps.
+
+---
+
 # Craft Tasks — Unified Task Screens
 
 ## ✨ New Task and Edit Task now behave the same

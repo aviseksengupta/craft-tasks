@@ -6,6 +6,7 @@ import { useStore, DocumentSummary, buildBackup, applyBackup, defaultBackup, App
 import * as craft from './craft'
 import { getGistToken, setGistToken } from './gist'
 import { Modal, Icon, DateChip, StateCycle, MenuChip, MenuItem } from './ui'
+import { readLog, clearLog } from './log'
 
 // ---- Shared @-mention date parsing (Craft-style: @<day number>, @<weekday>,
 // @today/@tomorrow, @m/d, @yyyy-mm-dd) ----
@@ -786,6 +787,99 @@ export function ViewPicker({ title, cta, views, requireName, onClose, onDone }: 
         <button className="btn" onClick={onClose}>Cancel</button>
         <button className="btn primary" disabled={disabled}
                 onClick={() => { onDone(name.trim(), [...selected]); onClose() }}>{cta}</button>
+      </div>
+    </Modal>
+  )
+}
+
+// ---- Sync activity log viewer ----
+
+function isProblemLine(line: string): boolean {
+  return line.includes('✗') || line.includes('failed') || line.includes('rejected') || line.includes("can't sync")
+}
+
+export function LogModal({ onClose }: { onClose: () => void }) {
+  const [lines, setLines] = useState<string[]>(() => readLog(50))
+  const reload = () => setLines(readLog(50))
+  return (
+    <Modal onClose={onClose}>
+      <h2 style={{ justifyContent: 'space-between' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icon name="clock" size={15} /> Sync Activity
+        </span>
+        <button className="icon-btn" onClick={reload} title="Refresh"><Icon name="refresh" size={13} /></button>
+      </h2>
+      <div className="log-view">
+        {lines.length === 0
+          ? <div className="hint-text">No activity logged yet.</div>
+          : lines.map((line, i) => (
+              <div key={i} className={`log-line${isProblemLine(line) ? ' problem' : ''}`}>{line}</div>
+            ))}
+      </div>
+      <div className="modal-actions">
+        <button className="btn" onClick={() => { navigator.clipboard?.writeText(lines.join('\n')) }}>Copy</button>
+        <button className="btn" onClick={() => { clearLog(); reload() }}>Clear Log</button>
+        <button className="btn primary" onClick={onClose}>Done</button>
+      </div>
+    </Modal>
+  )
+}
+
+// ---- ⌘K quick-open: filter documents by name, jump to that document's tasks ----
+
+export function QuickOpenModal({ onOpen, onClose }: {
+  onOpen: (docId: string) => void; onClose: () => void
+}) {
+  const store = useStore()
+  const [query, setQuery] = useState('')
+  const [sel, setSel] = useState(0)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { inputRef.current?.focus() }, [])
+
+  const matches = useMemo(() => {
+    const docs = store.documents.filter(d => d.id !== 'inbox')
+    const q = query.trim().toLowerCase()
+    if (!q) return docs
+    return docs
+      .filter(d => d.title.toLowerCase().includes(q))
+      .sort((a, b) => {
+        const ap = a.title.toLowerCase().startsWith(q), bp = b.title.toLowerCase().startsWith(q)
+        if (ap !== bp) return ap ? -1 : 1
+        return a.title.localeCompare(b.title)
+      })
+  }, [store.documents, query])
+  const results = matches.slice(0, 8)
+
+  const choose = (doc: DocumentSummary) => { onOpen(doc.id); onClose() }
+
+  return (
+    <Modal onClose={onClose} narrow>
+      <div className="quick-open">
+        <div className="qo-field">
+          <Icon name="search" size={13} />
+          <input ref={inputRef} placeholder="Open document…" value={query}
+                 onChange={e => { setQuery(e.target.value); setSel(0) }}
+                 onKeyDown={e => {
+                   if (e.key === 'ArrowDown') { e.preventDefault(); setSel(s => Math.min(s + 1, results.length - 1)) }
+                   else if (e.key === 'ArrowUp') { e.preventDefault(); setSel(s => Math.max(s - 1, 0)) }
+                   else if (e.key === 'Enter') { e.preventDefault(); if (results[sel]) choose(results[sel]) }
+                 }} />
+        </div>
+        {results.length > 0 ? (
+          <div className="qo-list">
+            {results.map((doc, i) => (
+              <button key={doc.id} className={`qo-item${i === sel ? ' active' : ''}`}
+                      onMouseEnter={() => setSel(i)} onClick={() => choose(doc)}>
+                <Icon name="doc" size={11} />
+                <span className="qo-title">{doc.title}</span>
+                <span className="qo-count">{doc.open} open</span>
+              </button>
+            ))}
+          </div>
+        ) : query.trim() ? (
+          <div className="hint-text" style={{ padding: '4px 2px' }}>No documents match “{query}”</div>
+        ) : null}
       </div>
     </Modal>
   )

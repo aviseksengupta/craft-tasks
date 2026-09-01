@@ -6,7 +6,7 @@ import { BottomNav } from './BottomNav'
 import { TaskListView } from './TaskList'
 import { DocumentsView, ViewsPage, DashboardsPage } from './Cards'
 import { DashboardView } from './DashboardView'
-import { SettingsModal, AddTaskModal } from './modals'
+import { SettingsModal, AddTaskModal, QuickOpenModal } from './modals'
 import { Icon } from './ui'
 
 function Root() {
@@ -15,7 +15,35 @@ function Root() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showAddTask, setShowAddTask] = useState(false)
+  const [showQuickOpen, setShowQuickOpen] = useState(false)
   const [booted, setBooted] = useState(false)
+
+  // ---- keyboard shortcuts: ⌘F search · ⌘K quick-open · ⌘0 Home · ⌘1–⌘9 pinned ----
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return
+      const k = e.key.toLowerCase()
+      if (k === 'f') {
+        e.preventDefault()
+        setSidebarOpen(true)
+        const focusSearch = () => (document.getElementById('sidebarSearch') as HTMLInputElement | null)?.focus()
+        focusSearch()               // desktop: sidebar is always mounted
+        setTimeout(focusSearch, 0)  // mobile: after the drawer opens
+      } else if (k === 'k') {
+        e.preventDefault()
+        setShowQuickOpen(true)
+      } else if (/^[0-9]$/.test(e.key)) {
+        e.preventDefault()
+        if (e.key === '0') { setSection(store.navigateHome()); return }
+        const item = store.pinnedItems[Number(e.key) - 1]
+        if (!item) return
+        if (item.kind === 'view') { store.selectSaved(item.filter.id); setSection({ kind: 'saved', id: item.filter.id }) }
+        else setSection({ kind: 'dashboard', id: item.dashboard.id })
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [store])
 
   useEffect(() => {
     if (!booted && store.configured) {
@@ -54,6 +82,11 @@ function Root() {
         <SettingsModal forced={!store.configured} onClose={() => setShowSettings(false)} />
       )}
       {showAddTask && <AddTaskModal onClose={() => setShowAddTask(false)} />}
+      {showQuickOpen && (
+        <QuickOpenModal
+          onOpen={id => { store.openDocument(id); setSection({ kind: 'allTasks' }) }}
+          onClose={() => setShowQuickOpen(false)} />
+      )}
     </div>
   )
 }

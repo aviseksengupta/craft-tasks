@@ -15,9 +15,38 @@ enum Section: Hashable, Codable {
     case dashboard(UUID)
 }
 
+/// Publishes whether ⌘ is currently held down, via a local NSEvent monitor.
+/// Drives the ⌘-number hints shown on the pinned sidebar rows (the way
+/// Claude desktop reveals ⌘1…⌘9 on recent chats while ⌘ is held).
+final class CommandKeyWatcher: ObservableObject {
+    @Published var held = false
+    private var monitor: Any?
+
+    func start() {
+        guard monitor == nil else { return }
+        monitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            self?.held = event.modifierFlags.contains(.command)
+            return event
+        }
+    }
+
+    deinit { if let monitor { NSEvent.removeMonitor(monitor) } }
+}
+
 struct RootView: View {
     @EnvironmentObject var store: Store
     @State var section: Section = .home
+    @State private var showQuickOpen = false
+    @FocusState private var searchFocused: Bool
+
+    /// Opens the nth pinned view/dashboard (0-based), mirroring PinnedItemRow.
+    private func openPinned(_ index: Int) {
+        let items = store.pinnedItems
+        guard items.indices.contains(index) else { return }
+        let item = items[index]
+        if case .view(let f) = item { store.selectSaved(f.id) }
+        section = item.ref.asSection
+    }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -26,7 +55,7 @@ struct RootView: View {
             // HStack can start compressing a `.frame(width:)`-pinned child
             // once the window shrinks below the combined ideal width,
             // instead of shrinking the flexible content pane next to it.
-            Sidebar(section: $section)
+            Sidebar(section: $section, searchFocused: $searchFocused)
                 .layoutPriority(1)
             Rectangle().fill(Theme.stroke).frame(width: 1)
             Group {
@@ -43,7 +72,34 @@ struct RootView: View {
         .background(Theme.bg)
         .preferredColorScheme(.dark)
         .fontDesign(.rounded)
+        .background(shortcutButtons)
         .onAppear { section = store.navigateHome() }
+        .sheet(isPresented: $showQuickOpen) {
+            QuickOpenSheet { docId in
+                store.openDocument(id: docId)
+                section = .allTasks
+            }
+        }
+    }
+
+    /// Invisible buttons that carry the app's keyboard shortcuts. Kept in a
+    /// `.background` so they never affect layout but still register with the
+    /// responder chain: ⌘F focuses search, ⌘K opens quick-open, ⌘1–⌘9 jump
+    /// to a pinned view/dashboard.
+    private var shortcutButtons: some View {
+        ZStack {
+            Button("") { searchFocused = true }
+                .keyboardShortcut("f", modifiers: .command)
+            Button("") { showQuickOpen = true }
+                .keyboardShortcut("k", modifiers: .command)
+            Button("") { section = store.navigateHome() }
+                .keyboardShortcut("0", modifiers: .command)
+            ForEach(1...9, id: \.self) { n in
+                Button("") { openPinned(n - 1) }
+                    .keyboardShortcut(KeyEquivalent(Character("\(n)")), modifiers: .command)
+            }
+        }
+        .opacity(0)
     }
 }
 
@@ -62,8 +118,11 @@ struct NavItemDef: Identifiable {
 struct Sidebar: View {
     @EnvironmentObject var store: Store
     @Binding var section: Section
+    @FocusState.Binding var searchFocused: Bool
+    @StateObject private var cmdKey = CommandKeyWatcher()
     @State private var showAddTask = false
     @State private var showSidebarSettings = false
+    @State private var showLog = false
     @State private var showMoreItems = false
 
     /// Home is "active" whenever the current section IS whatever Home
@@ -92,7 +151,8 @@ struct Sidebar: View {
     @ViewBuilder
     private func navRow(_ def: NavItemDef) -> some View {
         if def.id == "home" {
-            SidebarItem(icon: def.icon, label: def.label, active: isActive(def)) { def.select() }
+            SidebarItem(icon: def.icon, label: def.label, active: isActive(def),
+                        shortcutHint: cmdKey.held ? 0 : nil) { def.select() }
         } else {
             SidebarItem(icon: def.icon, label: def.label, active: isActive(def),
                         isHomeTarget: store.isHomeTarget(def.section)) { def.select() }
@@ -113,6 +173,12 @@ struct Sidebar: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(Theme.textHi)
                 Spacer()
+                Button { showLog = true } label: {
+                    Image(systemName: "list.bullet.rectangle").font(.system(size: 11)).foregroundColor(Theme.textFaint)
+                }
+                .buttonStyle(.plain)
+                .help("Sync activity log")
+                .sheet(isPresented: $showLog) { LogViewerSheet() }
                 Button { showSidebarSettings = true } label: {
                     Image(systemName: "gearshape").font(.system(size: 11)).foregroundColor(Theme.textFaint)
                 }
@@ -141,6 +207,7 @@ struct Sidebar: View {
                 Image(systemName: "magnifyingglass").font(.system(size: 10)).foregroundColor(Theme.textFaint)
                 TextField("Search tasks & documents", text: $store.searchText)
                     .textFieldStyle(.plain).font(.system(size: 12)).foregroundColor(Theme.text)
+                    .focused($searchFocused)
                 if !store.searchText.isEmpty {
                     Button { store.searchText = "" } label: {
                         Image(systemName: "xmark.circle.fill").font(.system(size: 11))
@@ -178,8 +245,9 @@ struct Sidebar: View {
                     .font(.system(size: 9, weight: .semibold)).tracking(1.2)
                     .foregroundColor(Theme.textFaint)
                     .padding(.horizontal, 16).padding(.top, 18).padding(.bottom, 4)
-                ForEach(pinnedItems) { item in
-                    PinnedItemRow(item: item, active: section == item.ref.asSection, section: $section)
+                ForEach(Array(pinnedItems.enumerated()), id: \.element.id) { idx, item in
+                    PinnedItemRow(item: item, active: section == item.ref.asSection, section: $section,
+                                  shortcutHint: (cmdKey.held && idx < 9) ? idx + 1 : nil)
                 }
             }
 
@@ -189,6 +257,7 @@ struct Sidebar: View {
         .frame(width: 210)
         .background(Theme.panel)
         .craftShadow(radius: 16, y: 0)
+        .onAppear { cmdKey.start() }
     }
 }
 
@@ -208,6 +277,7 @@ struct PinnedItemRow: View {
     let item: PinnedItem
     let active: Bool
     @Binding var section: Section
+    var shortcutHint: Int? = nil
     @State private var hover = false
     @State private var renaming = false
     @State private var isTargeted = false
@@ -249,7 +319,12 @@ struct PinnedItemRow: View {
                 Image(systemName: icon).font(.system(size: 10)).frame(width: 16)
                 Text(item.name).font(.system(size: 12)).lineLimit(1)
                 Spacer()
-                if isHome { Image(systemName: "house.fill").font(.system(size: 8)).foregroundColor(Theme.textFaint) }
+                if let n = shortcutHint {
+                    Text("\u{2318}\(n)").font(.system(size: 10, weight: .medium))
+                        .foregroundColor(Theme.textFaint)
+                } else if isHome {
+                    Image(systemName: "house.fill").font(.system(size: 8)).foregroundColor(Theme.textFaint)
+                }
             }
             .foregroundColor(active ? Theme.textHi : Theme.textLo)
             .padding(.horizontal, 10).padding(.vertical, 5)
@@ -709,6 +784,7 @@ struct SidebarItem: View {
     let label: String
     let active: Bool
     var isHomeTarget: Bool = false
+    var shortcutHint: Int? = nil
     let action: () -> Void
     @State private var hover = false
 
@@ -718,7 +794,11 @@ struct SidebarItem: View {
                 Image(systemName: icon).font(.system(size: 11, weight: .medium)).frame(width: 16)
                 Text(label).font(.system(size: 12, weight: active ? .semibold : .regular))
                 Spacer()
-                if isHomeTarget { Image(systemName: "house.fill").font(.system(size: 8)).foregroundColor(Theme.textFaint) }
+                if let n = shortcutHint {
+                    Text("\u{2318}\(n)").font(.system(size: 10, weight: .medium)).foregroundColor(Theme.textFaint)
+                } else if isHomeTarget {
+                    Image(systemName: "house.fill").font(.system(size: 8)).foregroundColor(Theme.textFaint)
+                }
             }
             .foregroundColor(active ? Theme.textHi : Theme.textLo)
             .padding(.horizontal, 10).padding(.vertical, 6)
@@ -813,6 +893,154 @@ struct SyncStatus: View {
             }
             .padding(.horizontal, 14).padding(.vertical, 10)
         }
+    }
+}
+
+/// Read-only viewer for the sync activity log (AppLog). Shows the most
+/// recent lines — enough to see what was queued and, when a change won't
+/// sync, exactly which task Craft rejected and why.
+struct LogViewerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var lines: [String] = []
+
+    private func isProblem(_ line: String) -> Bool {
+        line.contains("✗") || line.contains("failed") || line.contains("rejected")
+            || line.contains("can't sync")
+    }
+
+    private func reload() { lines = AppLog.shared.recent(50) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: "list.bullet.rectangle").font(.system(size: 12)).foregroundColor(Theme.textLo)
+                Text("Sync Activity").font(.system(size: 14, weight: .semibold)).foregroundColor(Theme.textHi)
+                Spacer()
+                Button { reload() } label: { Image(systemName: "arrow.clockwise") }
+                    .buttonStyle(.plain).foregroundColor(Theme.textLo).help("Refresh")
+            }
+            .padding(.horizontal, 16).padding(.vertical, 12)
+            Rectangle().fill(Theme.stroke).frame(height: 1)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 3) {
+                    if lines.isEmpty {
+                        Text("No activity logged yet.")
+                            .font(.system(size: 11)).foregroundColor(Theme.textFaint)
+                            .padding(.vertical, 8)
+                    }
+                    ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+                        Text(line)
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundColor(isProblem(line) ? Theme.danger : Theme.textLo)
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .padding(12)
+            }
+            .background(Theme.chipBg)
+
+            Rectangle().fill(Theme.stroke).frame(height: 1)
+            HStack {
+                Button("Copy") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(lines.joined(separator: "\n"), forType: .string)
+                }
+                Button("Clear Log") { AppLog.shared.clear(); reload() }
+                Spacer()
+                Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
+            }
+            .padding(.horizontal, 16).padding(.vertical, 12)
+        }
+        .frame(width: 560, height: 460)
+        .background(Theme.panel)
+        .onAppear(perform: reload)
+    }
+}
+
+/// ⌘K quick-open: a Spotlight-style bar that filters documents by name and
+/// jumps straight to that document's task list. Scope is deliberately just
+/// document names for now.
+struct QuickOpenSheet: View {
+    @EnvironmentObject var store: Store
+    @Environment(\.dismiss) private var dismiss
+    let onOpen: (String) -> Void
+
+    @State private var query = ""
+    @State private var selection = 0
+    @FocusState private var fieldFocused: Bool
+
+    private var matches: [DocumentSummary] {
+        let docs = store.documents.filter { $0.id != "inbox" }
+        let q = query.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty else { return docs }
+        return docs
+            .filter { $0.title.localizedCaseInsensitiveContains(q) }
+            .sorted { a, b in
+                let ap = a.title.lowercased().hasPrefix(q.lowercased())
+                let bp = b.title.lowercased().hasPrefix(q.lowercased())
+                if ap != bp { return ap }
+                return a.title.localizedCaseInsensitiveCompare(b.title) == .orderedAscending
+            }
+    }
+
+    private func open(_ doc: DocumentSummary) {
+        onOpen(doc.id)
+        dismiss()
+    }
+
+    var body: some View {
+        let results = Array(matches.prefix(8))
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass").font(.system(size: 13)).foregroundColor(Theme.textFaint)
+                TextField("Open document…", text: $query)
+                    .textFieldStyle(.plain).font(.system(size: 15)).foregroundColor(Theme.text)
+                    .focused($fieldFocused)
+                    .onSubmit { if results.indices.contains(selection) { open(results[selection]) } }
+                    .onChange(of: query) { _ in selection = 0 }
+            }
+            .padding(.horizontal, 14).padding(.vertical, 12)
+
+            if !results.isEmpty {
+                Rectangle().fill(Theme.stroke).frame(height: 1)
+                VStack(spacing: 0) {
+                    ForEach(Array(results.enumerated()), id: \.element.id) { idx, doc in
+                        HStack(spacing: 8) {
+                            Image(systemName: "doc.text").font(.system(size: 11)).foregroundColor(Theme.textFaint)
+                            Text(doc.title).font(.system(size: 13)).foregroundColor(Theme.text).lineLimit(1)
+                            Spacer()
+                            Text("\(doc.open) open").font(.system(size: 10)).foregroundColor(Theme.textFaint)
+                        }
+                        .padding(.horizontal, 14).padding(.vertical, 8)
+                        .background(idx == selection ? Theme.panelHi : Color.clear)
+                        .contentShape(Rectangle())
+                        .onTapGesture { open(doc) }
+                        .onHover { if $0 { selection = idx } }
+                    }
+                }
+                .padding(.vertical, 4)
+            } else if !query.isEmpty {
+                Rectangle().fill(Theme.stroke).frame(height: 1)
+                Text("No documents match \u{201C}\(query)\u{201D}")
+                    .font(.system(size: 12)).foregroundColor(Theme.textFaint)
+                    .padding(.horizontal, 14).padding(.vertical, 12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .frame(width: 520)
+        .background(Theme.panel)
+        .onAppear { DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { fieldFocused = true } }
+        .onKeyPress(.downArrow) {
+            if !results.isEmpty { selection = min(selection + 1, results.count - 1) }
+            return .handled
+        }
+        .onKeyPress(.upArrow) {
+            selection = max(selection - 1, 0)
+            return .handled
+        }
+        .onKeyPress(.escape) { dismiss(); return .handled }
     }
 }
 
