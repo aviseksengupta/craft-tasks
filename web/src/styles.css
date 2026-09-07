@@ -650,9 +650,34 @@ h1, h2, h3 { font-weight: 600; }
 .agenda-add { margin-top: 2px; width: 20px; height: 20px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: var(--text-faint); border: 1px solid var(--stroke); background: var(--panel); }
 .agenda-add:hover { color: var(--text-hi); }
 .agenda-events { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding-top: 2px; }
-.agenda-none { color: var(--text-faint); font-size: 12px; padding: 4px 0; }
-.agenda-event { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 8px 12px; border-radius: 9px; background: var(--card); border: 1px solid var(--stroke); color: var(--text); }
-.agenda-event:hover { background: var(--panel-hi); }
-.agenda-event .ae-time { font-size: 11px; color: var(--text-lo); font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 62px; }
+.agenda-events:empty { min-height: 34px; }
+.agenda-event { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 8px 12px; border-radius: 9px; background: var(--card); border: 1px solid var(--stroke); color: var(--text); }
+.agenda-event:not(.readonly):hover { background: var(--panel-hi); }
+.agenda-event.readonly { background: transparent; border-color: transparent; cursor: default; opacity: 0.72; }
+.agenda-event .ae-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-faint); flex-shrink: 0; }
+.agenda-event:not(.readonly) .ae-dot { display: none; }
+.agenda-event .ae-time { font-size: 11px; color: var(--text-lo); font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 58px; }
 .agenda-event .ae-title { font-size: 13px; color: var(--text-hi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.agenda-event.readonly .ae-title { color: var(--text); font-weight: 400; }
 .agenda-event .ae-rep { color: var(--text-faint); display: flex; }
+
+/* ---- Time picker ---- */
+.time-chip { position: relative; display: inline-flex; align-items: center; border-radius: 9px; background: var(--chip-bg); border: 1px solid rgba(107,103,94,0.5); color: var(--text); }
+.time-chip:hover { background: var(--panel-hi); }
+.time-chip .main-btn { display: flex; align-items: center; gap: 6px; padding: 5px 12px; }
+.time-chip .val { font-size: 12px; font-variant-numeric: tabular-nums; }
+.time-pop {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 60;
+  background: var(--panel); border: 1px solid var(--stroke); border-radius: 12px;
+  box-shadow: var(--shadow); padding: 8px; display: flex; gap: 4px;
+}
+.tp-col { display: flex; flex-direction: column; gap: 2px; max-height: 176px; overflow-y: auto; scrollbar-width: thin; }
+.tp-col.period { justify-content: flex-start; }
+.tp-opt {
+  min-width: 40px; padding: 6px 10px; border-radius: 7px; font-size: 12px; text-align: center;
+  color: var(--text-lo); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.tp-opt:hover { background: var(--panel-hi); color: var(--text-hi); }
+.tp-opt.selected { background: var(--accent); color: #000; font-weight: 600; }
+.tp-now { margin-top: auto; padding: 6px 10px; border-radius: 7px; font-size: 11px; font-weight: 500; color: var(--text-faint); background: var(--chip-bg); }
+.tp-now:hover { color: var(--text-hi); }

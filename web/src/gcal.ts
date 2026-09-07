@@ -368,3 +368,43 @@ export function eventStart(e: GCalEvent): Date {
 export function isAllDay(e: GCalEvent): boolean {
   return !e.start.dateTime && !!e.start.date
 }
+
+// ---- Multi-calendar agenda (Craft Tasks editable, everything else read-only) ----
+
+interface CalListEntry {
+  id: string
+  summary?: string
+  summaryOverride?: string
+  backgroundColor?: string
+  selected?: boolean
+  accessRole?: string
+}
+
+export interface AgendaEvent {
+  event: GCalEvent
+  calendarId: string
+  calendarName: string
+  color?: string
+  editable: boolean
+}
+
+/** Every event across the user's visible calendars for [from, to). Events on
+ * the dedicated Craft Tasks calendar are `editable`; all others are read-only
+ * context. Respects each calendar's "shown" checkbox in Google Calendar. */
+export async function listAgenda(craftCalId: string, from: Date, to: Date): Promise<AgendaEvent[]> {
+  const list = await api<{ items?: CalListEntry[] }>('/users/me/calendarList?maxResults=250')
+  const cals = (list.items ?? []).filter(c =>
+    c.selected !== false && c.accessRole !== 'freeBusyReader'
+  )
+  const per = await Promise.all(cals.map(async c => {
+    try {
+      const evs = await listEvents(c.id, from, to)
+      const name = c.summaryOverride || c.summary || c.id
+      return evs.map<AgendaEvent>(event => ({
+        event, calendarId: c.id, calendarName: name,
+        color: c.backgroundColor, editable: c.id === craftCalId,
+      }))
+    } catch { return [] as AgendaEvent[] }
+  }))
+  return per.flat()
+}

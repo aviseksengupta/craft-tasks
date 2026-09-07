@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CraftTask, displayTitle, dayOf, sourceName } from './types'
 import { useStore } from './store'
 import { craftDeepLink } from './craft'
-import { Icon, Modal, PageHeadSticky, MiniCalendar } from './ui'
+import { Icon, Modal, PageHeadSticky, MiniCalendar, TimePicker } from './ui'
 import * as gcal from './gcal'
 
 // ---- shared helpers ----
@@ -70,7 +70,7 @@ function EventForm({ value, onChange }: {
         </div>
         <div>
           <div className="form-label">TIME</div>
-          <input type="time" value={value.time} onChange={e => set({ time: e.target.value })} style={{ width: 120 }} />
+          <TimePicker value={value.time} onChange={t => set({ time: t })} />
         </div>
       </div>
 
@@ -192,18 +192,17 @@ export function SendToCalendarModal({ task, onClose }: { task: CraftTask; onClos
 
 // ---- Event editor (inside the Calendar view) ----
 
-function EventEditModal({ calId, event, defaultStart, onClose, onChanged }: {
+function EventEditModal({ calId, event, onClose, onChanged }: {
   calId: string
-  event?: gcal.GCalEvent
-  defaultStart?: Date
+  event: gcal.GCalEvent
   onClose: () => void
   onChanged: () => void
 }) {
-  const isRecurringInstance = !!event?.recurringEventId
-  const start = event ? gcal.eventStart(event) : (defaultStart ?? new Date())
-  const rec = gcal.parseRecurrence(event?.recurrence)
+  const isRecurringInstance = !!event.recurringEventId
+  const start = gcal.eventStart(event)
+  const rec = gcal.parseRecurrence(event.recurrence)
   const [form, setForm] = useState<EventFormState>({
-    title: event?.summary ?? '',
+    title: event.summary ?? '',
     date: (() => { const d = new Date(start); d.setHours(0, 0, 0, 0); return d })(),
     time: timeOf(start),
     repeat: rec.kind,
@@ -223,8 +222,7 @@ function EventEditModal({ calId, event, defaultStart, onClose, onChanged }: {
         repeat: form.canRepeat ? form.repeat : 'none',
         repeatUntil: form.until,
       }
-      if (event) await gcal.updateEvent(calId, event.id, input)
-      else await gcal.createEvent(calId, input)
+      await gcal.updateEvent(calId, event.id, input)
       onChanged(); onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -232,7 +230,6 @@ function EventEditModal({ calId, event, defaultStart, onClose, onChanged }: {
   }
 
   const remove = async (which: 'instance' | 'series') => {
-    if (!event) return
     setBusy(true); setError(null)
     try {
       await gcal.deleteEvent(calId, which === 'series' ? (event.recurringEventId ?? event.id) : event.id)
@@ -244,18 +241,18 @@ function EventEditModal({ calId, event, defaultStart, onClose, onChanged }: {
 
   return (
     <Modal onClose={onClose} narrow>
-      <h2><Icon name="calendarClock" size={15} /> {event ? 'Edit event' : 'New event'}</h2>
+      <h2><Icon name="calendarClock" size={15} /> Edit event</h2>
       <EventForm value={form} onChange={setForm} />
       {error && <div className="error-text">{error}</div>}
       <div className="modal-actions split">
         <div>
-          {event && !confirmDelete && (
+          {!confirmDelete && (
             <button className="btn btn-delete" onClick={() => setConfirmDelete(true)} disabled={busy}>Delete</button>
           )}
-          {event && confirmDelete && !isRecurringInstance && (
+          {confirmDelete && !isRecurringInstance && (
             <button className="btn btn-delete" onClick={() => remove('series')} disabled={busy}>Confirm delete</button>
           )}
-          {event && confirmDelete && isRecurringInstance && (
+          {confirmDelete && isRecurringInstance && (
             <span className="flow-row">
               <button className="btn btn-delete" onClick={() => remove('instance')} disabled={busy}>This event</button>
               <button className="btn btn-delete" onClick={() => remove('series')} disabled={busy}>Whole series</button>
@@ -278,11 +275,11 @@ function EventEditModal({ calId, event, defaultStart, onClose, onChanged }: {
 export function CalendarView() {
   const store = useStore()
   const [weekStart, setWeekStart] = useState(() => mondayOf(new Date()))
-  const [events, setEvents] = useState<gcal.GCalEvent[]>([])
+  const [events, setEvents] = useState<gcal.AgendaEvent[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [connecting, setConnecting] = useState(false)
-  const [editing, setEditing] = useState<{ event?: gcal.GCalEvent; start?: Date } | null>(null)
+  const [editing, setEditing] = useState<gcal.GCalEvent | null>(null)
   const [calId, setCalId] = useState<string | null>(store.craftCalendarId)
 
   const connected = gcal.isConnected()
@@ -295,7 +292,7 @@ export function CalendarView() {
       const id = await gcal.ensureCalendar(store.craftCalendarId)
       if (id !== store.craftCalendarId) store.setCraftCalendarId(id)
       setCalId(id)
-      setEvents(await gcal.listEvents(id, weekStart, weekEnd))
+      setEvents(await gcal.listAgenda(id, weekStart, weekEnd))
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally { setLoading(false) }
@@ -318,8 +315,8 @@ export function CalendarView() {
   })
   const today = new Date(); today.setHours(0, 0, 0, 0)
   const eventsForDay = (d: Date) => events
-    .filter(e => sameDay(gcal.eventStart(e), d))
-    .sort((a, b) => gcal.eventStart(a).getTime() - gcal.eventStart(b).getTime())
+    .filter(a => sameDay(gcal.eventStart(a.event), d))
+    .sort((a, b) => gcal.eventStart(a.event).getTime() - gcal.eventStart(b.event).getTime())
 
   const weekLabel = `${weekStart.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} – ${
     new Date(weekEnd.getTime() - 1).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`
@@ -366,14 +363,14 @@ export function CalendarView() {
                     <div className="agenda-date">
                       <span className="dow">{d.toLocaleDateString(undefined, { weekday: 'short' })}</span>
                       <span className="dnum">{d.getDate()}</span>
-                      <button className="agenda-add" title="New event" onClick={() => setEditing({ start: combine(d, '09:00') })}>
-                        <Icon name="plus" size={12} />
-                      </button>
                     </div>
                     <div className="agenda-events">
-                      {list.length === 0 && <div className="agenda-none">—</div>}
-                      {list.map(e => (
-                        <button key={e.id} className="agenda-event" onClick={() => setEditing({ event: e })}>
+                      {list.map(({ event: e, editable, calendarName, color }) => (
+                        <button key={e.id}
+                                className={`agenda-event${editable ? '' : ' readonly'}`}
+                                onClick={editable ? () => setEditing(e) : undefined}
+                                title={editable ? undefined : calendarName}>
+                          <span className="ae-dot" style={color ? { background: color } : undefined} />
                           <span className="ae-time">{gcal.isAllDay(e) ? 'all day' : fmtTime(gcal.eventStart(e))}</span>
                           <span className="ae-title">{e.summary || '(no title)'}</span>
                           {(e.recurringEventId || e.recurrence) && <span className="ae-rep"><Icon name="refresh" size={9} /></span>}
@@ -391,8 +388,7 @@ export function CalendarView() {
       {editing && calId && (
         <EventEditModal
           calId={calId}
-          event={editing.event}
-          defaultStart={editing.start}
+          event={editing}
           onClose={() => setEditing(null)}
           onChanged={load}
         />

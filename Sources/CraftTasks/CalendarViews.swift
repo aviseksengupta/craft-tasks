@@ -43,8 +43,7 @@ private struct EventFormFields: View {
                 ))
                 VStack(alignment: .leading, spacing: 4) {
                     Text("TIME").font(.system(size: 10, weight: .semibold)).foregroundColor(Theme.textFaint)
-                    DatePicker("", selection: $form.time, displayedComponents: .hourAndMinute)
-                        .labelsHidden().datePickerStyle(.field)
+                    TimeChip(time: $form.time)
                 }
                 Spacer()
             }
@@ -75,6 +74,92 @@ private struct EventFormFields: View {
                     .font(.system(size: 11)).foregroundColor(Theme.textFaint)
             }
         }
+    }
+}
+
+// MARK: - Themed time picker (matches MiniCalendar's popover look)
+
+struct TimeChip: View {
+    @Binding var time: Date
+    @State private var open = false
+    private let cal = Calendar.current
+
+    private var hour12: Int { let h = cal.component(.hour, from: time) % 12; return h == 0 ? 12 : h }
+    private var minute: Int { cal.component(.minute, from: time) }
+    private var isPM: Bool { cal.component(.hour, from: time) >= 12 }
+
+    private func apply(h12: Int? = nil, m: Int? = nil, pm: Bool? = nil) {
+        var h = (h12 ?? hour12) % 12
+        if pm ?? isPM { h += 12 }
+        time = cal.date(bySettingHour: h, minute: m ?? minute, second: 0, of: time) ?? time
+    }
+
+    var body: some View {
+        Button { open.toggle() } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "clock").font(.system(size: 10, weight: .medium))
+                Text(time.formatted(.dateTime.hour().minute())).font(.system(size: 12, weight: .medium))
+            }
+            .padding(.horizontal, 12).padding(.vertical, 5)
+        }
+        .buttonStyle(.plain)
+        .foregroundColor(Theme.text)
+        .background(RoundedRectangle(cornerRadius: 9).fill(Theme.chipBg))
+        .overlay(RoundedRectangle(cornerRadius: 9).stroke(Theme.textFaint.opacity(0.5), lineWidth: 1))
+        .popover(isPresented: $open, arrowEdge: .bottom) {
+            HStack(alignment: .top, spacing: 4) {
+                column(Array(1...12), selected: hour12) { "\($0)" } pick: { apply(h12: $0) }
+                column(Array(stride(from: 0, to: 60, by: 5)), selected: minute) { String(format: "%02d", $0) } pick: { apply(m: $0) }
+                VStack(spacing: 3) {
+                    periodButton("AM", active: !isPM) { apply(pm: false) }
+                    periodButton("PM", active: isPM) { apply(pm: true) }
+                    Spacer(minLength: 0)
+                    Button("Now") {
+                        let n = Date()
+                        let m5 = (cal.component(.minute, from: n) / 5) * 5
+                        time = cal.date(bySettingHour: cal.component(.hour, from: n), minute: m5, second: 0, of: time) ?? n
+                    }
+                    .buttonStyle(.plain).font(.system(size: 11, weight: .medium)).foregroundColor(Theme.textFaint)
+                }
+                .frame(width: 40)
+            }
+            .padding(8)
+            .frame(height: 184)
+            .background(Theme.panel)
+        }
+    }
+
+    private func column(_ values: [Int], selected: Int, label: @escaping (Int) -> String, pick: @escaping (Int) -> Void) -> some View {
+        ScrollViewReader { proxy in
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 2) {
+                    ForEach(values, id: \.self) { v in
+                        Button { pick(v) } label: {
+                            Text(label(v))
+                                .font(.system(size: 12, weight: v == selected ? .semibold : .regular))
+                                .frame(width: 40, height: 26)
+                                .background(RoundedRectangle(cornerRadius: 7).fill(v == selected ? Theme.accent : Color.clear))
+                                .foregroundColor(v == selected ? .black : Theme.textLo)
+                        }
+                        .buttonStyle(.plain)
+                        .id(v)
+                    }
+                }
+            }
+            .frame(width: 46)
+            .onAppear { proxy.scrollTo(selected, anchor: .center) }
+        }
+    }
+
+    private func periodButton(_ text: String, active: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(text)
+                .font(.system(size: 12, weight: active ? .semibold : .regular))
+                .frame(width: 40, height: 26)
+                .background(RoundedRectangle(cornerRadius: 7).fill(active ? Theme.accent : Theme.chipBg))
+                .foregroundColor(active ? .black : Theme.textLo)
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -164,8 +249,7 @@ struct EventEditSheet: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var gcal = GoogleCalendar.shared
     let calId: String
-    let event: GCalEvent?
-    let defaultStart: Date?
+    let event: GCalEvent
     let onChanged: () -> Void
 
     @State private var form: EventFormState
@@ -173,23 +257,22 @@ struct EventEditSheet: View {
     @State private var error: String?
     @State private var confirmingDelete = false
 
-    private var isRecurringInstance: Bool { event?.recurringEventId != nil }
+    private var isRecurringInstance: Bool { event.recurringEventId != nil }
 
-    init(calId: String, event: GCalEvent?, defaultStart: Date?, onChanged: @escaping () -> Void) {
-        self.calId = calId; self.event = event; self.defaultStart = defaultStart; self.onChanged = onChanged
+    init(calId: String, event: GCalEvent, onChanged: @escaping () -> Void) {
+        self.calId = calId; self.event = event; self.onChanged = onChanged
         let cal = Calendar.current
-        let start = event?.start ?? defaultStart ?? Date()
         _form = State(initialValue: EventFormState(
-            title: event?.summary ?? "",
-            date: cal.startOfDay(for: start),
-            time: start,
-            canRepeat: event?.recurringEventId == nil
+            title: event.summary,
+            date: cal.startOfDay(for: event.start),
+            time: event.start,
+            canRepeat: event.recurringEventId == nil
         ))
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(event == nil ? "New event" : "Edit event")
+            Text("Edit event")
                 .font(.system(size: 15, weight: .semibold)).foregroundColor(Theme.textHi)
 
             EventFormFields(form: $form)
@@ -199,21 +282,19 @@ struct EventEditSheet: View {
             }
 
             HStack {
-                if let event {
-                    if !confirmingDelete {
-                        Button("Delete") { confirmingDelete = true }
-                            .foregroundColor(.white).padding(.horizontal, 12).padding(.vertical, 6)
-                            .background(RoundedRectangle(cornerRadius: 7).fill(Theme.destructive))
-                            .buttonStyle(.plain).disabled(busy)
-                    } else if isRecurringInstance {
-                        Button("This event") { Task { await remove(event.id) } }.disabled(busy)
-                        Button("Whole series") { Task { await remove(event.recurringEventId ?? event.id) } }.disabled(busy)
-                    } else {
-                        Button("Confirm delete") { Task { await remove(event.id) } }
-                            .foregroundColor(.white).padding(.horizontal, 12).padding(.vertical, 6)
-                            .background(RoundedRectangle(cornerRadius: 7).fill(Theme.destructive))
-                            .buttonStyle(.plain).disabled(busy)
-                    }
+                if !confirmingDelete {
+                    Button("Delete") { confirmingDelete = true }
+                        .foregroundColor(.white).padding(.horizontal, 12).padding(.vertical, 6)
+                        .background(RoundedRectangle(cornerRadius: 7).fill(Theme.destructive))
+                        .buttonStyle(.plain).disabled(busy)
+                } else if isRecurringInstance {
+                    Button("This event") { Task { await remove(event.id) } }.disabled(busy)
+                    Button("Whole series") { Task { await remove(event.recurringEventId ?? event.id) } }.disabled(busy)
+                } else {
+                    Button("Confirm delete") { Task { await remove(event.id) } }
+                        .foregroundColor(.white).padding(.horizontal, 12).padding(.vertical, 6)
+                        .background(RoundedRectangle(cornerRadius: 7).fill(Theme.destructive))
+                        .buttonStyle(.plain).disabled(busy)
                 }
                 Spacer()
                 Button("Cancel") { dismiss() }.disabled(busy)
@@ -234,8 +315,7 @@ struct EventEditSheet: View {
             repeatUntil: form.until
         )
         do {
-            if let event { try await gcal.updateEvent(calId: calId, eventId: event.id, input) }
-            else { try await gcal.createEvent(calId: calId, input) }
+            try await gcal.updateEvent(calId: calId, eventId: event.id, input)
             onChanged(); dismiss()
         } catch { self.error = error.localizedDescription }
         busy = false
@@ -256,18 +336,12 @@ struct CalendarPageView: View {
     @ObservedObject private var gcal = GoogleCalendar.shared
 
     @State private var weekStart = CalendarPageView.monday(of: Date())
-    @State private var events: [GCalEvent] = []
+    @State private var events: [AgendaEvent] = []
     @State private var loading = false
     @State private var error: String?
     @State private var connecting = false
     @State private var calId: String?
-    @State private var editing: EditTarget?
-
-    private struct EditTarget: Identifiable {
-        let id = UUID()
-        var event: GCalEvent?
-        var start: Date?
-    }
+    @State private var editing: GCalEvent?
 
     private var weekEnd: Date { Calendar.current.date(byAdding: .day, value: 7, to: weekStart)! }
     private var days: [Date] { (0..<7).map { Calendar.current.date(byAdding: .day, value: $0, to: weekStart)! } }
@@ -283,9 +357,9 @@ struct CalendarPageView: View {
             }
         }
         .background(Theme.bg)
-        .sheet(item: $editing) { target in
+        .sheet(item: $editing) { ev in
             if let calId {
-                EventEditSheet(calId: calId, event: target.event, defaultStart: target.start) { Task { await load() } }
+                EventEditSheet(calId: calId, event: ev) { Task { await load() } }
                     .environmentObject(store)
             }
         }
@@ -338,7 +412,7 @@ struct CalendarPageView: View {
 
     private func dayRow(_ day: Date) -> some View {
         let cal = Calendar.current
-        let list = events.filter { cal.isDate($0.start, inSameDayAs: day) }.sorted { $0.start < $1.start }
+        let list = events.filter { cal.isDate($0.event.start, inSameDayAs: day) }.sorted { $0.event.start < $1.event.start }
         let isToday = cal.isDateInToday(day)
         return HStack(alignment: .top, spacing: 14) {
             VStack(spacing: 2) {
@@ -348,35 +422,51 @@ struct CalendarPageView: View {
                     .foregroundColor(isToday ? .black : Theme.textHi)
                     .frame(width: 30, height: 30)
                     .background(Circle().fill(isToday ? Theme.accent : Color.clear))
-                Button { editing = EditTarget(event: nil, start: cal.date(bySettingHour: 9, minute: 0, second: 0, of: day)) } label: {
-                    Image(systemName: "plus").font(.system(size: 10)).foregroundColor(Theme.textFaint)
-                }.buttonStyle(.plain)
             }
             .frame(width: 44)
 
             VStack(alignment: .leading, spacing: 6) {
-                if list.isEmpty {
-                    Text("—").font(.system(size: 12)).foregroundColor(Theme.textFaint).padding(.vertical, 4)
-                }
-                ForEach(list) { ev in
-                    Button { editing = EditTarget(event: ev, start: nil) } label: {
-                        HStack(spacing: 10) {
-                            Text(ev.isAllDay ? "all day" : ev.start.formatted(.dateTime.hour().minute()))
-                                .font(.system(size: 11)).foregroundColor(Theme.textLo).frame(width: 62, alignment: .leading)
-                            Text(ev.summary).font(.system(size: 13)).foregroundColor(Theme.textHi).lineLimit(1)
-                            if ev.hasRecurrence { Image(systemName: "arrow.clockwise").font(.system(size: 9)).foregroundColor(Theme.textFaint) }
-                            Spacer()
-                        }
-                        .padding(.horizontal, 12).padding(.vertical, 8)
-                        .background(RoundedRectangle(cornerRadius: 9).fill(Theme.card))
-                        .overlay(RoundedRectangle(cornerRadius: 9).stroke(Theme.stroke, lineWidth: 1))
-                        .contentShape(Rectangle())
-                    }.buttonStyle(.plain)
+                ForEach(list) { item in
+                    eventRow(item)
                 }
             }
+            .frame(minHeight: 34, alignment: .top)
             .padding(.vertical, 10)
             Spacer()
         }
+    }
+
+    @ViewBuilder
+    private func eventRow(_ item: AgendaEvent) -> some View {
+        let ev = item.event
+        let content = HStack(spacing: 10) {
+            if !item.editable {
+                Circle().fill(dotColor(item.color)).frame(width: 7, height: 7)
+            }
+            Text(ev.isAllDay ? "all day" : ev.start.formatted(.dateTime.hour().minute()))
+                .font(.system(size: 11)).foregroundColor(Theme.textLo).frame(width: 58, alignment: .leading)
+            Text(ev.summary).font(.system(size: 13))
+                .foregroundColor(item.editable ? Theme.textHi : Theme.text).lineLimit(1)
+            if ev.hasRecurrence { Image(systemName: "arrow.clockwise").font(.system(size: 9)).foregroundColor(Theme.textFaint) }
+            Spacer()
+        }
+        .padding(.horizontal, 12).padding(.vertical, 8)
+
+        if item.editable {
+            Button { editing = ev } label: {
+                content
+                    .background(RoundedRectangle(cornerRadius: 9).fill(Theme.card))
+                    .overlay(RoundedRectangle(cornerRadius: 9).stroke(Theme.stroke, lineWidth: 1))
+                    .contentShape(Rectangle())
+            }.buttonStyle(.plain)
+        } else {
+            content.opacity(0.72).help(item.calendarName)
+        }
+    }
+
+    private func dotColor(_ hex: String?) -> Color {
+        guard let hex, let v = UInt32(hex.replacingOccurrences(of: "#", with: ""), radix: 16) else { return Theme.textFaint }
+        return Color(hex: v)
     }
 
     private var weekLabel: String {
@@ -392,7 +482,7 @@ struct CalendarPageView: View {
             let id = try await gcal.ensureCalendar(known: store.craftCalendarId)
             if id != store.craftCalendarId { store.craftCalendarId = id }
             calId = id
-            events = try await gcal.listEvents(calId: id, from: weekStart, to: weekEnd)
+            events = try await gcal.listAgenda(craftCalId: id, from: weekStart, to: weekEnd)
         } catch { self.error = error.localizedDescription }
         loading = false
     }

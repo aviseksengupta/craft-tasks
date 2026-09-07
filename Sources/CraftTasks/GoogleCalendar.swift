@@ -54,6 +54,15 @@ struct GCalEvent: Identifiable, Equatable {
     var htmlLink: String?
 }
 
+struct AgendaEvent: Identifiable {
+    let event: GCalEvent
+    let calendarId: String
+    let calendarName: String
+    let color: String?
+    let editable: Bool
+    var id: String { calendarId + "/" + event.id }
+}
+
 @MainActor
 final class GoogleCalendar: ObservableObject {
     static let shared = GoogleCalendar()
@@ -261,6 +270,28 @@ final class GoogleCalendar: ObservableObject {
         return r.items.compactMap { $0.toModel() }.filter { $0.summary != "__cancelled__" }
     }
 
+    /// Every event across the user's visible calendars for [from, to). Events
+    /// on the dedicated Craft Tasks calendar are `editable`; all others are
+    /// read-only context. Respects each calendar's "shown" checkbox.
+    func listAgenda(craftCalId: String, from: Date, to: Date) async throws -> [AgendaEvent] {
+        let data = try await request("GET", "/users/me/calendarList?maxResults=250")
+        let list = try JSONDecoder().decode(CalendarListFull.self, from: data)
+        let cals = list.items.filter { $0.selected != false && $0.accessRole != "freeBusyReader" }
+        var out: [AgendaEvent] = []
+        try await withThrowingTaskGroup(of: [AgendaEvent].self) { group in
+            for c in cals {
+                group.addTask {
+                    let evs = (try? await self.listEvents(calId: c.id, from: from, to: to)) ?? []
+                    let name = c.summaryOverride ?? c.summary ?? c.id
+                    return evs.map { AgendaEvent(event: $0, calendarId: c.id, calendarName: name,
+                                                 color: c.backgroundColor, editable: c.id == craftCalId) }
+                }
+            }
+            for try await chunk in group { out.append(contentsOf: chunk) }
+        }
+        return out
+    }
+
     @discardableResult
     func createEvent(calId: String, _ input: EventInput) async throws -> GCalEvent {
         let data = try await request("POST", "/calendars/\(enc(calId))/events", json: eventBody(input))
@@ -457,6 +488,18 @@ private struct APIErrorEnvelope: Decodable {
 
 private struct CalendarListResponse: Decodable {
     struct Entry: Decodable { let id: String; let summary: String? }
+    let items: [Entry]
+}
+
+private struct CalendarListFull: Decodable {
+    struct Entry: Decodable {
+        let id: String
+        let summary: String?
+        let summaryOverride: String?
+        let backgroundColor: String?
+        let selected: Bool?
+        let accessRole: String?
+    }
     let items: [Entry]
 }
 

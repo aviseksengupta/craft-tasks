@@ -255,6 +255,71 @@ export function DateChip({ title, icon, date, onChange }: {
   )
 }
 
+/** Compact themed time picker — a chip that opens a three-column
+ * hour / minute / AM–PM popover, matching MiniCalendar's look. `value` and
+ * the value passed to `onChange` are 24-hour "HH:mm" strings. */
+export function TimePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [open])
+
+  const [h24, m] = value.split(':').map(Number)
+  const hour12 = h24 % 12 === 0 ? 12 : h24 % 12
+  const period: 'AM' | 'PM' = h24 < 12 ? 'AM' : 'PM'
+
+  const emit = (nh12: number, nm: number, np: 'AM' | 'PM') => {
+    let h = nh12 % 12
+    if (np === 'PM') h += 12
+    onChange(`${String(h).padStart(2, '0')}:${String(nm).padStart(2, '0')}`)
+  }
+
+  const hours = Array.from({ length: 12 }, (_, i) => i + 1)
+  const minutes = Array.from({ length: 12 }, (_, i) => i * 5)
+  const label = `${hour12}:${String(m).padStart(2, '0')} ${period}`
+
+  return (
+    <div className="time-chip set" ref={ref}>
+      <button className="main-btn" onClick={() => setOpen(o => !o)}>
+        <Icon name="clock" size={11} />
+        <span><div className="val">{label}</div></span>
+      </button>
+      {open && (
+        <div className="time-pop" onMouseDown={e => e.stopPropagation()}>
+          <div className="tp-col" role="listbox" aria-label="Hour">
+            {hours.map(hh => (
+              <button key={hh} className={`tp-opt${hh === hour12 ? ' selected' : ''}`}
+                      onClick={() => emit(hh, m, period)}>{hh}</button>
+            ))}
+          </div>
+          <div className="tp-col" role="listbox" aria-label="Minute">
+            {minutes.map(mm => (
+              <button key={mm} className={`tp-opt${mm === m ? ' selected' : ''}`}
+                      onClick={() => emit(hour12, mm, period)}>{String(mm).padStart(2, '0')}</button>
+            ))}
+          </div>
+          <div className="tp-col period">
+            {(['AM', 'PM'] as const).map(p => (
+              <button key={p} className={`tp-opt${p === period ? ' selected' : ''}`}
+                      onClick={() => emit(hour12, m, p)}>{p}</button>
+            ))}
+            <button className="tp-now" onClick={() => {
+              const now = new Date()
+              onChange(`${String(now.getHours()).padStart(2, '0')}:${String(Math.round(now.getMinutes() / 5) * 5 % 60).padStart(2, '0')}`)
+            }}>Now</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function StateCycle({ state, onCycle, size = 24, ringColor }: {
   state: 'todo' | 'done' | 'canceled'; onCycle: () => void; size?: number; ringColor?: string | null
 }) {
