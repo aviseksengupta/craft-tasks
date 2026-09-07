@@ -61,6 +61,16 @@ final class Store: ObservableObject {
     @Published var tagColors: [String: String] = [:]
     /// Tag checkbox-ring color mappings: tag name (lowercased) -> hex color string, used for the checkbox ring on open tasks.
     @Published var tagCheckboxColors: [String: String] = [:]
+    /// Id of the dedicated "Craft Tasks" Google Calendar, once resolved.
+    /// Local to this Mac (filters.json isn't synced); `ensureCalendar` scans
+    /// by name so it still adopts the same calendar the web app created.
+    @Published var craftCalendarId: String? {
+        didSet {
+            guard !isApplyingFiltersFile, craftCalendarId != oldValue else { return }
+            persistFilters()
+        }
+    }
+    private var isApplyingFiltersFile = false
     /// Needed to build "open in Craft" deep links; nil until fetched (once,
     /// then cached — Craft doesn't expose it via /tasks).
     @Published var spaceId: String? = UserDefaults.standard.string(forKey: "craftSpaceId") {
@@ -258,6 +268,7 @@ final class Store: ObservableObject {
         case .documents: return .documents
         case .views: return .views
         case .dashboards: return .dashboards
+        case .calendar: return .calendar
         case .home, nil: selectHome(); return .home
         }
     }
@@ -594,6 +605,7 @@ final class Store: ObservableObject {
         var tagColors: [String: String]?
         var tagCheckboxColors: [String: String]?
         var backlogTag: String?
+        var craftCalendarId: String?
     }
 
     private func loadFilters() {
@@ -616,7 +628,10 @@ final class Store: ObservableObject {
     }
 
     private func applyFiltersFile(_ f: FiltersFile) {
+        isApplyingFiltersFile = true
+        defer { isApplyingFiltersFile = false }
         savedFilters = f.filters
+        craftCalendarId = f.craftCalendarId
         dashboards = f.dashboards ?? []
         documentDisplayNames = f.documentDisplayNames ?? [:]
         itemVisibility = f.itemVisibility ?? [:]
@@ -664,7 +679,7 @@ final class Store: ObservableObject {
     private func persistFilters() {
         let f = FiltersFile(filters: savedFilters, homeId: nil, homeSection: homeSection, dashboards: dashboards,
                             documentDisplayNames: documentDisplayNames, itemVisibility: itemVisibility, tagColors: tagColors,
-                            tagCheckboxColors: tagCheckboxColors, backlogTag: backlogTag)
+                            tagCheckboxColors: tagCheckboxColors, backlogTag: backlogTag, craftCalendarId: craftCalendarId)
         guard let data = try? JSONEncoder().encode(f) else { return }
         // Roll the current file to a backup *before* overwriting it, so a
         // future decode regression (like the one that caused this) can be

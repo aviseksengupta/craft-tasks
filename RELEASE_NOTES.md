@@ -36,9 +36,9 @@ occurrence or the whole series). A "+" on any day adds an ad-hoc event.
 1. Paste a **Google OAuth Client ID** (a Web client from Google Cloud
    Console with the Calendar API enabled). The settings screen shows the
    exact origin to add to the client's *Authorized JavaScript origins*.
-2. **Connect Google Calendar** and approve. The app requests only the
-   `calendar.app.created` scope — it can see and touch **only calendars it
-   creates itself**, never your real calendars.
+2. **Connect Google Calendar** and approve (the `calendar` scope). It only
+   ever reads or writes the dedicated **Craft Tasks** calendar — it just
+   doesn't ask Google to enforce that.
 
 On connect the app looks for an existing **Craft Tasks** calendar before
 making one, so signing in from a second device adopts the same calendar

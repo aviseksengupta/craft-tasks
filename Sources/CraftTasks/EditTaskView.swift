@@ -26,6 +26,7 @@ struct EditTaskView: View {
     @State private var confirmingDelete = false
     @State private var deleting = false
     @State private var deleteError: String?
+    @State private var sendingToCalendar = false
 
     private var currentTags: [String] {
         let re = try! NSRegularExpression(pattern: "#([\\w/\\-]+)")
@@ -232,6 +233,12 @@ struct EditTaskView: View {
                 DateChip(title: "Deadline", icon: "flag", date: $deadlineDate)
                 Spacer()
             }
+
+            Button { sendingToCalendar = true } label: {
+                Label("Send to Calendar", systemImage: "calendar.badge.clock").font(.system(size: 12))
+            }
+            .buttonStyle(.plain).foregroundColor(Theme.textLo)
+            .sheet(isPresented: $sendingToCalendar) { SendToCalendarSheet(task: task).environmentObject(store) }
 
             if let saveError {
                 Text(saveError).font(.system(size: 11)).foregroundColor(Theme.danger)

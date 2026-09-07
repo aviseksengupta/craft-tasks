@@ -13,7 +13,11 @@
 
 const GIS_SRC = 'https://accounts.google.com/gsi/client'
 const API_BASE = 'https://www.googleapis.com/calendar/v3'
-const SCOPE = 'https://www.googleapis.com/auth/calendar.app.created'
+// Full calendar scope. `calendar.app.created` was cleaner in principle (app
+// only sees calendars it made) but returns "insufficient permissions" for
+// calendarList.list / calendars.insert unless the project is specially
+// configured — not worth the friction for a personal, testing-mode app.
+const SCOPE = 'https://www.googleapis.com/auth/calendar'
 const CAL_SUMMARY = 'Craft Tasks'
 
 // The OAuth client id is entered once in Settings (like the Craft URL), so it
@@ -73,7 +77,7 @@ function loadGis(): Promise<void> {
 // In-memory token, mirrored to sessionStorage so a reload within the hour
 // doesn't re-prompt. `gcalConnected` in localStorage is the sticky "the user
 // linked their account" flag that survives token expiry across reloads.
-interface CachedToken { token: string; expiresAt: number }
+interface CachedToken { token: string; expiresAt: number; scope: string }
 let cached: CachedToken | null = readSessionToken()
 
 function readSessionToken(): CachedToken | null {
@@ -81,6 +85,8 @@ function readSessionToken(): CachedToken | null {
     const raw = sessionStorage.getItem('gcalToken')
     if (!raw) return null
     const t = JSON.parse(raw) as CachedToken
+    // Discard a token minted under a different scope (e.g. after a scope change).
+    if (t.scope !== SCOPE) return null
     return t.expiresAt > Date.now() + 30_000 ? t : null
   } catch { return null }
 }
@@ -125,7 +131,7 @@ function getTokenClient(): TokenClient {
         p.reject(new Error(r.error_description || r.error || 'Authorization failed'))
         return
       }
-      cached = { token: r.access_token, expiresAt: Date.now() + (r.expires_in ?? 3600) * 1000 }
+      cached = { token: r.access_token, expiresAt: Date.now() + (r.expires_in ?? 3600) * 1000, scope: SCOPE }
       writeSessionToken(cached)
       localStorage.setItem('gcalConnected', '1')
       p.resolve(r.access_token)

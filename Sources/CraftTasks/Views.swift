@@ -11,6 +11,7 @@ enum Section: Hashable, Codable {
     case documents
     case views
     case dashboards
+    case calendar
     case saved(UUID)
     case dashboard(UUID)
 }
@@ -64,6 +65,7 @@ struct RootView: View {
                 case .views: ViewsPageView(section: $section)
                 case .dashboards: DashboardsPageView(section: $section)
                 case .dashboard(let id): DashboardView(dashboardId: id)
+                case .calendar: CalendarPageView()
                 default: TaskListView(section: $section)
                 }
             }
@@ -142,6 +144,7 @@ struct Sidebar: View {
             NavItemDef(id: "documents", icon: "doc.text", label: "Documents", section: .documents) { section = .documents },
             NavItemDef(id: "views", icon: "list.bullet.rectangle", label: "Views", section: .views) { section = .views },
             NavItemDef(id: "dashboards", icon: "square.grid.2x2", label: "Dashboards", section: .dashboards) { section = .dashboards },
+            NavItemDef(id: "calendar", icon: "calendar", label: "Calendar", section: .calendar) { section = .calendar },
         ]
     }
 
@@ -495,6 +498,9 @@ struct SidebarSettingsSheet: View {
                         }
                     }
                 }
+
+                Divider()
+                GoogleCalendarSettingsSection()
 
                 Divider()
                 BackupRestoreSection()
@@ -1062,7 +1068,7 @@ struct TaskListView: View {
         case .today: return "Today"
         case .thisWeek: return "This Week"
         case .saved(let id): return store.savedFilters.first { $0.id == id }?.name ?? "View"
-        case .documents, .dashboard, .views, .dashboards: return ""
+        case .documents, .dashboard, .views, .dashboards, .calendar: return ""
         }
     }
 
@@ -1466,6 +1472,7 @@ struct TaskRow: View {
     let task: CraftTask
     @State private var hover = false
     @State private var editing = false
+    @State private var sendingToCalendar = false
 
     var tagColor: Color? {
         for tag in task.tags {
@@ -1553,6 +1560,14 @@ struct TaskRow: View {
 
             if task.state == .todo && !isPending {
                 InProgressButton(task: task)
+                Button { sendingToCalendar = true } label: {
+                    Image(systemName: "calendar.badge.clock")
+                        .font(.system(size: 11))
+                        .foregroundColor(hover ? Theme.textLo : Theme.textFaint)
+                }
+                .buttonStyle(.plain)
+                .help("Send to Calendar")
+                .sheet(isPresented: $sendingToCalendar) { SendToCalendarSheet(task: task).environmentObject(store) }
             }
 
             if let link = task.craftDeepLink(spaceId: store.spaceId) {
