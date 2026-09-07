@@ -1472,7 +1472,6 @@ struct TaskRow: View {
     let task: CraftTask
     @State private var hover = false
     @State private var editing = false
-    @State private var sendingToCalendar = false
 
     var tagColor: Color? {
         for tag in task.tags {
@@ -1560,14 +1559,7 @@ struct TaskRow: View {
 
             if task.state == .todo && !isPending {
                 InProgressButton(task: task)
-                Button { sendingToCalendar = true } label: {
-                    Image(systemName: "calendar.badge.clock")
-                        .font(.system(size: 11))
-                        .foregroundColor(hover ? Theme.textLo : Theme.textFaint)
-                }
-                .buttonStyle(.plain)
-                .help("Send to Calendar")
-                .sheet(isPresented: $sendingToCalendar) { SendToCalendarSheet(task: task).environmentObject(store) }
+                SendToCalendarButton(task: task)
             }
 
             if let link = task.craftDeepLink(spaceId: store.spaceId) {
@@ -1620,6 +1612,30 @@ struct InProgressButton: View {
         .buttonStyle(.plain)
         .onHover { hover = $0 }
         .help(isActive ? "Mark not in progress" : "Mark in progress")
+    }
+}
+
+/// Circular badge (matches InProgressButton / OpenInCraftButton) that opens
+/// the "Send to Calendar" sheet for a task.
+struct SendToCalendarButton: View {
+    @EnvironmentObject var store: Store
+    let task: CraftTask
+    @State private var hover = false
+    @State private var sheet = false
+
+    var body: some View {
+        Button { sheet = true } label: {
+            Image(systemName: "calendar.badge.clock")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(hover ? .black : Theme.textLo)
+                .frame(width: 24, height: 24)
+                .background(Circle().fill(hover ? Theme.accent : Theme.panelHi))
+                .overlay(Circle().stroke(hover ? Theme.accent : Theme.stroke, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .onHover { hover = $0 }
+        .help("Send to Calendar")
+        .sheet(isPresented: $sheet) { SendToCalendarSheet(task: task).environmentObject(store) }
     }
 }
 
