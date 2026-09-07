@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import { CraftTask, displayTitle, taskTags, scheduleDay, deadlineDay, completedDay, startOfToday } from './types'
 import { useStore } from './store'
 import { Icon } from './ui'
 import { craftDeepLink } from './craft'
+import { SendToCalendarModal } from './CalendarView'
 
 export function TaskRow({ task, onEdit }: { task: CraftTask; onEdit: (t: CraftTask) => void }) {
   const store = useStore()
+  const [showSend, setShowSend] = useState(false)
   const isPending = task.id.startsWith('local-')
   const deepLink = craftDeepLink(task)
   const tags = taskTags(task)
@@ -63,10 +66,22 @@ export function TaskRow({ task, onEdit }: { task: CraftTask; onEdit: (t: CraftTa
           <Icon name="bolt" size={11} />
         </button>
       )}
+      {task.state === 'todo' && !isPending && (
+        <button className="in-progress-btn"
+                onClick={e => { e.stopPropagation(); setShowSend(true) }}
+                title="Send to Calendar">
+          <Icon name="calendarClock" size={12} />
+        </button>
+      )}
       {deepLink && (
         <a className="open-in-craft" href={deepLink} onClick={e => e.stopPropagation()} title="Open in Craft">
           <Icon name="stack" size={12} weight={1.6} />
         </a>
+      )}
+      {showSend && (
+        <span onClick={e => e.stopPropagation()}>
+          <SendToCalendarModal task={task} onClose={() => setShowSend(false)} />
+        </span>
       )}
     </div>
   )

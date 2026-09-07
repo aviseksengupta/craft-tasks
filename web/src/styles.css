@@ -634,3 +634,25 @@ h1, h2, h3 { font-weight: 600; }
     to { transform: translateY(0); opacity: 1; }
   }
 }
+
+/* ---- Calendar view (weekly agenda) ---- */
+.cal-week-label { padding: 0 24px 10px; color: var(--text-lo); font-size: 12px; }
+.cal-empty { max-width: 420px; margin: 40px auto; display: flex; flex-direction: column; gap: 14px; text-align: center; color: var(--text-lo); font-size: 13px; line-height: 1.6; }
+.cal-empty .btn.primary { align-self: center; }
+
+.agenda { display: flex; flex-direction: column; gap: 2px; }
+.agenda-day { display: grid; grid-template-columns: 64px 1fr; gap: 12px; padding: 10px 0; border-top: 1px solid var(--stroke); }
+.agenda-day:first-child { border-top: none; }
+.agenda-day.today .dnum { background: var(--accent); color: #000; border-radius: 8px; }
+.agenda-date { display: flex; flex-direction: column; align-items: center; gap: 2px; position: relative; }
+.agenda-date .dow { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-faint); }
+.agenda-date .dnum { font-size: 17px; font-weight: 600; color: var(--text-hi); width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-family: var(--serif); }
+.agenda-add { margin-top: 2px; width: 20px; height: 20px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: var(--text-faint); border: 1px solid var(--stroke); background: var(--panel); }
+.agenda-add:hover { color: var(--text-hi); }
+.agenda-events { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding-top: 2px; }
+.agenda-none { color: var(--text-faint); font-size: 12px; padding: 4px 0; }
+.agenda-event { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 8px 12px; border-radius: 9px; background: var(--card); border: 1px solid var(--stroke); color: var(--text); }
+.agenda-event:hover { background: var(--panel-hi); }
+.agenda-event .ae-time { font-size: 11px; color: var(--text-lo); font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 62px; }
+.agenda-event .ae-title { font-size: 13px; color: var(--text-hi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.agenda-event .ae-rep { color: var(--text-faint); display: flex; }

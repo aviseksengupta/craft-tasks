@@ -1,146 +1,54 @@
-# Craft Tasks — Keyboard Shortcuts & Sync Activity Log
+# Craft Tasks — Send tasks to Google Calendar
 
-## ⌨️ Keyboard shortcuts
+Craft has no concept of a time-of-day or a reminder on a task, and it never
+will here — Craft stays the single source of truth for tasks. Instead, a
+**dedicated Google Calendar** becomes a separate store for the handful of
+tasks that need to happen at a specific time, and Google's own calendar
+notifications (loud, cross-device, hard to miss) do the reminding.
 
-Both the macOS app and the PWA now respond to:
+## 📅 "Send to Calendar"
 
-- **⌘F** — jump to the sidebar search box
-- **⌘K** — open a Spotlight-style quick-open bar that filters your
-  **documents by name**; ↑/↓ to move, ⏎ to open, click also works
-- **⌘0** — go Home
-- **⌘1**–**⌘9** — open the 1st–9th pinned view or dashboard (in the
-  order they appear in the sidebar's PINNED section)
+Every open task now has a small calendar button (in the task row and in the
+edit sheet). It opens a short dialog:
 
-Hold **⌘** and the pinned rows (and Home) reveal their ⌘-number badge,
-the way Claude desktop hints its chat shortcuts.
+- **Title** — prefilled from the task, editable
+- **Date** — prefilled from the task's scheduled date (or deadline, or
+  today), editable
+- **Time** — the bit Craft can't hold
+- **Repeat** — none / daily / weekly / every weekday / monthly, with an
+  optional end date
 
-## 🩺 Sync Activity log
+Confirm, and a single event is created in a calendar called **Craft Tasks**.
+That's the whole interaction — a **one-way, one-shot push**. The event is
+independent of the task afterwards; there is no background sync.
 
-A new list icon next to the sidebar's gear opens **Sync Activity** — the
-last ~50 lines of what synced, what was queued, and, when Craft rejects
-a change, **exactly which task and why**. If a batch of queued edits is
-rejected, each edit is now retried on its own so one bad task can't
-block the rest — and the offending task is named in the log.
+## 🗓️ Calendar view
 
-## 🐛 Fixed: one bad task could stall all syncing
+A new **Calendar** entry in the menu shows a **weekly agenda** of just the
+Craft Tasks calendar — seven days at a time, prev/next week, "Today". Tap any
+event to change its title, date, time or repeat, or to delete it (a single
+occurrence or the whole series). A "+" on any day adds an ad-hoc event.
 
-A task whose text contained a line break was rejected by Craft with a
-`MARKDOWN_PARSING_ERROR` (a task must be a single block), and because
-edits are pushed as one batch, that single rejection blocked every other
-queued change. Task text is now flattened to a single line on save, on
-both apps.
+## ⚙️ Setup (once)
 
----
+**Settings → Google Calendar:**
 
-# Craft Tasks — Unified Task Screens
+1. Paste a **Google OAuth Client ID** (a Web client from Google Cloud
+   Console with the Calendar API enabled). The settings screen shows the
+   exact origin to add to the client's *Authorized JavaScript origins*.
+2. **Connect Google Calendar** and approve. The app requests only the
+   `calendar.app.created` scope — it can see and touch **only calendars it
+   creates itself**, never your real calendars.
 
-## ✨ New Task and Edit Task now behave the same
+On connect the app looks for an existing **Craft Tasks** calendar before
+making one, so signing in from a second device adopts the same calendar
+rather than creating a duplicate.
 
-The New Task and Task Details screens were inconsistent — mentions,
-tags, and descriptions worked differently (or not at all) depending on
-which one you had open. Both are now the same form with the same
-inputs, on both the PWA and the macOS app.
+## 📱 Where it works
 
-### Features
+The PWA (iPhone home screen, desktop browser). Put your Google account in
+**iOS Settings → Calendar** (not just the Google Calendar app) so Apple's
+Calendar fires the alerts — those are Time Sensitive and break through
+Focus, which is the "meeting now" urgency the notifications are for.
 
-**Both PWA and macOS app**
-- `@document` and `#tag` live autocomplete now works identically whether
-  you're creating a new task or editing an existing one
-- New: `@<date>` autocomplete sets the **Scheduled** date (not the
-  deadline) — type `@today`, `@tomorrow`, `@monday`, `@15`, `@3/15`, or
-  `@2026-03-15` and pick the suggestion, Craft-style
-- New Task now has a **Description** field, matching Task Details —
-  it's saved to Craft as soon as the task itself finishes creating
-- Task Details' separate "add tag" box is gone; typing `#tag` inline in
-  the task field does the same thing New Task already did
-
-### Installation
-
-**macOS:**
-1. Download `CraftTasks.app` (or build with `./build_app.sh`)
-2. Drag `Craft Tasks` to Applications folder
-3. Launch from Applications (unsigned — "Allow anyway" on first launch)
-
-**PWA (Web):**
-- Deployed via `npm run deploy` in `web/` — visit the deployed app URL,
-  no action needed
-
-### Requirements
-
-- **macOS:** 11.0 or later (Big Sur+)
-- **Web:** Modern browser with localStorage support
-
----
-
-**Build Date:** 2026-08-21
-**Commit:** 2f0b637
-**Architecture:** arm64 (Apple Silicon)
-
----
-
-# Craft Tasks v1.0 Release
-
-## 🎨 New Feature: Tag Colors
-
-Assign custom colors to tags for visual organization. Tasks with colored tags display a 4px left border in the assigned color.
-
-### Features
-
-**PWA (Web App)**
-- Color picker in Settings → Tag Colors section
-- Add colors for existing tags or create new tag-color associations
-- Colors sync across devices via GitHub Gist
-- Colored left borders appear on all task cards in lists and detail views
-
-**macOS App**
-- Tag Colors settings accessible via paintbrush icon in sidebar
-- Predefined 8-color palette for quick selection
-- Color assignments persist locally and sync via backup/restore
-- Colored left borders on all task views
-
-### Installation
-
-**macOS:**
-1. Download `CraftTasks-1.0.dmg`
-2. Double-click to mount the DMG
-3. Drag `Craft Tasks` to Applications folder
-4. Launch from Applications
-
-**PWA (Web):**
-- Visit the deployed web app URL
-- Colors are managed in Settings → Tag Colors
-
-### Configuration
-
-**Assigning Colors:**
-1. Open Settings (gear icon)
-2. Scroll to "Tag Colors" section
-3. Select a tag and choose a color from the picker
-4. Color applies immediately to all tasks with that tag
-
-**Color Palette:**
-- Red, Green, Blue, Purple, Gold, Orange, Turquoise, Hot Pink
-
-### Requirements
-
-- **macOS:** 11.0 or later (Big Sur+)
-- **Web:** Modern browser with localStorage support
-
-### Known Limitations
-
-- App is unsigned (requires "Allow anyway" on first launch on some Macs)
-- Colors are stored as hex strings in config
-- PWA colors sync only if GitHub Gist integration is enabled
-
-### Bug Reports & Feedback
-
-Create an issue on GitHub or contact support with:
-- Reproduction steps
-- Expected vs actual behavior
-- Screenshots if applicable
-
----
-
-**Build Date:** 2024-08-17  
-**Commit:** Tag color feature implementation  
-**Architecture:** arm64 (Apple Silicon)
+The macOS app is unchanged for now; it can get the same button later.
