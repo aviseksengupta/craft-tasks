@@ -54,6 +54,7 @@ export function Sidebar({ section, setSection, open, onNavigate, onClose, onOpen
     { id: 'documents', icon: 'doc', label: 'Documents', section: { kind: 'documents' }, select: () => setSection({ kind: 'documents' }) },
     { id: 'views', icon: 'listRect', label: 'Views', section: { kind: 'views' }, select: () => setSection({ kind: 'views' }) },
     { id: 'dashboards', icon: 'grid', label: 'Dashboards', section: { kind: 'dashboards' }, select: () => setSection({ kind: 'dashboards' }) },
+    { id: 'calendar', icon: 'calendar', label: 'Calendar', section: { kind: 'calendar' }, select: () => setSection({ kind: 'calendar' }) },
   ]
 
   const visibility = (id: string) => store.itemVisibility[id] ?? 'Always shown'

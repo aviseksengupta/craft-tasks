@@ -244,6 +244,7 @@ export type PinnedItem =
 export type Section =
   | { kind: 'home' } | { kind: 'allTasks' } | { kind: 'inbox' } | { kind: 'today' }
   | { kind: 'thisWeek' } | { kind: 'documents' } | { kind: 'views' } | { kind: 'dashboards' }
+  | { kind: 'calendar' }
   | { kind: 'saved', id: string } | { kind: 'dashboard', id: string }
 
 export function sectionEq(a: Section | null | undefined, b: Section | null | undefined): boolean {
@@ -290,6 +291,7 @@ export interface ConfigFile {
   tagCheckboxColors: Record<string, string>  // tag → hex color, used for the checkbox ring on open tasks
   tagColorPalette: TagColorOption[]  // colors offered when assigning a tag color
   backlogTag: string  // tag (without '#') marking a task as backlog/later, e.g. "later"
+  craftCalendarId?: string | null  // id of the dedicated "Craft Tasks" Google Calendar, once resolved
 }
 
 export const emptyConfig: ConfigFile = {

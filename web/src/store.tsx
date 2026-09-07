@@ -87,6 +87,8 @@ interface StoreValue {
   backlogTag: string
   backlogTagInput: string
   setBacklogTag: (tag: string) => void
+  craftCalendarId: string | null
+  setCraftCalendarId: (id: string | null) => void
   todayIncludesOverdue: boolean
   setTodayIncludesOverdue: (b: boolean) => void
   searchText: string
@@ -252,6 +254,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const backlogTag = config.backlogTag || DEFAULT_BACKLOG_TAG
   const setBacklogTag = useCallback((tag: string) => {
     updateConfig(c => ({ ...c, backlogTag: tag.toLowerCase().replace(/^#/, '') }))
+  }, [updateConfig])
+
+  const craftCalendarId = config.craftCalendarId ?? null
+  const setCraftCalendarId = useCallback((id: string | null) => {
+    updateConfig(c => ({ ...c, craftCalendarId: id }))
   }, [updateConfig])
 
   const setTodayIncludesOverdue = useCallback((b: boolean) => {
@@ -867,6 +874,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     documentDisplayNames: config.documentDisplayNames, tagColors: config.tagColors, tagCheckboxColors: config.tagCheckboxColors ?? {},
     tagColorPalette: config.tagColorPalette?.length ? config.tagColorPalette : DEFAULT_TAG_COLOR_PALETTE,
     showCompleted, setShowCompleted, showBacklog, setShowBacklog, backlogTag, backlogTagInput, setBacklogTag,
+    craftCalendarId, setCraftCalendarId,
     todayIncludesOverdue, setTodayIncludesOverdue, searchText, setSearchText,
     syncing, lastSync, lastSyncSummary, syncError,
     totalPendingCount: pending.length + pendingCreates.length,

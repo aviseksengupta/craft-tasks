@@ -7,6 +7,8 @@ import * as craft from './craft'
 import { getGistToken, setGistToken } from './gist'
 import { Modal, Icon, DateChip, StateCycle, MenuChip, MenuItem } from './ui'
 import { readLog, clearLog } from './log'
+import { SendToCalendarModal } from './CalendarView'
+import * as gcal from './gcal'
 
 // ---- Shared @-mention date parsing (Craft-style: @<day number>, @<weekday>,
 // @today/@tomorrow, @m/d, @yyyy-mm-dd) ----
@@ -230,6 +232,7 @@ export function EditTaskModal({ task, onClose }: { task: CraftTask; onClose: () 
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [showSend, setShowSend] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -440,6 +443,16 @@ export function EditTaskModal({ task, onClose }: { task: CraftTask; onClose: () 
         <DateChip title="Scheduled" icon="calendar" date={scheduleDate} onChange={setScheduleDate} />
         <DateChip title="Deadline" icon="flag" date={deadlineDate} onChange={setDeadlineDate} />
       </div>
+      <div>
+        <button className="btn" onClick={() => setShowSend(true)}>
+          <Icon name="calendarClock" size={12} /> Send to Calendar
+        </button>
+        <div className="hint-text" style={{ marginTop: 6 }}>
+          Push this task to your dedicated Craft Tasks Google Calendar with a specific time
+          {gcal.isConnected() ? '' : ' (connect a Google account in Settings first)'}.
+        </div>
+      </div>
+      {showSend && <SendToCalendarModal task={task} onClose={() => setShowSend(false)} />}
       {saveError && <div className="error-text">{saveError}</div>}
       {deleteError && <div className="error-text">{deleteError}</div>}
       <div className="modal-actions split">
@@ -546,11 +559,82 @@ export function SettingsModal({ onClose, forced }: { onClose: () => void; forced
       </div>
       {!forced && (
         <>
+          <CalendarSettingsSection />
           <TagColorSettings />
           <BackupRestoreSection />
         </>
       )}
     </Modal>
+  )
+}
+
+// ---- Calendar (Google) settings ----
+
+function CalendarSettingsSection() {
+  const store = useStore()
+  const [clientId, setClientId] = useState(gcal.getGoogleClientId())
+  const [connected, setConnected] = useState(gcal.isConnected())
+  const [busy, setBusy] = useState(false)
+  const [status, setStatus] = useState<string | null>(null)
+
+  const saveClientId = () => {
+    if (clientId.trim() === gcal.getGoogleClientId()) return
+    gcal.setGoogleClientId(clientId)
+    setConnected(gcal.isConnected())
+    setStatus(clientId.trim() ? 'Client ID saved' : 'Client ID cleared')
+  }
+
+  const connect = async () => {
+    setBusy(true); setStatus(null)
+    try {
+      gcal.setGoogleClientId(clientId)
+      await gcal.connect()
+      const calId = await gcal.ensureCalendar(store.craftCalendarId)
+      store.setCraftCalendarId(calId)
+      setConnected(true)
+      setStatus('Connected — “Craft Tasks” calendar ready')
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : String(e))
+    } finally { setBusy(false) }
+  }
+
+  const disconnect = () => {
+    gcal.disconnect()
+    store.setCraftCalendarId(null)
+    setConnected(false)
+    setStatus('Disconnected')
+  }
+
+  return (
+    <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--stroke)' }}>
+      <div className="form-label">GOOGLE CALENDAR</div>
+      <div className="hint-text" style={{ marginTop: 6, marginBottom: 10 }}>
+        “Send to Calendar” pushes a task to a dedicated <b>Craft Tasks</b> calendar with a specific
+        time. One-way push, no sync. Manage those events in the Calendar view.
+      </div>
+
+      <div className="form-label" style={{ fontSize: 10 }}>OAUTH CLIENT ID</div>
+      <input type="text" value={clientId} onChange={e => setClientId(e.target.value)} onBlur={saveClientId}
+             placeholder="…apps.googleusercontent.com" />
+      <div className="hint-text" style={{ marginTop: 6 }}>
+        A Web OAuth client from Google Cloud Console (Calendar API enabled). Add this origin to its
+        Authorized JavaScript origins: <b>{window.location.origin}</b>
+      </div>
+
+      <div className="flow-row" style={{ marginTop: 12, gap: 8 }}>
+        {connected ? (
+          <>
+            <span className="hint-text"><Icon name="check" size={11} /> Connected</span>
+            <button className="btn" onClick={disconnect} disabled={busy}>Disconnect</button>
+          </>
+        ) : (
+          <button className="btn primary" onClick={connect} disabled={busy || !clientId.trim()}>
+            {busy ? 'Connecting…' : 'Connect Google Calendar'}
+          </button>
+        )}
+      </div>
+      {status && <div className="hint-text" style={{ marginTop: 8 }}>{status}</div>}
+    </div>
   )
 }
 

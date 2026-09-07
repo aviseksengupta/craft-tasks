@@ -6,6 +6,7 @@ import { BottomNav } from './BottomNav'
 import { TaskListView } from './TaskList'
 import { DocumentsView, ViewsPage, DashboardsPage } from './Cards'
 import { DashboardView } from './DashboardView'
+import { CalendarView } from './CalendarView'
 import { SettingsModal, AddTaskModal, QuickOpenModal } from './modals'
 import { Icon } from './ui'
 
@@ -59,6 +60,7 @@ function Root() {
       case 'views': return <ViewsPage setSection={setSection} />
       case 'dashboards': return <DashboardsPage setSection={setSection} />
       case 'dashboard': return <DashboardView dashboardId={section.id} />
+      case 'calendar': return <CalendarView />
       default: return <TaskListView section={section} />
     }
   }
