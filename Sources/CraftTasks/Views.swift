@@ -1587,9 +1587,7 @@ struct TaskRow: View {
                 SendToCalendarButton(task: task)
             }
 
-            if let link = task.craftDeepLink(spaceId: store.spaceId) {
-                OpenInCraftButton(url: link)
-            }
+            OpenInCraftButton(url: task.craftDeepLink(spaceId: store.spaceId))
         }
         .padding(.horizontal, 16).padding(.vertical, 9)
         .background(hover ? Theme.panelHi.opacity(0.5) : .clear)
@@ -1668,21 +1666,28 @@ struct SendToCalendarButton: View {
 /// Craft app — the app's own "square.stack.3d.up.fill" mark (also used as
 /// the sidebar logo) doubles as the "open in Craft" affordance.
 struct OpenInCraftButton: View {
-    let url: URL
+    /// nil for tasks with no deep link (inbox tasks — Craft's URL scheme
+    /// can't target a loose inbox block): the badge still shows, greyed and
+    /// non-interactive, so the row layout stays consistent.
+    let url: URL?
     @State private var hover = false
 
+    private var enabled: Bool { url != nil }
+
     var body: some View {
-        Button { NSWorkspace.shared.open(url) } label: {
+        Button { if let url { NSWorkspace.shared.open(url) } } label: {
             Image(systemName: "square.stack.3d.up.fill")
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundColor(hover ? .black : Theme.textLo)
+                .foregroundColor(hover && enabled ? .black : Theme.textFaint)
                 .frame(width: 24, height: 24)
-                .background(Circle().fill(hover ? Theme.accent : Theme.panelHi))
-                .overlay(Circle().stroke(hover ? Theme.accent : Theme.stroke, lineWidth: 1))
+                .background(Circle().fill(hover && enabled ? Theme.accent : Theme.panelHi))
+                .overlay(Circle().stroke(hover && enabled ? Theme.accent : Theme.stroke, lineWidth: 1))
+                .opacity(enabled ? 1 : 0.4)
         }
         .buttonStyle(.plain)
+        .disabled(!enabled)
         .onHover { hover = $0 }
-        .help("Open in Craft")
+        .help(enabled ? "Open in Craft" : "Inbox tasks can't be opened directly in Craft")
     }
 }
 
