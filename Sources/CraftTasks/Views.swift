@@ -50,6 +50,8 @@ struct RootView: View {
     }
 
     var body: some View {
+      VStack(spacing: 0) {
+        PomodoroBanner()
         HStack(spacing: 0) {
             // Higher layout priority so the sidebar's fixed 210pt width is
             // always honored first on window resize — without this, an
@@ -71,6 +73,7 @@ struct RootView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+      }
         .background(Theme.bg)
         .preferredColorScheme(.dark)
         .fontDesign(.rounded)
@@ -379,6 +382,7 @@ enum TagColorKind { case border, checkbox }
 
 struct SidebarSettingsSheet: View {
     @EnvironmentObject var store: Store
+    @EnvironmentObject var pomodoro: PomodoroController
     @Environment(\.dismiss) private var dismiss
     let navDefs: [NavItemDef]
     @State private var showColorPickerFor: String? = nil
@@ -498,6 +502,26 @@ struct SidebarSettingsSheet: View {
                         }
                     }
                 }
+
+                Divider()
+
+                Text("Pomodoro").font(.system(size: 15, weight: .semibold)).foregroundColor(Theme.textHi)
+                HStack {
+                    Text("Pomodoro length").font(.system(size: 12)).foregroundColor(Theme.text)
+                    Spacer()
+                    Stepper("\(pomodoro.settings.pomodoroMinutes) min",
+                            value: $pomodoro.settings.pomodoroMinutes, in: 1...180)
+                        .fixedSize()
+                }
+                HStack {
+                    Text("Reminder interval").font(.system(size: 12)).foregroundColor(Theme.text)
+                    Spacer()
+                    Stepper(pomodoro.settings.reminderMinutes == 0 ? "Off" : "\(pomodoro.settings.reminderMinutes) min",
+                            value: $pomodoro.settings.reminderMinutes, in: 0...120)
+                        .fixedSize()
+                }
+                Text("0 = no reminder. Otherwise the timer pauses every N minutes and asks whether you're still working on the task — it only resumes on a Yes. The timer runs for the pomodoro length, then notifies you and offers another loop.")
+                    .font(.system(size: 11)).foregroundColor(Theme.textFaint)
 
                 Divider()
                 GoogleCalendarSettingsSection()
@@ -1559,6 +1583,7 @@ struct TaskRow: View {
 
             if task.state == .todo && !isPending {
                 InProgressButton(task: task)
+                PomodoroButton(task: task)
                 SendToCalendarButton(task: task)
             }
 
@@ -2603,5 +2628,140 @@ struct RenameDocumentPopover: View {
     private func save() {
         store.setDisplayName(id: doc.id, name: name)
         dismiss()
+    }
+}
+
+// MARK: - Pomodoro
+
+/// Per-row timer badge. One pomodoro runs app-wide at a time: while one is
+/// active every other row's badge is disabled, so "start one, the rest turn
+/// off" holds on every list.
+struct PomodoroButton: View {
+    @EnvironmentObject var pomodoro: PomodoroController
+    let task: CraftTask
+    @State private var hover = false
+    @State private var asking = false
+    @State private var draft = ""
+
+    private var running: Bool { pomodoro.isRunningTask(task.id) }
+    private var blocked: Bool { pomodoro.isActive && !running }
+
+    var body: some View {
+        Button {
+            if running { pomodoro.toggleActive() }
+            else if !blocked { draft = ""; asking = true }
+        } label: {
+            content
+        }
+        .buttonStyle(.plain)
+        .disabled(blocked)
+        .onHover { hover = $0 }
+        .help(blocked ? "Another pomodoro is running"
+              : running ? (pomodoro.phase == .pausedForReminder ? "Paused — resume" : "Stop pomodoro (writes a work-log entry)")
+              : "Start a pomodoro")
+        .popover(isPresented: $asking, arrowEdge: .bottom) { statusPopover }
+    }
+
+    @ViewBuilder private var content: some View {
+        if running {
+            HStack(spacing: 4) {
+                Image(systemName: pomodoro.phase == .pausedForReminder ? "pause.fill" : "stop.fill")
+                    .font(.system(size: 8, weight: .bold))
+                Text(PomodoroController.clock(pomodoro.remaining))
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+            }
+            .foregroundColor(.black)
+            .padding(.horizontal, 8).frame(height: 24)
+            .background(Capsule().fill(Theme.accent))
+        } else {
+            Image(systemName: "timer")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(hover && !blocked ? .black : Theme.textLo)
+                .frame(width: 24, height: 24)
+                .background(Circle().fill(hover && !blocked ? Theme.accent : Theme.panelHi))
+                .overlay(Circle().stroke(hover && !blocked ? Theme.accent : Theme.stroke, lineWidth: 1))
+                .opacity(blocked ? 0.4 : 1)
+        }
+    }
+
+    private var statusPopover: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Start pomodoro").font(.system(size: 13, weight: .semibold)).foregroundColor(Theme.textHi)
+            Text("A short status (≈2 words). Shown in the menu bar and saved in the work-log entry.")
+                .font(.system(size: 10)).foregroundColor(Theme.textFaint)
+                .frame(width: 220, alignment: .leading).fixedSize(horizontal: false, vertical: true)
+            TextField("e.g. draft spec", text: $draft)
+                .textFieldStyle(.roundedBorder).frame(width: 220)
+                .onSubmit(startNow)
+            HStack {
+                Spacer()
+                Button("Cancel") { asking = false }
+                Button("Start") { startNow() }.keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(14).background(Theme.panel)
+    }
+
+    private func startNow() {
+        pomodoro.start(task: task, status: draft)
+        asking = false
+    }
+}
+
+/// Contents of the menu-bar timer dropdown.
+struct PomodoroMenuContent: View {
+    @EnvironmentObject var pomodoro: PomodoroController
+
+    var body: some View {
+        Text(pomodoro.statusText.isEmpty ? "Pomodoro" : pomodoro.statusText)
+        Divider()
+        switch pomodoro.phase {
+        case .running:
+            Text("\(PomodoroController.clock(pomodoro.remaining)) remaining")
+            Button("Stop & log") { pomodoro.stop() }
+        case .pausedForReminder:
+            Text("Paused — still working?")
+            Button("Yes, resume") { pomodoro.confirmStillWorking() }
+            Button("Stop & log") { pomodoro.stop() }
+        case .awaitingLoopChoice:
+            Text("Pomodoro finished")
+            Button("Start another loop") { pomodoro.startAnotherLoop() }
+            Button("Stop") { pomodoro.stop() }
+        case .idle:
+            EmptyView()
+        }
+    }
+}
+
+/// In-app fallback for the reminder / "another loop?" prompts, so the
+/// feature still works if notification permission was denied.
+struct PomodoroBanner: View {
+    @EnvironmentObject var pomodoro: PomodoroController
+
+    var body: some View {
+        if pomodoro.phase == .pausedForReminder || pomodoro.phase == .awaitingLoopChoice {
+            HStack(spacing: 12) {
+                Image(systemName: "timer").font(.system(size: 12)).foregroundColor(Theme.textLo)
+                Text(message).font(.system(size: 12)).foregroundColor(Theme.text)
+                Spacer()
+                if pomodoro.phase == .pausedForReminder {
+                    Button("Yes, resume") { pomodoro.confirmStillWorking() }
+                    Button("Stop") { pomodoro.stop() }
+                } else {
+                    Button("Another loop") { pomodoro.startAnotherLoop() }
+                    Button("Stop") { pomodoro.stop() }
+                }
+            }
+            .padding(.horizontal, 16).padding(.vertical, 8)
+            .background(Theme.panelHi)
+            .overlay(alignment: .bottom) { Rectangle().fill(Theme.stroke).frame(height: 1) }
+        }
+    }
+
+    private var message: String {
+        pomodoro.phase == .pausedForReminder
+            ? "Still working on \u{201C}\(pomodoro.activeTaskTitle)\u{201D}?"
+            : "Pomodoro finished — \u{201C}\(pomodoro.activeTaskTitle)\u{201D}"
     }
 }

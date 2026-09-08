@@ -80,6 +80,20 @@ final class Store: ObservableObject {
     private let db = Database()
     private var timer: Timer?
 
+    /// The app-wide pomodoro timer. Wired up by the app after init (it also
+    /// owns the object as a `@StateObject`); nil only during launch.
+    var pomodoro: PomodoroController?
+
+    /// Pending pomodoro work-log lines that still need to reach Craft,
+    /// persisted to `CraftTasks/worklog.json` so a transient API outage
+    /// never loses a completed pomodoro. Retried on every sync.
+    private struct WorkLogEntry: Codable { var taskId: String; var line: String }
+    private var pendingWorkLogs: [WorkLogEntry] = []
+    private var workLogURL: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("CraftTasks/worklog.json")
+    }
+
     var allTags: [String] {
         var counts: [String: Int] = [:]
         for t in tasks { for tag in t.tags { counts[tag, default: 0] += 1 } }
@@ -301,6 +315,7 @@ final class Store: ObservableObject {
         }
         applyEdit(to: task, body: task.markdownParts.body, state: next,
                   scheduleDate: task.scheduleDate, deadlineDate: task.deadlineDate)
+        if next != .todo, pomodoro?.activeTaskId == task.id { pomodoro?.stop() }
     }
 
     /// One-click tag add/remove from any list row — used by the "In Progress"
@@ -323,6 +338,7 @@ final class Store: ObservableObject {
         pendingCreateCount = db.pendingCreates().count
         if let s = db.getMeta("lastSync") { lastSync = ISO8601DateFormatter().date(from: s) }
         loadFilters()
+        loadPendingWorkLogs()
         Task { await sync() }
         if spaceId == nil { Task { spaceId = try? await SyncEngine.fetchSpaceId() } }
         timer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
@@ -340,6 +356,7 @@ final class Store: ObservableObject {
         // this is what makes "add a task while offline" work reliably.
         await flushPending()
         await flushPendingCreates()
+        await flushWorkLogs()
         do {
             // Also protect any create that's STILL queued (still offline)
             // from being swept up as "gone" by the diff below.
@@ -350,6 +367,7 @@ final class Store: ObservableObject {
                 tasks = db.loadAll()
                 AppLog.shared.log("Sync pulled +\(r.added) ~\(r.updated) −\(r.removed) (\(r.total) tasks)")
             }
+            validatePomodoro()
             lastSync = Date()
             lastSyncSummary = r.unchanged
                 ? "Up to date · \(r.total) tasks"
@@ -579,12 +597,63 @@ final class Store: ObservableObject {
     /// once Craft confirms — deliberately not queued, unlike edits/creates,
     /// so a delete never silently "succeeds" locally while still pending.
     func deleteTask(_ task: CraftTask) async throws {
+        if pomodoro?.activeTaskId == task.id { pomodoro?.stop() }
         try await SyncEngine.deleteTask(id: task.id)
         db.delete(ids: [task.id])
         db.removePending(taskIds: [task.id])
         tasks = db.loadAll()
         pendingCount = db.pendingUpdates().count
         AppLog.shared.log("Deleted \"\(Self.logLabel(task.markdown))\" [\(task.id)]")
+    }
+
+    // MARK: pomodoro work-log
+
+    /// Queues a `work-log …` line for a task's description and tries to push
+    /// it right away; failures stay queued and are retried on every sync.
+    func appendWorkLog(taskId: String, line: String) {
+        pendingWorkLogs.append(WorkLogEntry(taskId: taskId, line: line))
+        persistPendingWorkLogs()
+        AppLog.shared.log("Queued work-log [\(taskId)]")
+        Task { await flushWorkLogs() }
+    }
+
+    func flushWorkLogs() async {
+        guard !pendingWorkLogs.isEmpty else { return }
+        var remaining: [WorkLogEntry] = []
+        for entry in pendingWorkLogs {
+            do {
+                try await SyncEngine.appendToDescription(taskId: entry.taskId, line: entry.line)
+                AppLog.shared.log("Synced work-log [\(entry.taskId)]")
+            } catch {
+                remaining.append(entry)
+                AppLog.shared.log("Work-log still queued [\(entry.taskId)] — \(Self.describe(error))")
+            }
+        }
+        pendingWorkLogs = remaining
+        persistPendingWorkLogs()
+    }
+
+    private func persistPendingWorkLogs() {
+        if pendingWorkLogs.isEmpty {
+            try? FileManager.default.removeItem(at: workLogURL)
+        } else if let data = try? JSONEncoder().encode(pendingWorkLogs) {
+            try? data.write(to: workLogURL)
+        }
+    }
+
+    private func loadPendingWorkLogs() {
+        guard let data = try? Data(contentsOf: workLogURL),
+              let entries = try? JSONDecoder().decode([WorkLogEntry].self, from: data) else { return }
+        pendingWorkLogs = entries
+    }
+
+    /// Stops the active pomodoro if its task is no longer an open task
+    /// (completed, canceled, or removed by a sync) — the interval is
+    /// finalized so its work-log line is still written.
+    func validatePomodoro() {
+        guard let pc = pomodoro, let id = pc.activeTaskId else { return }
+        let task = tasks.first { $0.id == id }
+        if task == nil || task?.state != .todo { pc.stop() }
     }
 
     // MARK: saved filters persistence
@@ -716,6 +785,7 @@ final class Store: ObservableObject {
         var tagColors: [String: String] = [:]
         var tagCheckboxColors: [String: String] = [:]
         var backlogTag: String = Store.defaultBacklogTag
+        var pomodoroSettings: PomodoroSettings = .default
     }
 
     static let defaultBackup = AppBackup(
@@ -729,7 +799,8 @@ final class Store: ObservableObject {
             apiBase: SyncEngine.apiBase, showCompleted: showCompleted, showBacklog: showBacklog,
             config: BackupConfig(filters: savedFilters, homeSection: homeSection, dashboards: dashboards,
                                   documentDisplayNames: documentDisplayNames, itemVisibility: itemVisibility, tagColors: tagColors,
-                                  tagCheckboxColors: tagCheckboxColors, backlogTag: backlogTag))
+                                  tagCheckboxColors: tagCheckboxColors, backlogTag: backlogTag,
+                                  pomodoroSettings: pomodoro?.settings ?? .default))
     }
 
     func exportBackupJSON() -> String {
@@ -747,6 +818,7 @@ final class Store: ObservableObject {
         tagColors = backup.config.tagColors
         tagCheckboxColors = backup.config.tagCheckboxColors
         backlogTag = backup.config.backlogTag
+        pomodoro?.settings = backup.config.pomodoroSettings
         homeSection = backup.config.homeSection
         showCompleted = backup.showCompleted
         showBacklog = backup.showBacklog
