@@ -179,6 +179,17 @@ final class SyncEngine {
         }
     }
 
+    /// Appends one line to a task's description (its child text blocks),
+    /// preserving whatever is already there. Used for pomodoro work-log
+    /// entries. `pushDescription` normalizes the result back to a single
+    /// child text block.
+    static func appendToDescription(taskId: String, line: String) async throws {
+        let existing = try await fetchDescription(taskId: taskId)
+        let base = existing.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let newText = base.isEmpty ? line : base + "\n" + line
+        try await pushDescription(taskId: taskId, existingBlockIds: existing.blockIds, newText: newText)
+    }
+
     /// Deletes a task's own block via DELETE /blocks — synchronous, no
     /// queueing: callers await this before removing the task locally so the
     /// local store never claims a deletion Craft hasn't confirmed.
