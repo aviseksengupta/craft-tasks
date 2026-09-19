@@ -1,9 +1,11 @@
 import SwiftUI
+import WatchKit
 
 @main
 struct CraftTasksWatchApp: App {
     @StateObject private var store = Store()
     @StateObject private var pomodoro = PomodoroController()
+    @WKApplicationDelegateAdaptor(WatchAppDelegate.self) var appDelegate
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
@@ -26,6 +28,12 @@ struct CraftTasksWatchApp: App {
                         Task { await store.sync() }
                         WatchSettingsReceiver.shared.applyCurrentContext()
                     }
+                }
+                .fullScreenCover(isPresented: Binding(
+                    get: { pomodoro.phase == .pausedForReminder || pomodoro.phase == .awaitingLoopChoice },
+                    set: { _ in }
+                )) {
+                    PomodoroAlarmView().environmentObject(pomodoro)
                 }
         }
     }

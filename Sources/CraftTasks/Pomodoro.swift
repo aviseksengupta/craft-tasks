@@ -236,6 +236,7 @@ final class PomodoroController: ObservableObject {
         c.body = activeTaskTitle
         c.categoryIdentifier = "POMODORO_REMINDER"
         c.sound = .default
+        c.interruptionLevel = .timeSensitive
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, interval), repeats: false)
         UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "pomodoro-reminder", content: c, trigger: trigger))
     }
@@ -251,6 +252,7 @@ final class PomodoroController: ObservableObject {
         c.body = "\(activeTaskTitle) — run another loop?"
         c.categoryIdentifier = "POMODORO_DONE"
         c.sound = .default
+        c.interruptionLevel = .timeSensitive
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, interval), repeats: false)
         UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "pomodoro-done", content: c, trigger: trigger))
     }
@@ -281,7 +283,7 @@ final class PomodoroController: ObservableObject {
     private func requestAuthorizationIfNeeded() {
         guard !authRequested else { return }
         authRequested = true
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .timeSensitive]) { _, _ in }
     }
 
     private func notifyReminder() {
@@ -290,6 +292,7 @@ final class PomodoroController: ObservableObject {
         c.body = activeTaskTitle
         c.categoryIdentifier = "POMODORO_REMINDER"
         c.sound = .default
+        c.interruptionLevel = .timeSensitive
         post(c, id: "pomodoro-reminder")
     }
 
@@ -299,6 +302,7 @@ final class PomodoroController: ObservableObject {
         c.body = "\(activeTaskTitle) — run another loop?"
         c.categoryIdentifier = "POMODORO_DONE"
         c.sound = .default
+        c.interruptionLevel = .timeSensitive
         post(c, id: "pomodoro-done")
     }
 

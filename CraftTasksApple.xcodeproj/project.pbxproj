@@ -7,7 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		00C0B29B0AC3D8E8AB98F609 /* WatchAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = C787DF2E422DC6F8DC5EB7C4 /* WatchAppDelegate.swift */; };
 		04E103FB143BB608106BA998 /* TodayListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E219E5795696D588F6BC9970 /* TodayListView.swift */; };
+		1168C48B6C98DBBC7957BECF /* PomodoroAlarmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52D62D13145880639A4EC4A8 /* PomodoroAlarmView.swift */; };
 		17A9EACDE5D08D29088408F3 /* PomodoroActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B84789182FE29F9F95DA69 /* PomodoroActivityAttributes.swift */; };
 		214961FF2070083FD70D103C /* SyncEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28BC43423FEA2633070F39DB /* SyncEngine.swift */; };
 		2251CE67C2EE51C88824869D /* GoogleCalendar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 226875514BD152EAD4584B3C /* GoogleCalendar.swift */; };
@@ -108,6 +110,7 @@
 		472C3464D6A791C284517B0F /* MenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuView.swift; sourceTree = "<group>"; };
 		4B6A32DA500C435F2AD90BA0 /* CalendarScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarScreens.swift; sourceTree = "<group>"; };
 		4C6FCAAD8D3A467075CA4985 /* WatchSettingsSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSettingsSync.swift; sourceTree = "<group>"; };
+		52D62D13145880639A4EC4A8 /* PomodoroAlarmView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroAlarmView.swift; sourceTree = "<group>"; };
 		56539F2F63365949E345949C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6741BCB8AEB032C5B4A37943 /* AddTaskSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTaskSheet.swift; sourceTree = "<group>"; };
 		6BECD7F24CC5932B274FE95F /* DashboardDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardDetailView.swift; sourceTree = "<group>"; };
@@ -121,6 +124,7 @@
 		AC20462C0E760EC2DC95F993 /* PomodoroLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroLiveActivityWidget.swift; sourceTree = "<group>"; };
 		BC3E4615895B836D42BB29EF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		C70EF4F9A085E28E834A6503 /* TaskRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskRowView.swift; sourceTree = "<group>"; };
+		C787DF2E422DC6F8DC5EB7C4 /* WatchAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAppDelegate.swift; sourceTree = "<group>"; };
 		CAD529E8054D9BBF8403E9C5 /* CraftTasksWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftTasksWidgetBundle.swift; sourceTree = "<group>"; };
 		CB4BC570DD719090B3D0F97C /* ListPages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListPages.swift; sourceTree = "<group>"; };
 		CECD9253C9FA656536A79605 /* RootShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootShellView.swift; sourceTree = "<group>"; };
@@ -217,7 +221,9 @@
 				56539F2F63365949E345949C /* Assets.xcassets */,
 				70ADC0768566C87901303D0B /* CraftTasksWatchApp.swift */,
 				BC3E4615895B836D42BB29EF /* Info.plist */,
+				52D62D13145880639A4EC4A8 /* PomodoroAlarmView.swift */,
 				E219E5795696D588F6BC9970 /* TodayListView.swift */,
+				C787DF2E422DC6F8DC5EB7C4 /* WatchAppDelegate.swift */,
 				4C6FCAAD8D3A467075CA4985 /* WatchSettingsSync.swift */,
 			);
 			path = CraftTasksWatch;
@@ -394,9 +400,11 @@
 				EC2FC3E25A264A696FFD2F96 /* Database.swift in Sources */,
 				37C982D2A12F8E1AADBB2D7A /* Models.swift in Sources */,
 				B9449909C81A85199D5F2EE1 /* Pomodoro.swift in Sources */,
+				1168C48B6C98DBBC7957BECF /* PomodoroAlarmView.swift in Sources */,
 				67E0273A60B6EADFFC19CA62 /* Store.swift in Sources */,
 				68EB33660E934430CE55A7C7 /* SyncEngine.swift in Sources */,
 				04E103FB143BB608106BA998 /* TodayListView.swift in Sources */,
+				00C0B29B0AC3D8E8AB98F609 /* WatchAppDelegate.swift in Sources */,
 				67D68755F69D8629A62B4519 /* WatchSettingsSync.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

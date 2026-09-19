@@ -1,9 +1,9 @@
 import WatchConnectivity
 import Foundation
 
-/// Receives the pomodoro length and "Today includes overdue" setting
-/// mirrored from the paired iPhone app — see the iOS-side WatchSettingsSync
-/// for why (the Watch has no settings screen of its own).
+/// Receives the pomodoro length, reminder interval, and "Today includes
+/// overdue" setting mirrored from the paired iPhone app — see the iOS-side
+/// WatchSettingsSync for why (the Watch has no settings screen of its own).
 @MainActor
 final class WatchSettingsReceiver: NSObject, WCSessionDelegate {
     static let shared = WatchSettingsReceiver()
@@ -36,6 +36,9 @@ final class WatchSettingsReceiver: NSObject, WCSessionDelegate {
     private func apply(_ context: [String: Any]) {
         if let minutes = context["pomodoroMinutes"] as? Int {
             pomodoro?.settings.pomodoroMinutes = minutes
+        }
+        if let reminder = context["reminderMinutes"] as? Int {
+            pomodoro?.settings.reminderMinutes = reminder
         }
         if let overdue = context["todayIncludesOverdue"] as? Bool {
             store?.todayIncludesOverdue = overdue

@@ -21,8 +21,7 @@ struct CraftTasksiOSApp: App {
                     pomodoro.store = store
                     pomodoro.restoreIfNeeded()
                     liveActivity.sync(with: pomodoro)
-                    WatchSettingsSync.shared.sync(pomodoroMinutes: pomodoro.settings.pomodoroMinutes,
-                                                  todayIncludesOverdue: store.todayIncludesOverdue)
+                    syncWatchSettings()
                 }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {
@@ -32,13 +31,17 @@ struct CraftTasksiOSApp: App {
                     }
                 }
                 .onChange(of: pomodoro.phase) { _, _ in liveActivity.sync(with: pomodoro) }
-                .onChange(of: pomodoro.settings.pomodoroMinutes) { _, minutes in
-                    WatchSettingsSync.shared.sync(pomodoroMinutes: minutes, todayIncludesOverdue: store.todayIncludesOverdue)
-                }
-                .onChange(of: store.todayIncludesOverdue) { _, overdue in
-                    WatchSettingsSync.shared.sync(pomodoroMinutes: pomodoro.settings.pomodoroMinutes, todayIncludesOverdue: overdue)
-                }
+                .onChange(of: pomodoro.settings.pomodoroMinutes) { _, _ in syncWatchSettings() }
+                .onChange(of: pomodoro.settings.reminderMinutes) { _, _ in syncWatchSettings() }
+                .onChange(of: store.todayIncludesOverdue) { _, _ in syncWatchSettings() }
         }
+    }
+
+    private func syncWatchSettings() {
+        WatchSettingsSync.shared.sync(.init(
+            pomodoroMinutes: pomodoro.settings.pomodoroMinutes,
+            reminderMinutes: pomodoro.settings.reminderMinutes,
+            todayIncludesOverdue: store.todayIncludesOverdue))
     }
 }
 
