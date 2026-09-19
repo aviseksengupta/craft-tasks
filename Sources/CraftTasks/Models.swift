@@ -148,6 +148,26 @@ extension ISO8601DateFormatter {
     }()
 }
 
+// MARK: - Navigation
+
+/// Every place the app can navigate to — mirrors web/src/types.ts's
+/// `Section` union exactly, so all clients (Mac, web, iOS) share the same
+/// navigation vocabulary. Shared (not Mac-only) because `Store.homeSection`
+/// and `navigateHome()`/`setHomeTarget()`/`isHomeTarget()` are defined here.
+enum AppSection: Hashable, Codable {
+    case home
+    case allTasks
+    case inbox
+    case today
+    case thisWeek
+    case documents
+    case views
+    case dashboards
+    case calendar
+    case saved(UUID)
+    case dashboard(UUID)
+}
+
 // MARK: - Filters
 
 enum DateScope: String, Codable, CaseIterable, Identifiable {

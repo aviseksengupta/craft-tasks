@@ -1,0 +1,707 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		04E103FB143BB608106BA998 /* TodayListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E219E5795696D588F6BC9970 /* TodayListView.swift */; };
+		17A9EACDE5D08D29088408F3 /* PomodoroActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B84789182FE29F9F95DA69 /* PomodoroActivityAttributes.swift */; };
+		214961FF2070083FD70D103C /* SyncEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28BC43423FEA2633070F39DB /* SyncEngine.swift */; };
+		2251CE67C2EE51C88824869D /* GoogleCalendar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 226875514BD152EAD4584B3C /* GoogleCalendar.swift */; };
+		28F048760E60AA330F308D89 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879310507E1797A9780A1E21 /* Store.swift */; };
+		29C521DED2A7DF07D43421B4 /* AppLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175BA74888B2D6AB900062F7 /* AppLog.swift */; };
+		3432F05A95F9384669269CA8 /* RootShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CECD9253C9FA656536A79605 /* RootShellView.swift */; };
+		37766CB8BE96E68138CE110B /* PomodoroViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A539EDCAFEB15B16979D8427 /* PomodoroViews.swift */; };
+		37C982D2A12F8E1AADBB2D7A /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5ED0DF5CDD29588E6F7D570 /* Models.swift */; };
+		3F32D018A9793E3899D6161B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 56539F2F63365949E345949C /* Assets.xcassets */; };
+		43888C3E9AC1B2F9F429A80B /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CA591861306BD69D7E3679E /* Components.swift */; };
+		5497D40E750C5445CFEF6757 /* AppLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175BA74888B2D6AB900062F7 /* AppLog.swift */; };
+		5C0CE51777985DFC59F61A8E /* MenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 472C3464D6A791C284517B0F /* MenuView.swift */; };
+		67E0273A60B6EADFFC19CA62 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879310507E1797A9780A1E21 /* Store.swift */; };
+		68EB33660E934430CE55A7C7 /* SyncEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28BC43423FEA2633070F39DB /* SyncEngine.swift */; };
+		6E44E5149B9DEEBA3099B073 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9C0032774FDE0C026E285A1 /* SettingsView.swift */; };
+		718401CE461D08C685FD7C30 /* CraftTasksWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAD529E8054D9BBF8403E9C5 /* CraftTasksWidgetBundle.swift */; };
+		72E30CE4A62134523B525881 /* Pomodoro.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED87658A118FEF3BAC8863D8 /* Pomodoro.swift */; };
+		76E9ACF977D01EC6DAE1FCEC /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5ED0DF5CDD29588E6F7D570 /* Models.swift */; };
+		9023D8C3833B8801522F3434 /* CraftTasksiOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CB1C1A8BEA87AEED3174C8A /* CraftTasksiOSApp.swift */; };
+		989BB3B7D65DADDD09312594 /* DashboardDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BECD7F24CC5932B274FE95F /* DashboardDetailView.swift */; };
+		9A185CE06B85685C72DCF6C3 /* CraftTasksWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1818988BFBA706220E323D17 /* CraftTasksWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		9D58C1ECA3F740C85C231D63 /* AddTaskSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6741BCB8AEB032C5B4A37943 /* AddTaskSheet.swift */; };
+		9EC9751789FD3E76C4993CA6 /* PomodoroLiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 346C350CCE988517728204CB /* PomodoroLiveActivityManager.swift */; };
+		A472437C698613BAF7A029E1 /* ListPages.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB4BC570DD719090B3D0F97C /* ListPages.swift */; };
+		A7B5E1B0157B38CAC3A1726B /* TaskRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C70EF4F9A085E28E834A6503 /* TaskRowView.swift */; };
+		AF582FA26029439984C4CEBC /* CraftTasksWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70ADC0768566C87901303D0B /* CraftTasksWatchApp.swift */; };
+		B1C56B3B895CBE2FA30F155D /* EditTaskSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75E327CB96818081C76418DB /* EditTaskSheet.swift */; };
+		B20F0317ACAD901E4F24AC0B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0B0A8BDDA4A10B1A6EA5357A /* Assets.xcassets */; };
+		B5A40D23B2E6702C328E349D /* PomodoroActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B84789182FE29F9F95DA69 /* PomodoroActivityAttributes.swift */; };
+		B69BBD94F5A3D3693161E6FF /* PomodoroLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC20462C0E760EC2DC95F993 /* PomodoroLiveActivityWidget.swift */; };
+		B9449909C81A85199D5F2EE1 /* Pomodoro.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED87658A118FEF3BAC8863D8 /* Pomodoro.swift */; };
+		BFBE0972001EF9A8FD84D72D /* TaskListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 313DC1D64626DE8E864554D8 /* TaskListView.swift */; };
+		CE219E5F4127C5940C10E423 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1375641C9E3FD76A82377B4 /* Theme.swift */; };
+		CEE64C7BE7B3CFACCAD5B531 /* CalendarScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B6A32DA500C435F2AD90BA0 /* CalendarScreens.swift */; };
+		CFF5178B78A152B6017CD276 /* Craft Tasks.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 8DB21C5F928A6BF6DF1EC1DA /* Craft Tasks.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		DF57CD2B747B7A0F7F687802 /* Database.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C2FDF11F07F69238C93B683 /* Database.swift */; };
+		EC2FC3E25A264A696FFD2F96 /* Database.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C2FDF11F07F69238C93B683 /* Database.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		05E055FD2280FFA38241DDBA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B882694FDA5A1B7D8C214C73 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CBE97D851AC4B31A15DA9A86;
+			remoteInfo = CraftTasksWidget;
+		};
+		F1AD60163C78B35C48B239D9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B882694FDA5A1B7D8C214C73 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DB8F0D448CFE0A9B84ACA6B5;
+			remoteInfo = CraftTasksWatch;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		6E65BAF81ECF90157EAC21D8 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				CFF5178B78A152B6017CD276 /* Craft Tasks.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C52DD2C37EC24FE0CB061C51 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				9A185CE06B85685C72DCF6C3 /* CraftTasksWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		09F0AEF394C04729941B92D0 /* Craft Tasks.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Craft Tasks.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0B0A8BDDA4A10B1A6EA5357A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		175BA74888B2D6AB900062F7 /* AppLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppLog.swift; path = Sources/CraftTasks/AppLog.swift; sourceTree = "<group>"; };
+		1818988BFBA706220E323D17 /* CraftTasksWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CraftTasksWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		20B84789182FE29F9F95DA69 /* PomodoroActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PomodoroActivityAttributes.swift; path = Sources/CraftTasksShared/PomodoroActivityAttributes.swift; sourceTree = "<group>"; };
+		222A71069AB0B0F1F2301680 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		226875514BD152EAD4584B3C /* GoogleCalendar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = GoogleCalendar.swift; path = Sources/CraftTasks/GoogleCalendar.swift; sourceTree = "<group>"; };
+		28BC43423FEA2633070F39DB /* SyncEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SyncEngine.swift; path = Sources/CraftTasks/SyncEngine.swift; sourceTree = "<group>"; };
+		2CA591861306BD69D7E3679E /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		2CB1C1A8BEA87AEED3174C8A /* CraftTasksiOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftTasksiOSApp.swift; sourceTree = "<group>"; };
+		313DC1D64626DE8E864554D8 /* TaskListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskListView.swift; sourceTree = "<group>"; };
+		346C350CCE988517728204CB /* PomodoroLiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroLiveActivityManager.swift; sourceTree = "<group>"; };
+		472C3464D6A791C284517B0F /* MenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuView.swift; sourceTree = "<group>"; };
+		4B6A32DA500C435F2AD90BA0 /* CalendarScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarScreens.swift; sourceTree = "<group>"; };
+		56539F2F63365949E345949C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		6741BCB8AEB032C5B4A37943 /* AddTaskSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTaskSheet.swift; sourceTree = "<group>"; };
+		6BECD7F24CC5932B274FE95F /* DashboardDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardDetailView.swift; sourceTree = "<group>"; };
+		6C2FDF11F07F69238C93B683 /* Database.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Database.swift; path = Sources/CraftTasks/Database.swift; sourceTree = "<group>"; };
+		70ADC0768566C87901303D0B /* CraftTasksWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftTasksWatchApp.swift; sourceTree = "<group>"; };
+		75E327CB96818081C76418DB /* EditTaskSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditTaskSheet.swift; sourceTree = "<group>"; };
+		879310507E1797A9780A1E21 /* Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Store.swift; path = Sources/CraftTasks/Store.swift; sourceTree = "<group>"; };
+		8DB21C5F928A6BF6DF1EC1DA /* Craft Tasks.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Craft Tasks.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A539EDCAFEB15B16979D8427 /* PomodoroViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroViews.swift; sourceTree = "<group>"; };
+		A5ED0DF5CDD29588E6F7D570 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Models.swift; path = Sources/CraftTasks/Models.swift; sourceTree = "<group>"; };
+		AC20462C0E760EC2DC95F993 /* PomodoroLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroLiveActivityWidget.swift; sourceTree = "<group>"; };
+		BC3E4615895B836D42BB29EF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		C70EF4F9A085E28E834A6503 /* TaskRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskRowView.swift; sourceTree = "<group>"; };
+		CAD529E8054D9BBF8403E9C5 /* CraftTasksWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftTasksWidgetBundle.swift; sourceTree = "<group>"; };
+		CB4BC570DD719090B3D0F97C /* ListPages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListPages.swift; sourceTree = "<group>"; };
+		CECD9253C9FA656536A79605 /* RootShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootShellView.swift; sourceTree = "<group>"; };
+		DBA1406FFD9B38E49FDBE98A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		E219E5795696D588F6BC9970 /* TodayListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayListView.swift; sourceTree = "<group>"; };
+		ED87658A118FEF3BAC8863D8 /* Pomodoro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Pomodoro.swift; path = Sources/CraftTasks/Pomodoro.swift; sourceTree = "<group>"; };
+		F1375641C9E3FD76A82377B4 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		F9C0032774FDE0C026E285A1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		9069D42F80ABE323957EF1A8 /* CraftTasksiOS */ = {
+			isa = PBXGroup;
+			children = (
+				6741BCB8AEB032C5B4A37943 /* AddTaskSheet.swift */,
+				0B0A8BDDA4A10B1A6EA5357A /* Assets.xcassets */,
+				4B6A32DA500C435F2AD90BA0 /* CalendarScreens.swift */,
+				2CA591861306BD69D7E3679E /* Components.swift */,
+				2CB1C1A8BEA87AEED3174C8A /* CraftTasksiOSApp.swift */,
+				6BECD7F24CC5932B274FE95F /* DashboardDetailView.swift */,
+				75E327CB96818081C76418DB /* EditTaskSheet.swift */,
+				222A71069AB0B0F1F2301680 /* Info.plist */,
+				CB4BC570DD719090B3D0F97C /* ListPages.swift */,
+				472C3464D6A791C284517B0F /* MenuView.swift */,
+				346C350CCE988517728204CB /* PomodoroLiveActivityManager.swift */,
+				A539EDCAFEB15B16979D8427 /* PomodoroViews.swift */,
+				CECD9253C9FA656536A79605 /* RootShellView.swift */,
+				F9C0032774FDE0C026E285A1 /* SettingsView.swift */,
+				313DC1D64626DE8E864554D8 /* TaskListView.swift */,
+				C70EF4F9A085E28E834A6503 /* TaskRowView.swift */,
+				F1375641C9E3FD76A82377B4 /* Theme.swift */,
+			);
+			path = CraftTasksiOS;
+			sourceTree = "<group>";
+		};
+		D838407E2BBA9971CE2F3545 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				9069D42F80ABE323957EF1A8 /* CraftTasksiOS */,
+				F5E4A3F61716B471EC8C32C8 /* CraftTasksWatch */,
+				F3E63C5860E613940F04056F /* CraftTasksWidget */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		DE7BA4904384D3B784071ABD /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				09F0AEF394C04729941B92D0 /* Craft Tasks.app */,
+				8DB21C5F928A6BF6DF1EC1DA /* Craft Tasks.app */,
+				1818988BFBA706220E323D17 /* CraftTasksWidget.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		DF19D88C311CC6302BF020AD /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				175BA74888B2D6AB900062F7 /* AppLog.swift */,
+				6C2FDF11F07F69238C93B683 /* Database.swift */,
+				226875514BD152EAD4584B3C /* GoogleCalendar.swift */,
+				A5ED0DF5CDD29588E6F7D570 /* Models.swift */,
+				ED87658A118FEF3BAC8863D8 /* Pomodoro.swift */,
+				20B84789182FE29F9F95DA69 /* PomodoroActivityAttributes.swift */,
+				879310507E1797A9780A1E21 /* Store.swift */,
+				28BC43423FEA2633070F39DB /* SyncEngine.swift */,
+			);
+			name = Shared;
+			sourceTree = "<group>";
+		};
+		F1A4B1735F82BD28EB508F04 = {
+			isa = PBXGroup;
+			children = (
+				DF19D88C311CC6302BF020AD /* Shared */,
+				D838407E2BBA9971CE2F3545 /* Sources */,
+				DE7BA4904384D3B784071ABD /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		F3E63C5860E613940F04056F /* CraftTasksWidget */ = {
+			isa = PBXGroup;
+			children = (
+				CAD529E8054D9BBF8403E9C5 /* CraftTasksWidgetBundle.swift */,
+				DBA1406FFD9B38E49FDBE98A /* Info.plist */,
+				AC20462C0E760EC2DC95F993 /* PomodoroLiveActivityWidget.swift */,
+			);
+			path = CraftTasksWidget;
+			sourceTree = "<group>";
+		};
+		F5E4A3F61716B471EC8C32C8 /* CraftTasksWatch */ = {
+			isa = PBXGroup;
+			children = (
+				56539F2F63365949E345949C /* Assets.xcassets */,
+				70ADC0768566C87901303D0B /* CraftTasksWatchApp.swift */,
+				BC3E4615895B836D42BB29EF /* Info.plist */,
+				E219E5795696D588F6BC9970 /* TodayListView.swift */,
+			);
+			path = CraftTasksWatch;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		10048AF0D6F468A685F0644B /* CraftTasksiOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A0AAC197E14D4CDC3BF668B0 /* Build configuration list for PBXNativeTarget "CraftTasksiOS" */;
+			buildPhases = (
+				76F1EC79EE84231788E5B314 /* Sources */,
+				D953D9E07C03995D07403CB9 /* Resources */,
+				C52DD2C37EC24FE0CB061C51 /* Embed Foundation Extensions */,
+				6E65BAF81ECF90157EAC21D8 /* Embed Watch Content */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A85078B3B726B0409F62E9E2 /* PBXTargetDependency */,
+				DF0EC1A90F4079388E9FB057 /* PBXTargetDependency */,
+			);
+			name = CraftTasksiOS;
+			packageProductDependencies = (
+			);
+			productName = CraftTasksiOS;
+			productReference = 09F0AEF394C04729941B92D0 /* Craft Tasks.app */;
+			productType = "com.apple.product-type.application";
+		};
+		CBE97D851AC4B31A15DA9A86 /* CraftTasksWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3D663765B98A47D626CE8CBB /* Build configuration list for PBXNativeTarget "CraftTasksWidget" */;
+			buildPhases = (
+				2A85E1364966BEDD0CE6A188 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CraftTasksWidget;
+			packageProductDependencies = (
+			);
+			productName = CraftTasksWidget;
+			productReference = 1818988BFBA706220E323D17 /* CraftTasksWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		DB8F0D448CFE0A9B84ACA6B5 /* CraftTasksWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B965C89951CB801D22267598 /* Build configuration list for PBXNativeTarget "CraftTasksWatch" */;
+			buildPhases = (
+				B519A2B442B1F94581E74A22 /* Sources */,
+				DCD154152F873F489E8C0BB2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CraftTasksWatch;
+			packageProductDependencies = (
+			);
+			productName = CraftTasksWatch;
+			productReference = 8DB21C5F928A6BF6DF1EC1DA /* Craft Tasks.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B882694FDA5A1B7D8C214C73 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					10048AF0D6F468A685F0644B = {
+						ProvisioningStyle = Automatic;
+					};
+					CBE97D851AC4B31A15DA9A86 = {
+						ProvisioningStyle = Automatic;
+					};
+					DB8F0D448CFE0A9B84ACA6B5 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 35A9B2939B8BFF210FD6E83F /* Build configuration list for PBXProject "CraftTasksApple" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = F1A4B1735F82BD28EB508F04;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = DE7BA4904384D3B784071ABD /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				10048AF0D6F468A685F0644B /* CraftTasksiOS */,
+				CBE97D851AC4B31A15DA9A86 /* CraftTasksWidget */,
+				DB8F0D448CFE0A9B84ACA6B5 /* CraftTasksWatch */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D953D9E07C03995D07403CB9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B20F0317ACAD901E4F24AC0B /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DCD154152F873F489E8C0BB2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3F32D018A9793E3899D6161B /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		2A85E1364966BEDD0CE6A188 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				718401CE461D08C685FD7C30 /* CraftTasksWidgetBundle.swift in Sources */,
+				17A9EACDE5D08D29088408F3 /* PomodoroActivityAttributes.swift in Sources */,
+				B69BBD94F5A3D3693161E6FF /* PomodoroLiveActivityWidget.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		76F1EC79EE84231788E5B314 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9D58C1ECA3F740C85C231D63 /* AddTaskSheet.swift in Sources */,
+				29C521DED2A7DF07D43421B4 /* AppLog.swift in Sources */,
+				CEE64C7BE7B3CFACCAD5B531 /* CalendarScreens.swift in Sources */,
+				43888C3E9AC1B2F9F429A80B /* Components.swift in Sources */,
+				9023D8C3833B8801522F3434 /* CraftTasksiOSApp.swift in Sources */,
+				989BB3B7D65DADDD09312594 /* DashboardDetailView.swift in Sources */,
+				DF57CD2B747B7A0F7F687802 /* Database.swift in Sources */,
+				B1C56B3B895CBE2FA30F155D /* EditTaskSheet.swift in Sources */,
+				2251CE67C2EE51C88824869D /* GoogleCalendar.swift in Sources */,
+				A472437C698613BAF7A029E1 /* ListPages.swift in Sources */,
+				5C0CE51777985DFC59F61A8E /* MenuView.swift in Sources */,
+				76E9ACF977D01EC6DAE1FCEC /* Models.swift in Sources */,
+				72E30CE4A62134523B525881 /* Pomodoro.swift in Sources */,
+				B5A40D23B2E6702C328E349D /* PomodoroActivityAttributes.swift in Sources */,
+				9EC9751789FD3E76C4993CA6 /* PomodoroLiveActivityManager.swift in Sources */,
+				37766CB8BE96E68138CE110B /* PomodoroViews.swift in Sources */,
+				3432F05A95F9384669269CA8 /* RootShellView.swift in Sources */,
+				6E44E5149B9DEEBA3099B073 /* SettingsView.swift in Sources */,
+				28F048760E60AA330F308D89 /* Store.swift in Sources */,
+				214961FF2070083FD70D103C /* SyncEngine.swift in Sources */,
+				BFBE0972001EF9A8FD84D72D /* TaskListView.swift in Sources */,
+				A7B5E1B0157B38CAC3A1726B /* TaskRowView.swift in Sources */,
+				CE219E5F4127C5940C10E423 /* Theme.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B519A2B442B1F94581E74A22 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5497D40E750C5445CFEF6757 /* AppLog.swift in Sources */,
+				AF582FA26029439984C4CEBC /* CraftTasksWatchApp.swift in Sources */,
+				EC2FC3E25A264A696FFD2F96 /* Database.swift in Sources */,
+				37C982D2A12F8E1AADBB2D7A /* Models.swift in Sources */,
+				B9449909C81A85199D5F2EE1 /* Pomodoro.swift in Sources */,
+				67E0273A60B6EADFFC19CA62 /* Store.swift in Sources */,
+				68EB33660E934430CE55A7C7 /* SyncEngine.swift in Sources */,
+				04E103FB143BB608106BA998 /* TodayListView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A85078B3B726B0409F62E9E2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DB8F0D448CFE0A9B84ACA6B5 /* CraftTasksWatch */;
+			targetProxy = F1AD60163C78B35C48B239D9 /* PBXContainerItemProxy */;
+		};
+		DF0EC1A90F4079388E9FB057 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CBE97D851AC4B31A15DA9A86 /* CraftTasksWidget */;
+			targetProxy = 05E055FD2280FFA38241DDBA /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		11D21E4C45022D8C1079C7B8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = MNMRV3VW8Q;
+				HEADER_SEARCH_PATHS = "$(SDKROOT)/usr/include";
+				INFOPLIST_FILE = Sources/CraftTasksiOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
+				OTHER_LDFLAGS = "-lsqlite3";
+				PRODUCT_BUNDLE_IDENTIFIER = com.avisek.crafttasks;
+				PRODUCT_NAME = "Craft Tasks";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		20106702E67AA6F664996865 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = MNMRV3VW8Q;
+				HEADER_SEARCH_PATHS = "$(SDKROOT)/usr/include";
+				INFOPLIST_FILE = Sources/CraftTasksiOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
+				OTHER_LDFLAGS = "-lsqlite3";
+				PRODUCT_BUNDLE_IDENTIFIER = com.avisek.crafttasks;
+				PRODUCT_NAME = "Craft Tasks";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		2CE340E60DFD305C0CDD3AFD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = MNMRV3VW8Q;
+				INFOPLIST_FILE = Sources/CraftTasksWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.avisek.crafttasks.widget;
+				PRODUCT_NAME = CraftTasksWidget;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = NO;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		404162C8712F28D88A39BB85 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = MNMRV3VW8Q;
+				HEADER_SEARCH_PATHS = "$(SDKROOT)/usr/include";
+				INFOPLIST_FILE = Sources/CraftTasksWatch/Info.plist;
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
+				OTHER_LDFLAGS = "-lsqlite3";
+				PRODUCT_BUNDLE_IDENTIFIER = com.avisek.crafttasks.watchkitapp;
+				PRODUCT_NAME = "Craft Tasks";
+				SDKROOT = watchos;
+				SKIP_INSTALL = NO;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+		4402684894E78CCC5FD77771 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRIP_INSTALLED_PRODUCT = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+		7F3C3B59A54BD7F7BCCA1562 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = MNMRV3VW8Q;
+				HEADER_SEARCH_PATHS = "$(SDKROOT)/usr/include";
+				INFOPLIST_FILE = Sources/CraftTasksWatch/Info.plist;
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
+				OTHER_LDFLAGS = "-lsqlite3";
+				PRODUCT_BUNDLE_IDENTIFIER = com.avisek.crafttasks.watchkitapp;
+				PRODUCT_NAME = "Craft Tasks";
+				SDKROOT = watchos;
+				SKIP_INSTALL = NO;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		843023914B0D72D94F0B88DE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = MNMRV3VW8Q;
+				INFOPLIST_FILE = Sources/CraftTasksWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.avisek.crafttasks.widget;
+				PRODUCT_NAME = CraftTasksWidget;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = NO;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		FC83EBD54FBD3E1590F9B57F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRIP_INSTALLED_PRODUCT = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		35A9B2939B8BFF210FD6E83F /* Build configuration list for PBXProject "CraftTasksApple" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FC83EBD54FBD3E1590F9B57F /* Debug */,
+				4402684894E78CCC5FD77771 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		3D663765B98A47D626CE8CBB /* Build configuration list for PBXNativeTarget "CraftTasksWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				843023914B0D72D94F0B88DE /* Debug */,
+				2CE340E60DFD305C0CDD3AFD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A0AAC197E14D4CDC3BF668B0 /* Build configuration list for PBXNativeTarget "CraftTasksiOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				20106702E67AA6F664996865 /* Debug */,
+				11D21E4C45022D8C1079C7B8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B965C89951CB801D22267598 /* Build configuration list for PBXNativeTarget "CraftTasksWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7F3C3B59A54BD7F7BCCA1562 /* Debug */,
+				404162C8712F28D88A39BB85 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = B882694FDA5A1B7D8C214C73 /* Project object */;
+}

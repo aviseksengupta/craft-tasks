@@ -23,7 +23,7 @@ final class Store: ObservableObject {
     /// dashboard, or one of the built-in sections (All Tasks, Today, This
     /// Week, Documents, Views) — can be Home. nil falls back to the
     /// classic "open tasks" default.
-    @Published var homeSection: Section?
+    @Published var homeSection: AppSection?
     /// Per-item visibility for the top sidebar nav row, keyed by NavItemDef.id.
     /// Missing entries default to .shown.
     @Published var itemVisibility: [String: ItemVisibility] = [:]
@@ -266,7 +266,7 @@ final class Store: ObservableObject {
     /// Resolves where clicking "Home" actually navigates to, applying that
     /// destination's filter as a side effect where relevant, and falling
     /// back to the plain open-tasks default if the target was deleted.
-    func navigateHome() -> Section {
+    func navigateHome() -> AppSection {
         switch homeSection {
         case .saved(let id):
             guard let f = savedFilters.first(where: { $0.id == id }) else { selectHome(); return .home }
@@ -316,6 +316,15 @@ final class Store: ObservableObject {
         applyEdit(to: task, body: task.markdownParts.body, state: next,
                   scheduleDate: task.scheduleDate, deadlineDate: task.deadlineDate)
         if next != .todo, pomodoro?.activeTaskId == task.id { pomodoro?.stop() }
+    }
+
+    /// Marks a task done directly (skipping the done→canceled→todo cycle) —
+    /// used by the watchOS app's single "complete" action.
+    func markDone(_ task: CraftTask) {
+        guard task.state != .done else { return }
+        applyEdit(to: task, body: task.markdownParts.body, state: .done,
+                  scheduleDate: task.scheduleDate, deadlineDate: task.deadlineDate)
+        if pomodoro?.activeTaskId == task.id { pomodoro?.stop() }
     }
 
     /// One-click tag add/remove from any list row — used by the "In Progress"
@@ -667,7 +676,7 @@ final class Store: ObservableObject {
     private struct FiltersFile: Codable {
         var filters: [TaskFilter]
         var homeId: UUID?        // legacy: home was always a saved view
-        var homeSection: Section?
+        var homeSection: AppSection?
         var dashboards: [Dashboard]?
         var documentDisplayNames: [String: String]?
         var itemVisibility: [String: ItemVisibility]?
@@ -778,7 +787,7 @@ final class Store: ObservableObject {
 
     struct BackupConfig: Codable {
         var filters: [TaskFilter]
-        var homeSection: Section?
+        var homeSection: AppSection?
         var dashboards: [Dashboard]
         var documentDisplayNames: [String: String]
         var itemVisibility: [String: ItemVisibility]
@@ -1003,10 +1012,10 @@ final class Store: ObservableObject {
 
     /// Sets or clears what Home points to. Pass the same target again to
     /// unset it (toggle behavior used by every "Set/Unset as Home" menu item).
-    func setHomeTarget(_ target: Section) {
+    func setHomeTarget(_ target: AppSection) {
         homeSection = (homeSection == target) ? nil : target
         persistFilters()
     }
 
-    func isHomeTarget(_ target: Section) -> Bool { homeSection == target }
+    func isHomeTarget(_ target: AppSection) -> Bool { homeSection == target }
 }

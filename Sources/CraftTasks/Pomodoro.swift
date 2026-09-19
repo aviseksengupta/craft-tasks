@@ -79,6 +79,13 @@ final class PomodoroController: ObservableObject {
     func isRunningTask(_ id: String) -> Bool { activeTaskId == id }
     func canStart(_ id: String) -> Bool { activeTaskId == nil }
 
+    /// The wall-clock instant the running interval finishes — nil unless
+    /// `phase == .running`. Read-only accessor onto the private `endsAt`,
+    /// used by iOS to drive a Live Activity's self-updating countdown
+    /// (`Text(timerInterval:)`), which needs a real end Date rather than
+    /// a periodically-recomputed `remaining` value.
+    var currentEndsAt: Date? { endsAt }
+
     var labelString: String {
         switch phase {
         case .idle: return ""
@@ -137,6 +144,7 @@ final class PomodoroController: ObservableObject {
         phase = .running
         startTicker()
         scheduleReminder()
+        scheduleDoneNotification(after: remaining)
         persistRunState()
     }
 
@@ -150,6 +158,7 @@ final class PomodoroController: ObservableObject {
         phase = .running
         startTicker()
         scheduleReminder()
+        scheduleDoneNotification(after: duration)
         persistRunState()
     }
 
@@ -182,7 +191,9 @@ final class PomodoroController: ObservableObject {
         intervalStart = nil
         phase = .idle
         clearRunState()
-        UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+        let center = UNUserNotificationCenter.current()
+        center.removeAllDeliveredNotifications()
+        center.removePendingNotificationRequests(withIdentifiers: ["pomodoro-reminder", "pomodoro-done"])
     }
 
     // MARK: - Ticking
@@ -205,13 +216,43 @@ final class PomodoroController: ObservableObject {
 
     private func scheduleReminder() {
         reminderWork?.cancel()
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["pomodoro-reminder"])
         let n = settings.reminderMinutes
         guard n > 0 else { return }
         let work = DispatchWorkItem { [weak self] in
             Task { @MainActor in self?.fireReminder() }
         }
         reminderWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + Double(n) * 60, execute: work)
+        let interval = Double(n) * 60
+        DispatchQueue.main.asyncAfter(deadline: .now() + interval, execute: work)
+
+        // OS-scheduled backup so the reminder still fires if the app is
+        // backgrounded/suspended (iOS/watchOS) when the in-app DispatchWorkItem
+        // above would otherwise silently never run. Same identifier as
+        // notifyReminder()'s immediate post, so whichever fires first simply
+        // supersedes the other — never a duplicate.
+        let c = UNMutableNotificationContent()
+        c.title = "Still working on this?"
+        c.body = activeTaskTitle
+        c.categoryIdentifier = "POMODORO_REMINDER"
+        c.sound = .default
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, interval), repeats: false)
+        UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "pomodoro-reminder", content: c, trigger: trigger))
+    }
+
+    /// OS-scheduled backup for the "done" banner — see `scheduleReminder()`.
+    /// Same identifier as `notifyDone()`'s immediate post; re-adding with
+    /// that id replaces whatever's pending, so this can be called freely
+    /// (fresh interval, or resuming after a reminder) without stacking
+    /// duplicate requests.
+    private func scheduleDoneNotification(after interval: TimeInterval) {
+        let c = UNMutableNotificationContent()
+        c.title = "Pomodoro done"
+        c.body = "\(activeTaskTitle) — run another loop?"
+        c.categoryIdentifier = "POMODORO_DONE"
+        c.sound = .default
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, interval), repeats: false)
+        UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "pomodoro-done", content: c, trigger: trigger))
     }
 
     private func fireReminder() {
@@ -326,6 +367,7 @@ final class PomodoroController: ObservableObject {
                 phase = .running
                 startTicker()
                 scheduleReminder()
+                scheduleDoneNotification(after: remaining)
             } else {
                 // Interval elapsed while the app was closed — log it and stop.
                 let stop = s.endsAt ?? Date()
@@ -343,5 +385,18 @@ final class PomodoroController: ObservableObject {
             clear()
         }
         AppLog.shared.log("Pomodoro restored (\(phase.rawValue))")
+    }
+
+    /// Called on iOS/watchOS whenever the app returns to the foreground
+    /// (scenePhase → .active). A backgrounded/suspended app's in-app Timer
+    /// stops ticking, so `remaining`/`phase` can be stale by the time it's
+    /// looked at again — this recomputes them from wall-clock state exactly
+    /// like `restoreIfNeeded()` already does after a full relaunch, or (if
+    /// nothing was active before backgrounding) is a no-op beyond a UI
+    /// refresh. macOS doesn't call this — its process keeps running and
+    /// ticking in the background, so there's nothing to reconcile.
+    func reconcileOnForeground() {
+        guard phase != .idle else { restoreIfNeeded(); return }
+        tick()
     }
 }

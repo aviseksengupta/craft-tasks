@@ -2,20 +2,6 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
-enum Section: Hashable, Codable {
-    case home
-    case allTasks
-    case inbox
-    case today
-    case thisWeek
-    case documents
-    case views
-    case dashboards
-    case calendar
-    case saved(UUID)
-    case dashboard(UUID)
-}
-
 /// Publishes whether ⌘ is currently held down, via a local NSEvent monitor.
 /// Drives the ⌘-number hints shown on the pinned sidebar rows (the way
 /// Claude desktop reveals ⌘1…⌘9 on recent chats while ⌘ is held).
@@ -36,7 +22,7 @@ final class CommandKeyWatcher: ObservableObject {
 
 struct RootView: View {
     @EnvironmentObject var store: Store
-    @State var section: Section = .home
+    @State var section: AppSection = .home
     @State private var showQuickOpen = false
     @FocusState private var searchFocused: Bool
 
@@ -116,13 +102,13 @@ struct NavItemDef: Identifiable {
     let id: String
     let icon: String
     let label: String
-    let section: Section
+    let section: AppSection
     let select: () -> Void
 }
 
 struct Sidebar: View {
     @EnvironmentObject var store: Store
-    @Binding var section: Section
+    @Binding var section: AppSection
     @FocusState.Binding var searchFocused: Bool
     @StateObject private var cmdKey = CommandKeyWatcher()
     @State private var showAddTask = false
@@ -268,7 +254,7 @@ struct Sidebar: View {
 }
 
 extension PinnedRef {
-    var asSection: Section {
+    var asSection: AppSection {
         switch kind {
         case .view: return .saved(id)
         case .dashboard: return .dashboard(id)
@@ -282,7 +268,7 @@ struct PinnedItemRow: View {
     @EnvironmentObject var store: Store
     let item: PinnedItem
     let active: Bool
-    @Binding var section: Section
+    @Binding var section: AppSection
     var shortcutHint: Int? = nil
     @State private var hover = false
     @State private var renaming = false
@@ -765,7 +751,7 @@ private struct BackupRestoreSection: View {
 struct NewDashboardSheet: View {
     @EnvironmentObject var store: Store
     @Environment(\.dismiss) private var dismiss
-    @Binding var section: Section
+    @Binding var section: AppSection
     @State private var name = ""
     @State private var selected: Set<UUID> = []
 
@@ -844,7 +830,7 @@ struct SidebarItem: View {
 extension View {
     /// Right-click "Set as Home" / "Unset as Home" for any pinnable
     /// sidebar destination.
-    func homeMenu(store: Store, target: Section) -> some View {
+    func homeMenu(store: Store, target: AppSection) -> some View {
         contextMenu {
             Button(store.isHomeTarget(target) ? "Unset as Home" : "Set as Home") {
                 store.setHomeTarget(target)
@@ -1078,7 +1064,7 @@ struct QuickOpenSheet: View {
 
 struct TaskListView: View {
     @EnvironmentObject var store: Store
-    @Binding var section: Section
+    @Binding var section: AppSection
     @State private var showSaveSheet = false
     @State private var newFilterName = ""
 
@@ -2087,7 +2073,7 @@ struct AddWidgetsSheet: View {
 /// saving a view from All Tasks no longer auto-adds it to the sidebar.
 struct ViewsPageView: View {
     @EnvironmentObject var store: Store
-    @Binding var section: Section
+    @Binding var section: AppSection
 
     let cols = [GridItem(.adaptive(minimum: 300), spacing: 18)]
 
@@ -2273,7 +2259,7 @@ struct ViewCard: View {
 
 struct DashboardsPageView: View {
     @EnvironmentObject var store: Store
-    @Binding var section: Section
+    @Binding var section: AppSection
     @State private var showNewDashboard = false
 
     let cols = [GridItem(.adaptive(minimum: 300), spacing: 18)]
@@ -2434,7 +2420,7 @@ struct RenameDashboardPopover: View {
 
 struct DocumentsView: View {
     @EnvironmentObject var store: Store
-    @Binding var section: Section
+    @Binding var section: AppSection
 
     let cols = [GridItem(.adaptive(minimum: 300), spacing: 18)]
 

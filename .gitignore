@@ -5,6 +5,12 @@
 
 # Xcode
 *.xcodeproj/
+# CraftTasksApple.xcodeproj is xcodegen-generated (from project.yml) but
+# committed anyway so `git clone` + open in Xcode works without installing
+# xcodegen first — regenerate it with `xcodegen generate` after editing
+# project.yml or adding/removing source files in Sources/CraftTasksiOS or
+# Sources/CraftTasksWatch.
+!CraftTasksApple.xcodeproj/
 *.xcworkspace/
 xcuserdata/
 *.swiftpm/

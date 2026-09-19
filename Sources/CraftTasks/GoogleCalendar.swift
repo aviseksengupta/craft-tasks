@@ -1,6 +1,10 @@
 import Foundation
 import AuthenticationServices
+#if os(macOS)
 import AppKit
+#else
+import UIKit
+#endif
 import Security
 import CryptoKit
 
@@ -468,7 +472,13 @@ final class GoogleCalendar: ObservableObject {
 
 private final class AuthPresenter: NSObject, ASWebAuthenticationPresentationContextProviding {
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        NSApplication.shared.windows.first { $0.isKeyWindow } ?? NSApplication.shared.windows.first ?? ASPresentationAnchor()
+        #if os(macOS)
+        return NSApplication.shared.windows.first { $0.isKeyWindow } ?? NSApplication.shared.windows.first ?? ASPresentationAnchor()
+        #else
+        let scene = UIApplication.shared.connectedScenes.first { $0.activationState == .foregroundActive } as? UIWindowScene
+            ?? UIApplication.shared.connectedScenes.first as? UIWindowScene
+        return scene?.windows.first { $0.isKeyWindow } ?? scene?.windows.first ?? ASPresentationAnchor()
+        #endif
     }
 }
 
