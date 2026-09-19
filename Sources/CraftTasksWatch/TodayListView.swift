@@ -18,14 +18,13 @@ struct TodayListView: View {
     }
 
     private var tasks: [CraftTask] {
-        // Always folds in overdue tasks — on Mac/iPhone this is the
-        // "Today includes overdue" setting, but the watch deliberately has
-        // no settings screen at all, so there's nowhere to turn it off.
-        // Defaulting to on is the right call here: a watch glance is for
-        // "what do I need to do right now," and a stale overdue task is
-        // exactly that.
+        // The watch has no settings screen of its own, so "Today includes
+        // overdue" is mirrored from the iPhone app via WatchSettingsSync
+        // (WatchConnectivity) rather than toggled here — see
+        // WatchSettingsReceiver. store.todayIncludesOverdue starts false
+        // (its own local default) until the phone's value arrives.
         store.tasks
-            .filter { todayFilter.matches($0, todayIncludesOverdue: true) }
+            .filter { todayFilter.matches($0, todayIncludesOverdue: store.todayIncludesOverdue) }
             .sorted(by: Store.taskSort)
     }
 

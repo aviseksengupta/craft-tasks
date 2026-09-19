@@ -20,12 +20,14 @@
 		43888C3E9AC1B2F9F429A80B /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CA591861306BD69D7E3679E /* Components.swift */; };
 		5497D40E750C5445CFEF6757 /* AppLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175BA74888B2D6AB900062F7 /* AppLog.swift */; };
 		5C0CE51777985DFC59F61A8E /* MenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 472C3464D6A791C284517B0F /* MenuView.swift */; };
+		67D68755F69D8629A62B4519 /* WatchSettingsSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C6FCAAD8D3A467075CA4985 /* WatchSettingsSync.swift */; };
 		67E0273A60B6EADFFC19CA62 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 879310507E1797A9780A1E21 /* Store.swift */; };
 		68EB33660E934430CE55A7C7 /* SyncEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28BC43423FEA2633070F39DB /* SyncEngine.swift */; };
 		6E44E5149B9DEEBA3099B073 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9C0032774FDE0C026E285A1 /* SettingsView.swift */; };
 		718401CE461D08C685FD7C30 /* CraftTasksWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAD529E8054D9BBF8403E9C5 /* CraftTasksWidgetBundle.swift */; };
 		72E30CE4A62134523B525881 /* Pomodoro.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED87658A118FEF3BAC8863D8 /* Pomodoro.swift */; };
 		76E9ACF977D01EC6DAE1FCEC /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5ED0DF5CDD29588E6F7D570 /* Models.swift */; };
+		8234F9E211484305EC2AAF9E /* WatchSettingsSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CFA04ADE9A17C1CB878D01E /* WatchSettingsSync.swift */; };
 		9023D8C3833B8801522F3434 /* CraftTasksiOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CB1C1A8BEA87AEED3174C8A /* CraftTasksiOSApp.swift */; };
 		989BB3B7D65DADDD09312594 /* DashboardDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BECD7F24CC5932B274FE95F /* DashboardDetailView.swift */; };
 		9A185CE06B85685C72DCF6C3 /* CraftTasksWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1818988BFBA706220E323D17 /* CraftTasksWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -42,7 +44,7 @@
 		BFBE0972001EF9A8FD84D72D /* TaskListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 313DC1D64626DE8E864554D8 /* TaskListView.swift */; };
 		CE219E5F4127C5940C10E423 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1375641C9E3FD76A82377B4 /* Theme.swift */; };
 		CEE64C7BE7B3CFACCAD5B531 /* CalendarScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B6A32DA500C435F2AD90BA0 /* CalendarScreens.swift */; };
-		CFF5178B78A152B6017CD276 /* Craft Tasks.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 8DB21C5F928A6BF6DF1EC1DA /* Craft Tasks.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		CFF5178B78A152B6017CD276 /* CraftTasksWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 8DB21C5F928A6BF6DF1EC1DA /* CraftTasksWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		DF57CD2B747B7A0F7F687802 /* Database.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C2FDF11F07F69238C93B683 /* Database.swift */; };
 		EC2FC3E25A264A696FFD2F96 /* Database.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C2FDF11F07F69238C93B683 /* Database.swift */; };
 /* End PBXBuildFile section */
@@ -71,7 +73,7 @@
 			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
 			dstSubfolderSpec = 16;
 			files = (
-				CFF5178B78A152B6017CD276 /* Craft Tasks.app in Embed Watch Content */,
+				CFF5178B78A152B6017CD276 /* CraftTasksWatch.app in Embed Watch Content */,
 			);
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -90,10 +92,11 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		09F0AEF394C04729941B92D0 /* Craft Tasks.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Craft Tasks.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		09F0AEF394C04729941B92D0 /* CraftTasksiOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = CraftTasksiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0B0A8BDDA4A10B1A6EA5357A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		0CFA04ADE9A17C1CB878D01E /* WatchSettingsSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSettingsSync.swift; sourceTree = "<group>"; };
 		175BA74888B2D6AB900062F7 /* AppLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppLog.swift; path = Sources/CraftTasks/AppLog.swift; sourceTree = "<group>"; };
-		1818988BFBA706220E323D17 /* CraftTasksWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CraftTasksWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		1818988BFBA706220E323D17 /* CraftTasksWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = CraftTasksWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		20B84789182FE29F9F95DA69 /* PomodoroActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PomodoroActivityAttributes.swift; path = Sources/CraftTasksShared/PomodoroActivityAttributes.swift; sourceTree = "<group>"; };
 		222A71069AB0B0F1F2301680 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		226875514BD152EAD4584B3C /* GoogleCalendar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = GoogleCalendar.swift; path = Sources/CraftTasks/GoogleCalendar.swift; sourceTree = "<group>"; };
@@ -104,6 +107,7 @@
 		346C350CCE988517728204CB /* PomodoroLiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroLiveActivityManager.swift; sourceTree = "<group>"; };
 		472C3464D6A791C284517B0F /* MenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuView.swift; sourceTree = "<group>"; };
 		4B6A32DA500C435F2AD90BA0 /* CalendarScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarScreens.swift; sourceTree = "<group>"; };
+		4C6FCAAD8D3A467075CA4985 /* WatchSettingsSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSettingsSync.swift; sourceTree = "<group>"; };
 		56539F2F63365949E345949C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6741BCB8AEB032C5B4A37943 /* AddTaskSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTaskSheet.swift; sourceTree = "<group>"; };
 		6BECD7F24CC5932B274FE95F /* DashboardDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardDetailView.swift; sourceTree = "<group>"; };
@@ -111,7 +115,7 @@
 		70ADC0768566C87901303D0B /* CraftTasksWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CraftTasksWatchApp.swift; sourceTree = "<group>"; };
 		75E327CB96818081C76418DB /* EditTaskSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditTaskSheet.swift; sourceTree = "<group>"; };
 		879310507E1797A9780A1E21 /* Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Store.swift; path = Sources/CraftTasks/Store.swift; sourceTree = "<group>"; };
-		8DB21C5F928A6BF6DF1EC1DA /* Craft Tasks.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Craft Tasks.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		8DB21C5F928A6BF6DF1EC1DA /* CraftTasksWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CraftTasksWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A539EDCAFEB15B16979D8427 /* PomodoroViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroViews.swift; sourceTree = "<group>"; };
 		A5ED0DF5CDD29588E6F7D570 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Models.swift; path = Sources/CraftTasks/Models.swift; sourceTree = "<group>"; };
 		AC20462C0E760EC2DC95F993 /* PomodoroLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroLiveActivityWidget.swift; sourceTree = "<group>"; };
@@ -148,6 +152,7 @@
 				313DC1D64626DE8E864554D8 /* TaskListView.swift */,
 				C70EF4F9A085E28E834A6503 /* TaskRowView.swift */,
 				F1375641C9E3FD76A82377B4 /* Theme.swift */,
+				0CFA04ADE9A17C1CB878D01E /* WatchSettingsSync.swift */,
 			);
 			path = CraftTasksiOS;
 			sourceTree = "<group>";
@@ -165,8 +170,8 @@
 		DE7BA4904384D3B784071ABD /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				09F0AEF394C04729941B92D0 /* Craft Tasks.app */,
-				8DB21C5F928A6BF6DF1EC1DA /* Craft Tasks.app */,
+				09F0AEF394C04729941B92D0 /* CraftTasksiOS.app */,
+				8DB21C5F928A6BF6DF1EC1DA /* CraftTasksWatch.app */,
 				1818988BFBA706220E323D17 /* CraftTasksWidget.appex */,
 			);
 			name = Products;
@@ -213,6 +218,7 @@
 				70ADC0768566C87901303D0B /* CraftTasksWatchApp.swift */,
 				BC3E4615895B836D42BB29EF /* Info.plist */,
 				E219E5795696D588F6BC9970 /* TodayListView.swift */,
+				4C6FCAAD8D3A467075CA4985 /* WatchSettingsSync.swift */,
 			);
 			path = CraftTasksWatch;
 			sourceTree = "<group>";
@@ -239,7 +245,7 @@
 			packageProductDependencies = (
 			);
 			productName = CraftTasksiOS;
-			productReference = 09F0AEF394C04729941B92D0 /* Craft Tasks.app */;
+			productReference = 09F0AEF394C04729941B92D0 /* CraftTasksiOS.app */;
 			productType = "com.apple.product-type.application";
 		};
 		CBE97D851AC4B31A15DA9A86 /* CraftTasksWidget */ = {
@@ -274,7 +280,7 @@
 			packageProductDependencies = (
 			);
 			productName = CraftTasksWatch;
-			productReference = 8DB21C5F928A6BF6DF1EC1DA /* Craft Tasks.app */;
+			productReference = 8DB21C5F928A6BF6DF1EC1DA /* CraftTasksWatch.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -375,6 +381,7 @@
 				BFBE0972001EF9A8FD84D72D /* TaskListView.swift in Sources */,
 				A7B5E1B0157B38CAC3A1726B /* TaskRowView.swift in Sources */,
 				CE219E5F4127C5940C10E423 /* Theme.swift in Sources */,
+				8234F9E211484305EC2AAF9E /* WatchSettingsSync.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -390,6 +397,7 @@
 				67E0273A60B6EADFFC19CA62 /* Store.swift in Sources */,
 				68EB33660E934430CE55A7C7 /* SyncEngine.swift in Sources */,
 				04E103FB143BB608106BA998 /* TodayListView.swift in Sources */,
+				67D68755F69D8629A62B4519 /* WatchSettingsSync.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -415,16 +423,21 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = MNMRV3VW8Q;
-				HEADER_SEARCH_PATHS = "$(SDKROOT)/usr/include";
+				HEADER_SEARCH_PATHS = (
+					"$(SDKROOT)/usr/include",
+				);
 				INFOPLIST_FILE = Sources/CraftTasksiOS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
-				OTHER_LDFLAGS = "-lsqlite3";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+				);
+				OTHER_LDFLAGS = (
+					"-lsqlite3",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.avisek.crafttasks;
 				PRODUCT_NAME = "Craft Tasks";
 				SDKROOT = iphoneos;
@@ -439,16 +452,21 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = MNMRV3VW8Q;
-				HEADER_SEARCH_PATHS = "$(SDKROOT)/usr/include";
+				HEADER_SEARCH_PATHS = (
+					"$(SDKROOT)/usr/include",
+				);
 				INFOPLIST_FILE = Sources/CraftTasksiOS/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
-				OTHER_LDFLAGS = "-lsqlite3";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+				);
+				OTHER_LDFLAGS = (
+					"-lsqlite3",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.avisek.crafttasks;
 				PRODUCT_NAME = "Craft Tasks";
 				SDKROOT = iphoneos;
@@ -461,7 +479,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = MNMRV3VW8Q;
 				INFOPLIST_FILE = Sources/CraftTasksWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -482,11 +499,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = MNMRV3VW8Q;
-				HEADER_SEARCH_PATHS = "$(SDKROOT)/usr/include";
+				HEADER_SEARCH_PATHS = (
+					"$(SDKROOT)/usr/include",
+				);
 				INFOPLIST_FILE = Sources/CraftTasksWatch/Info.plist;
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
-				OTHER_LDFLAGS = "-lsqlite3";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+				);
+				OTHER_LDFLAGS = (
+					"-lsqlite3",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.avisek.crafttasks.watchkitapp;
 				PRODUCT_NAME = "Craft Tasks";
 				SDKROOT = watchos;
@@ -548,7 +570,6 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRIP_INSTALLED_PRODUCT = NO;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.9;
@@ -561,11 +582,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = MNMRV3VW8Q;
-				HEADER_SEARCH_PATHS = "$(SDKROOT)/usr/include";
+				HEADER_SEARCH_PATHS = (
+					"$(SDKROOT)/usr/include",
+				);
 				INFOPLIST_FILE = Sources/CraftTasksWatch/Info.plist;
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
-				OTHER_LDFLAGS = "-lsqlite3";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+				);
+				OTHER_LDFLAGS = (
+					"-lsqlite3",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.avisek.crafttasks.watchkitapp;
 				PRODUCT_NAME = "Craft Tasks";
 				SDKROOT = watchos;
@@ -579,7 +605,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = MNMRV3VW8Q;
 				INFOPLIST_FILE = Sources/CraftTasksWidget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -654,7 +679,6 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRIP_INSTALLED_PRODUCT = NO;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.9;

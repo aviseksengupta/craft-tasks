@@ -12,6 +12,9 @@ struct CraftTasksWatchApp: App {
                 .environmentObject(store)
                 .environmentObject(pomodoro)
                 .onAppear {
+                    WatchSettingsReceiver.shared.store = store
+                    WatchSettingsReceiver.shared.pomodoro = pomodoro
+                    WatchSettingsReceiver.shared.applyCurrentContext()
                     guard store.pomodoro == nil else { return }
                     store.pomodoro = pomodoro
                     pomodoro.store = store
@@ -21,6 +24,7 @@ struct CraftTasksWatchApp: App {
                     if phase == .active {
                         pomodoro.reconcileOnForeground()
                         Task { await store.sync() }
+                        WatchSettingsReceiver.shared.applyCurrentContext()
                     }
                 }
         }
